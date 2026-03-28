@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* ✅ REQUIRED FOR DARK MODE */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-heading: var(--font-sora), sans-serif;
+  --font-mono: var(--font-mono), ui-monospace;
+
+  --color-brand: #00BA88;
+  --color-brand-muted: rgba(0, 186, 136, 0.1);
+  --color-background: #F8FAFC;
+
+  --shadow-premium: 0 2px 4px rgba(0,0,0,0.02), 0 1px 1px rgba(0,0,0,0.06);
+}
+
+@layer base {
+  body {
+    @apply bg-white text-slate-900 antialiased font-sans dark:bg-slate-950 dark:text-slate-100;
+    
+    letter-spacing: -0.011em;
+    font-feature-settings: "tnum" on, "cv02" on, "cv03" on, "cv04" on;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    @apply tracking-tight font-bold text-slate-900 dark:text-white;
+  }
+
+  h1 { @apply text-3xl; letter-spacing: -0.03em; }
+  h2 { @apply text-2xl; letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 dark:bg-slate-900/70 dark:border-slate-800/50;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700;
+  }
+}
