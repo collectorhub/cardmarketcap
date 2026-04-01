@@ -21,7 +21,7 @@ export default async function Page({
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#020617] transition-colors duration-300">
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-10 py-8 md:py-12">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 py-8 md:py-12">
         
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
