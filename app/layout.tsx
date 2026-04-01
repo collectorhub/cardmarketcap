@@ -4,7 +4,8 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/theme-provider";
-import { MobileMenuProvider } from "@/context/MobileMenuContext"
+import { MobileMenuProvider } from "@/context/MobileMenuContext";
+import LayoutWrapper from "@/components/LayoutWrapper"; // We'll create this below
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,17 +36,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased overflow-x-hidden">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <MobileMenuProvider>
-           <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-950">
-  <Sidebar />
-
-  {/* Remove lg:pl-64 if the sidebar is lg:static */}
-  <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden bg-[#F8FAFC] dark:bg-slate-950 transition-all duration-300">
-    <Navbar />
-    <main className="p-4 md:p-8 w-full max-w-[1600px] mx-auto min-h-screen">
-      {children}
-    </main>
-  </div>
-</div>
+            {/* We use a Wrapper here because metadata requires a Server Component, 
+               but checking the URL (pathname) requires a Client Component.
+            */}
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
           </MobileMenuProvider>
         </ThemeProvider>
       </body>

@@ -48,3 +48,24 @@ export async function fetchTrendingCards() {
     return []; // Return empty array so the UI doesn't crash
   }
 }
+
+export async function fetchCMCCards(page = 1) {
+  try {
+    const response = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?page=${page}`);
+    if (!response.ok) return { data: [], metadata: {} };
+    
+    const result = await response.json();
+
+    // Map the data to ensure every card has a valid 'image' property
+    const formattedData = result.data.map((card: any) => ({
+      ...card,
+      // Use the API's imageUrl, but if it fails, the <img> tag will handle the rest
+      image: card.imageUrl || "https://images.pokemontcg.io/base1/4_hires.png"
+    }));
+
+    return { data: formattedData, metadata: result.metadata };
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return { data: [], metadata: {} };
+  }
+}

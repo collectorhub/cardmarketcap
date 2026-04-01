@@ -13,6 +13,12 @@
   --color-background: #F8FAFC;
 
   --shadow-premium: 0 2px 4px rgba(0,0,0,0.02), 0 1px 1px rgba(0,0,0,0.06);
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  --animate-marquee: marquee 40s linear infinite;
 }
 
 @layer base {
@@ -45,3 +51,4 @@
     @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700;
   }
 }
+
