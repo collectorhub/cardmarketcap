@@ -1,6 +1,8 @@
 // page.tsx
+import { Footer } from "@/components/Footer";
 import { MarketStats } from "@/components/MarketStats"
 import { MarketTable } from "@/components/MarketTable"
+import { Newsletter } from "@/components/Newsletter";
 import { fetchCMCCards, fetchMarketStats } from "@/lib/queries/market" 
 
 export default async function Page({
@@ -11,7 +13,6 @@ export default async function Page({
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
 
-  // 1. Fetch both Card Data and Market Stats in parallel for speed
   const [cardResponse, statsResponse] = await Promise.all([
     fetchCMCCards(currentPage),
     fetchMarketStats()
@@ -21,8 +22,8 @@ export default async function Page({
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#020617] transition-colors duration-300">
+      {/* 1. Main content remains constrained for readability */}
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 py-8 md:py-12">
-        
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
             <nav className="flex items-center gap-2 mb-2">
@@ -40,7 +41,6 @@ export default async function Page({
         </header>
 
         <section className="mb-12">
-          {/* 2. Pass the stats data into the component */}
           <MarketStats initialStats={statsResponse?.stats || []} />
         </section>
 
@@ -53,6 +53,13 @@ export default async function Page({
           />
         </section>
       </main>
+
+      {/* 2. Newsletter moved OUTSIDE <main> to span full width 100% */}
+      <div className="w-full">
+        <Newsletter />
+      </div>
+
+      <Footer />
     </div>
   )
 }
