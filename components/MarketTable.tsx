@@ -12,16 +12,12 @@ const TYPE_MAP: Record<string, string> = {
   "\u5e0c\u5c11": "Rare",
   "\u30ec\u30a2\u30db\u30ed": "Rare Holo",
   "\u975e": "Non-Holo",
-  // Add more as you find them in your data
 };
 
-const formatSetLabel = (setSlug: string) => {
-  if (!setSlug) return "Unknown Set";
-  // Removes "ja:" and replaces underscores/hyphens with spaces, then capitalizes
-  return setSlug
-    .replace(/^ja:/, '')
-    .replace(/[_-]/g, ' ')
-    .toUpperCase();
+// UPDATED: Now trusts the clean expansion name from the database
+const formatSetLabel = (setName: string) => {
+  if (!setName || setName === "Unknown Set") return "Unknown Set";
+  return setName; 
 };
 
 export function MarketTable({ 
@@ -96,11 +92,10 @@ export function MarketTable({
                         </div>
                       </div>
                     </td>
-                    {/* FIXED SET LABEL */}
+                    {/* UPDATED SET LABEL CELL */}
                     <td className="p-4 text-slate-500 font-medium text-[11px]">
                       {formatSetLabel(card.set)}
                     </td>
-                    {/* FIXED TYPE LABEL */}
                     <td className="p-4">
                       <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 uppercase">
                         {TYPE_MAP[card.type] || card.type}
@@ -122,7 +117,7 @@ export function MarketTable({
         </AnimatePresence>
       </div>
 
-      {/* FOOTER (Restored with Pointer Cursor) */}
+      {/* FOOTER */}
       <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Page {currentPage} of {totalPages}</p>
         <div className="flex items-center gap-2">
