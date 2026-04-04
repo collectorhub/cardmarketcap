@@ -1,10 +1,11 @@
-// page.tsx
+// app/page.tsx
 import { Footer } from "@/components/Footer";
 import { MarketStats } from "@/components/MarketStats"
 import { MarketTable } from "@/components/MarketTable"
 import { Newsletter } from "@/components/Newsletter";
-import { MarketTicker } from "@/components/MarketTicker"; // New Import
+import { MarketTicker } from "@/components/MarketTicker";
 import { fetchCMCCards, fetchMarketStats } from "@/lib/queries/market" 
+import Navbar from "@/components/Navbar";
 
 export default async function Page({
   searchParams,
@@ -22,43 +23,52 @@ export default async function Page({
   const { data, metadata } = cardResponse;
   const apiStats = statsResponse?.stats || [];
 
-  // Sync calculations for the ticker
+  // Sync calculations for the ticker and stats cards
   const totalCardsCount = metadata?.total_records || 0;
-  // Use PSA 10 value from apiStats if available, else fallback
-  const psa10Value = apiStats.find((s: any) => s.label === "PSA 10 Index")?.value || "5.43K";
-  const marketVol = apiStats.find((s: any) => s.label === "Total Market Cap")?.value || "$1.2B";
+  const psa10Value = apiStats.find((s: any) => s.label === "PSA 10 Index")?.value || "2,396";
+  const marketVol = apiStats.find((s: any) => s.label === "Total Market Cap")?.value || "$1.1B";
 
   const synchronizedStats = [
     {
-      label: "Total Market Cap",
+      label: "TOTAL MARKET CAP",
       value: marketVol,
       change: apiStats.find((s: any) => s.label === "Total Market Cap")?.change || "+2.1%",
-      trend: apiStats.find((s: any) => s.label === "Total Market Cap")?.trend || "up",
+      trend: "up",
     },
     {
-      label: "Tracked Cards",
+      label: "TRACKED CARDS",
       value: totalCardsCount.toLocaleString(),
       change: "Live",
       trend: "up",
     },
     {
-       label: "PSA 10 Index",
+       label: "PSA 10 INDEX",
        value: psa10Value,
        change: apiStats.find((s: any) => s.label === "PSA 10 Index")?.change || "+0.6%",
        trend: "up",
     },
     {
-      label: "Modern 100",
-      value: apiStats.find((s: any) => s.label === "Modern 100")?.value || "1,042",
-      change: apiStats.find((s: any) => s.label === "Modern 100")?.change || "-0.4%",
+      label: "MODERN 100",
+      value: apiStats.find((s: any) => s.label === "Modern 100")?.value || "1,720",
+      change: apiStats.find((s: any) => s.label === "Modern 100")?.change || "-1.1%",
       trend: "down",
     }
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#020617] transition-colors duration-300">
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 pt-20 pb-8 md:py-12">
-        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* NAVBAR: Manual render here because this page is outside /(root).
+          This ensures the frontpage looks exactly like your design 
+      */}
+      <Navbar />
+
+      {/* Main Content: pt-24 provides enough space for the fixed Navbar.
+          We use max-w-[1600px] to match your dashboard's inner width.
+      */}
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 pt-24 pb-8 md:py-16">
+        
+        {/* Header Section */}
+        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
             <nav className="flex items-center gap-2 mb-2">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
@@ -66,7 +76,7 @@ export default async function Page({
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Market Intelligence</span>
             </nav>
             <div className="space-y-3">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
                 Pokémon Graded Card Tracker
                 <span className="ml-3 inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
                   PSA Verified
@@ -79,11 +89,14 @@ export default async function Page({
           </div>
         </header>
 
-        <section className="mb-4 md:mb-8">
+        {/* Stats Grid Section */}
+        <section className="mb-8 md:mb-12">
           <MarketStats initialStats={synchronizedStats} />
         </section>
 
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-12">
+        {/* Table Section */}
+        <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
+          <h2 className="text-lg font-black uppercase tracking-tight mb-4 dark:text-white">Card Overview</h2>
           <MarketTable 
             initialCards={data} 
             totalRecords={totalCardsCount}
@@ -93,13 +106,13 @@ export default async function Page({
         </section>
       </main>
 
-      <div className="w-full pb-10"> {/* Added padding so ticker doesn't hide newsletter */}
+      <div className="w-full pb-20">
         <Newsletter />
       </div>
 
       <Footer />
 
-      {/* FIXED TICKER AT THE BOTTOM */}
+      {/* FIXED TICKER */}
       <MarketTicker 
         totalCards={totalCardsCount}
         psa10Pop={psa10Value}
