@@ -80,12 +80,13 @@ export default function Sidebar() {
       <motion.aside
         initial={false}
         animate={{
-          x: isMobile ? (isOpen ? 0 : -300) : 0
+          // Changed: Slide from 300 (right) to 0
+          x: isMobile ? (isOpen ? 0 : 300) : 0
         }}
         transition={{ type: "tween", duration: 0.25 }}
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-72 lg:w-64 flex flex-col font-sans",
-          "border-r border-slate-200/50 dark:border-slate-800",
+          "fixed right-0 top-0 z-50 h-screen w-72 lg:w-64 flex flex-col font-sans", // Changed: right-0
+          "border-l border-slate-200/50 dark:border-slate-800", // Changed: border-l (left border)
           "bg-[#F9FAFB] dark:bg-slate-950",
           "lg:static lg:translate-x-0"
         )}

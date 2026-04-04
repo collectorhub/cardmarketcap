@@ -3,48 +3,53 @@
 import React from 'react'
 import { cn } from "@/lib/utils"
 
-const TICKER_DATA = [
-  { label: "GAS", value: "12 Gwei" },
-  { label: "SENTIMENT", value: "GREED (72)", color: "text-emerald-500 dark:text-[#00BA88]" },
-  { label: "VOLATILITY", value: "LOW" },
-  { label: "TOP GAINER", value: "Mewtwo VSTAR (+12.4%)", color: "text-emerald-500 dark:text-[#00BA88]" },
-  { label: "MARKET CAP", value: "$2.34T" },
-  { label: "PSA 10 POP", value: "5.43K", color: "text-blue-500" },
-]
+interface MarketTickerProps {
+  totalCards: number;
+  psa10Pop: string;
+  volume30d: string;
+}
 
-export function MarketTicker() {
+export function MarketTicker({ totalCards, psa10Pop, volume30d }: MarketTickerProps) {
   return (
-    <div className="group relative w-full overflow-hidden border-b border-slate-200 bg-white py-2.5 select-none dark:border-slate-800/50 dark:bg-[#020617]">
-      
-      {/* PROFESSIONAL GRADIENT MASK */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-white via-white/50 to-transparent dark:from-[#020617] dark:via-[#020617]/50" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-white via-white/50 to-transparent dark:from-[#020617] dark:via-[#020617]/50" />
-
-      <div className="flex w-max animate-marquee py-1 group-hover:[animation-play-state:paused]">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex shrink-0 items-center gap-12 px-6">
-            {TICKER_DATA.map((item, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center gap-2 transition-opacity hover:opacity-70"
-              >
-                {/* Dot Separator for a "Bloomberg" vibe */}
-                <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                  {item.label}
-                </span>
-                
-                <span className={cn(
-                  "font-mono text-[10px] font-black tracking-tight",
-                  item.color || "text-slate-900 dark:text-slate-200"
-                )}>
-                  {item.value}
-                </span>
-              </div>
-            ))}
+    <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md transition-colors duration-300">
+      <div className="max-w-[1600px] mx-auto px-4 h-10 flex items-center justify-between overflow-x-auto no-scrollbar">
+        {/* Real Data Section */}
+        <div className="flex items-center gap-6 md:gap-10 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium">Total graded cards:</span>
+            <span className="text-[10px] md:text-xs text-slate-900 dark:text-white font-black">
+              {(totalCards / 1000).toFixed(2)}K
+            </span>
           </div>
-        ))}
+          
+          <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-6 md:pl-10">
+            <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium">PSA 10 population:</span>
+            <span className="text-[10px] md:text-xs text-slate-900 dark:text-white font-black">
+              {psa10Pop}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-6 md:pl-10">
+            <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium">Tracked 30d volume:</span>
+            <span className="text-[10px] md:text-xs text-slate-[#00BA88] font-black">
+              {volume30d}
+            </span>
+          </div>
+        </div>
+
+        {/* Status / Source Section */}
+        <div className="hidden lg:flex items-center gap-4">
+          <div className="flex items-center gap-2">
+             <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Data source:</span>
+             <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold uppercase">PSA Pop + Sales</span>
+          </div>
+          
+          {/* Language/Currency Selectors matching UI */}
+          <div className="flex items-center gap-1 ml-4">
+             <div className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-[9px] font-black uppercase text-slate-500 cursor-default">English</div>
+             <div className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-[9px] font-black uppercase text-slate-500 cursor-default">USD</div>
+          </div>
+        </div>
       </div>
     </div>
   )

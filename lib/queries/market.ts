@@ -49,23 +49,50 @@ export async function fetchTrendingCards() {
   }
 }
 
-export async function fetchCMCCards(page = 1) {
+export async function fetchCMCCards(
+  page = 1, 
+  search = "", 
+  sort = "top", 
+  category = "all", 
+  grade = "psa 10"
+) {
   try {
-    const response = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?page=${page}`);
-    if (!response.ok) return { data: [], metadata: {} };
+    // Construct the URL with all the new filter parameters
+    const baseUrl = `https://pokecollectorhub.com/api/cmc_cards.php`;
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      search: search,
+      sort: sort,
+      category: category,
+      grade: grade
+    });
+
+    const response = await fetch(`${baseUrl}?${queryParams.toString()}`);
+
+    if (!response.ok) {
+      console.error("API Response Error:", response.statusText);
+      return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
+    }
     
     const result = await response.json();
 
-    // Map the data to ensure every card has a valid 'image' property
+    // Safety check for successful response
+    if (!result.success) {
+      return { data: [], metadata: result.metadata || {} };
+    }
+
     const formattedData = result.data.map((card: any) => ({
       ...card,
-      // Use the API's imageUrl, but if it fails, the <img> tag will handle the rest
-      image: card.imageUrl || "https://images.pokemontcg.io/base1/4_hires.png"
+      // Map imageUrl to image for the UI components
+      image: card.imageUrl || "https://images.pokemontcg.io/base1/4_hires.png",
+      // Ensure numbers are actual numbers for frontend sorting/math if needed
+      popTotalNum: parseInt(card.popTotal.replace(/,/g, '')),
+      gradeCountNum: parseInt(card.gradeCount.replace(/,/g, ''))
     }));
 
     return { data: formattedData, metadata: result.metadata };
   } catch (error) {
     console.error("Fetch error:", error);
-    return { data: [], metadata: {} };
+    return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
   }
 }
