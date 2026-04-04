@@ -170,7 +170,7 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
   return (
     <div className="w-full">
         {/* Mobile: Scroll | Desktop: Grid 5 cols */}
-        <div className="flex md:grid md:grid-cols-5 overflow-x-auto md:overflow-x-visible gap-3 md:gap-4 lg:gap-6 items-stretch scrollbar-hide px-1 md:px-0 pb-2 md:pb-0">
+        <div className="flex md:grid md:grid-cols-5 overflow-x-auto md:overflow-x-visible gap-3 md:gap-4 lg:gap-6 items-stretch scrollbar-hide pb-2 md:pb-0">
             {displayStats.map((s, i) => (
                 <StatCard 
                   key={s.label} 
