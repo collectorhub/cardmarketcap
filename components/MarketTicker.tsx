@@ -11,7 +11,7 @@ interface MarketTickerProps {
 
 export function MarketTicker({ totalCards, psa10Pop, volume30d }: MarketTickerProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md transition-colors duration-300">
+    <div className="fixed bottom-0 left-0 right-0 z-[40] border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md transition-colors duration-300">
       <div className="max-w-[1600px] mx-auto px-4 h-10 flex items-center justify-between overflow-x-auto no-scrollbar">
         {/* Real Data Section */}
         <div className="flex items-center gap-6 md:gap-10 whitespace-nowrap">
