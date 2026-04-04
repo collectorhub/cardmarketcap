@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react'
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import Link from 'next/link'
 import Image from 'next/image'
@@ -22,7 +22,6 @@ import { cn } from "@/lib/utils"
 
 export default function Navbar() {
   const pathname = usePathname()
-  const router = useRouter()
   const isLandingPage = pathname === "/"
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -46,10 +45,12 @@ export default function Navbar() {
     setTheme(resolvedTheme === "dark" ? "light" : "dark")
   }
 
+  // --- UPDATED: PREVENT REDIRECT ---
   const handleSearchSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (searchQuery.trim()) {
-      router.push(`/market?q=${encodeURIComponent(searchQuery)}`)
+      console.log("Search query submitted:", searchQuery)
+      // We'll add the router.push(`/market?q=${searchQuery}`) logic here later
       setIsSearching(false)
       setSearchQuery("")
     }
@@ -102,7 +103,7 @@ export default function Navbar() {
         </Button>
       </div>
 
-      {/* --- DESKTOP HEADER --- */}
+      {/* --- DESKTOP HEADER (Standard) --- */}
       <header className="hidden md:flex sticky top-0 z-40 w-full items-center border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl px-8 py-3 transition-all duration-300">
         <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
           <div className="flex items-center gap-2">
@@ -237,7 +238,7 @@ export default function Navbar() {
                   )}
                 </AnimatePresence>
 
-                {/* X to clear if you're not submitting */}
+                {/* Secondary Clear icon when query is empty */}
                 {!searchQuery && (
                   <button 
                     type="button"
