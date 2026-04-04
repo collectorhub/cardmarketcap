@@ -90,7 +90,7 @@ export default function Navbar() {
       {/* --- MOBILE TOP HEADER --- */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="relative h-8 w-8">
+          <div className="relative h-11 w-11">
             <Image src="/logo.png" alt="Logo" fill className="object-contain" />
           </div>
           <span className="text-xl font-black tracking-tighter dark:text-white">
@@ -108,7 +108,7 @@ export default function Navbar() {
         <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative h-8 w-8 flex-shrink-0">
+              <div className="relative h-13 w-13 flex-shrink-0">
                 <Image src="/logo.png" alt="Logo" fill className="object-contain transition-transform duration-500 group-hover:scale-110" />
               </div>
               <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
