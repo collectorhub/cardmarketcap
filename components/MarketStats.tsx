@@ -134,7 +134,7 @@ function StatCard({ label, value, change, isPositive, icon: Icon, data, index, s
       </div>
 
       {/* Mobile Sparkline: Hidden behind content to save height */}
-      {data && (
+      {/* {data && (
         <div className="md:hidden absolute bottom-1 right-1 h-10 w-16 opacity-40 z-10 pointer-events-none">
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
             <motion.path 
@@ -149,7 +149,7 @@ function StatCard({ label, value, change, isPositive, icon: Icon, data, index, s
             />
           </svg>
         </div>
-      )}
+      )} */}
       
       <div className="hidden md:block absolute -bottom-6 -right-6 h-24 w-24 rounded-full bg-slate-50 dark:bg-slate-800/30 blur-2xl group-hover:bg-[#00BA88]/10 transition-colors duration-500" />
     </motion.div>
