@@ -58,7 +58,7 @@ export default async function Page({
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#020617] transition-colors duration-300">
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 pt-20 pb-8 md:py-12">
-        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
             <nav className="flex items-center gap-2 mb-2">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
@@ -79,7 +79,7 @@ export default async function Page({
           </div>
         </header>
 
-        <section className="md:mb-8">
+        <section className="mb-4 md:mb-8">
           <MarketStats initialStats={synchronizedStats} />
         </section>
 
