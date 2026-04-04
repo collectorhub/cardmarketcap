@@ -1,14 +1,79 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, Check } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
 const SUBCAT_OPTIONS = ["All", "Modern", "Japanese", "Promos", "Common", "Sealed"];
 const GRADE_OPTIONS = ["PSA 10", "PSA 9", "PSA 8", "PSA 7", "PSA 6", "PSA 5"];
+
+// --- CUSTOM DROPDOWN COMPONENT ---
+const CustomDropdown = ({ label, value, options, onChange }: { label: string, value: string, options: string[], onChange: (val: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative flex-1 md:w-30" ref={containerRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "w-full flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-950 border px-2 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl transition-all duration-200",
+          isOpen ? "border-[#00BA88] ring-1 ring-[#00BA88]/20" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+        )}
+      >
+        <span className="text-[8px] md:text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight truncate">
+          {value.replace('psa', 'PSA')}
+        </span>
+        <ChevronDown size={12} className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-[#00BA88]")} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            className="absolute z-[100] mt-1.5 w-full min-w-[120px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden"
+          >
+            <div className="p-1 max-h-[240px] overflow-y-auto scrollbar-hide">
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-[9px] md:text-[11px] font-bold rounded-lg transition-colors",
+                    value.toLowerCase() === opt.toLowerCase() 
+                      ? "bg-[#00BA88]/10 text-[#00BA88]" 
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  {opt}
+                  {value.toLowerCase() === opt.toLowerCase() && <Check size={10} strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const TableSkeleton = () => (
   <>
@@ -69,22 +134,24 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
         </div>
         
         <div className="flex items-center gap-1.5 md:gap-2">
-          {[
-            { key: 'sort', val: currentFilter, opts: FILTER_OPTIONS },
-            { key: 'category', val: currentSubcat, opts: SUBCAT_OPTIONS },
-            { key: 'grade', val: currentGrade, opts: GRADE_OPTIONS }
-          ].map((dropdown) => (
-            <div key={dropdown.key} className="relative group flex-1 md:flex-none">
-              <select 
-                value={dropdown.val.charAt(0).toUpperCase() + dropdown.val.slice(1).replace('psa', 'PSA')}
-                onChange={(e) => updateParams(dropdown.key, e.target.value)}
-                className="w-full appearance-none bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl text-[8px] md:text-[11px] font-black text-slate-700 dark:text-slate-200 pr-6 md:pr-10 outline-none transition-all cursor-pointer hover:border-[#00BA88]"
-              >
-                {dropdown.opts.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              <ChevronDown size={10} className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-[#00BA88]" />
-            </div>
-          ))}
+          <CustomDropdown 
+            label="Sort" 
+            value={currentFilter} 
+            options={FILTER_OPTIONS} 
+            onChange={(val) => updateParams('sort', val)} 
+          />
+          <CustomDropdown 
+            label="Category" 
+            value={currentSubcat} 
+            options={SUBCAT_OPTIONS} 
+            onChange={(val) => updateParams('category', val)} 
+          />
+          <CustomDropdown 
+            label="Grade" 
+            value={currentGrade} 
+            options={GRADE_OPTIONS} 
+            onChange={(val) => updateParams('grade', val)} 
+          />
         </div>
       </div>
 
@@ -96,7 +163,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               <tr className="bg-slate-50/50 dark:bg-slate-950/20 text-[7px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100 dark:border-slate-800">
                 <th className="p-3 md:p-5 w-8 md:w-12 text-center">#</th>
                 <th className="p-3 md:p-5">Card</th>
-                {/* Fixed width header for Set on mobile */}
                 <th className="p-3 md:p-5 w-[100px] md:w-auto">Set</th>
                 <th className="p-3 md:p-5 text-right">Price ({currentGrade.toUpperCase()})</th>
                 <th className="p-3 md:p-5 text-right">7D %</th>
@@ -112,7 +178,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                 <TableSkeleton />
               ) : (
                 <AnimatePresence mode="wait">
-                  {initialCards.map((card, idx) => (
+                  {initialCards.map((card: any, idx: number) => (
                     <motion.tr 
                       key={card.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -140,7 +206,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                         </div>
                       </td>
 
-                      {/* Narrow set column tweak applied here */}
                       <td className="p-3 md:p-5 text-slate-500 font-bold text-[8px] md:text-[10px] uppercase truncate max-w-[60px] md:max-w-[150px]">
                         {card.set}
                       </td>
