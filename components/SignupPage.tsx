@@ -11,13 +11,16 @@ import { Button } from "@/components/ui/button"
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col md:flex-row font-sans overflow-hidden">
+    // REMOVED: overflow-hidden from the main wrapper
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col md:flex-row font-sans">
       
-      {/* --- LEFT SIDE: BRAND/MARKETING SECTION (STRICT 50%) --- */}
+      {/* --- LEFT SIDE: BRAND/MARKETING SECTION --- 
+          TWEAK: Added md:sticky top-0 md:h-screen to lock it in place on desktop
+      */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative w-full md:w-1/2 bg-[#040d21] p-10 md:p-20 flex flex-col justify-between min-h-[450px] md:min-h-screen overflow-hidden"
+        className="relative w-full md:w-1/2 bg-[#040d21] p-10 md:p-20 flex flex-col justify-between min-h-[450px] md:h-screen md:sticky md:top-0 overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
           <Image 
@@ -28,7 +31,6 @@ export default function SignupPage() {
             priority
             onError={(e) => (e.currentTarget.style.display = 'none')} 
           />
-          {/* Subtle GitHub-style space/star glow */}
           <div className="absolute bottom-0 left-0 w-full h-[60%] bg-gradient-to-t from-[#00BA88]/10 to-transparent pointer-events-none" />
         </div>
 
@@ -50,45 +52,39 @@ export default function SignupPage() {
             <p className="text-slate-400 text-xl font-medium leading-relaxed mb-12 max-w-md">
               Explore CardMarketCap&apos;s core features for individuals and organizations.
             </p>
-
-            <button className="flex items-center gap-2 text-slate-300 font-bold hover:text-white transition-colors group">
-              See what&apos;s included 
-              <span className="text-slate-500 group-hover:translate-y-0.5 transition-transform">▾</span>
-            </button>
           </div>
         </div>
 
-        {/* Brand Assets Placeholder */}
         <div className="relative z-10 mt-auto pt-12">
            <motion.div 
              animate={{ y: [0, -12, 0] }}
              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
              className="w-32 h-32 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 flex items-center justify-center shadow-[0_0_50px_-12px_rgba(0,186,136,0.3)]"
            >
-              <div className="text-center">
+              {/* <div className="text-center">
                 <div className="text-[#00BA88] font-black text-2xl tracking-tighter">LIVE</div>
                 <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Market Data</div>
-              </div>
+              </div> */}
            </motion.div>
         </div>
       </motion.div>
 
-      {/* --- RIGHT SIDE: SIGN UP FORM (STRICT 50%) --- */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16 bg-white dark:bg-slate-950 overflow-y-auto">
+      {/* --- RIGHT SIDE: SIGN UP FORM --- 
+          TWEAK: This side remains relative and scrolls naturally as the form grows
+      */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16 bg-white dark:bg-slate-950">
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-[440px] py-10"
         >
-          {/* Header section matches GitHub density */}
           <div className="mb-8 flex justify-between items-baseline border-b border-slate-100 dark:border-slate-800 pb-6">
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Sign up to CardMarketCap</h2>
             <div className="text-[13px] text-slate-500">
-              Already have an account? <Link href="/sign-in" className="text-blue-600 dark:text-[#00BA88] hover:underline font-medium">Sign in →</Link>
+              Already have an account? <Link href="/sign-in" className="text-blue-600 hover:underline font-bold">Sign in →</Link>
             </div>
           </div>
 
-          {/* Social Auth Section */}
           <div className="space-y-3 mb-8">
             <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
               <FcGoogle className="mr-3 h-5 w-5" />
@@ -107,7 +103,6 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Form Fields - Perfectly Styled Labels and Subtext */}
           <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
               <label className="text-[14px] font-semibold text-slate-900 dark:text-slate-200 block">Email *</label>
@@ -145,7 +140,6 @@ export default function SignupPage() {
               </p>
             </div>
 
-            {/* Email Preferences - Functional Built-in Checkbox */}
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
               <h3 className="text-[14px] font-semibold text-slate-900 dark:text-slate-200 mb-3">Email preferences</h3>
               <div className="flex items-start gap-3">
@@ -162,14 +156,12 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Create Account Button - High Contrast */}
-            <Button className="w-full h-12 bg-[#24292f] dark:bg-slate-100 dark:text-slate-900 hover:bg-black dark:hover:bg-white text-white font-bold rounded-md shadow-md mt-6 active:scale-[0.98] transition-all group text-[14px]">
+            <Button className="w-full h-12 bg-[#00BA88] dark:bg-slate-100 dark:text-slate-900 hover:bg-[#048f6a] dark:hover:bg-white text-white font-bold rounded-md shadow-md mt-6 active:scale-[0.98] transition-all group text-[14px] cursor-pointer">
               Create account 
               <span className="ml-2 group-hover:translate-x-1 transition-transform inline-block">›</span>
             </Button>
           </form>
 
-          {/* Legal Footer Text - Exact wording */}
           <div className="mt-8">
             <p className="text-[12px] text-slate-500 leading-relaxed">
               By creating an account, you agree to the <Link href="#" className="text-blue-600 hover:underline">Terms of Service</Link>. 
