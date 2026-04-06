@@ -7,7 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Search, Bell, Moon, Sun, Menu, Command, ChevronRight, 
-  Briefcase, ArrowRight, Home, UserPlus, LogIn, X, ArrowLeft
+  Briefcase, ArrowRight, Home, UserPlus, LogIn, X, ArrowLeft,
+  UserRoundPlus
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
@@ -144,7 +145,7 @@ export default function Navbar() {
 
             <div className={cn("flex items-center gap-2 px-4", !isLandingPage && "border-x border-slate-100 dark:border-slate-800")}>
               <Button variant="ghost" size="icon" className="text-slate-500 rounded-xl h-9 w-9" asChild>
-                <Link href="/portfolio"><Briefcase className="h-5 w-5" /></Link>
+                <Link href="/sign-up"><Briefcase className="h-5 w-5" /></Link>
               </Button>
               
               {!isLandingPage && (
@@ -161,9 +162,9 @@ export default function Navbar() {
 
             {isLandingPage ? (
               <div className="flex items-center gap-4">
-                <Link href="/login" className="text-sm font-bold text-slate-600 dark:text-slate-300">Sign In</Link>
+                <Link href="/sign-in" className="text-sm font-bold text-slate-600 dark:text-slate-300">Sign In</Link>
                 <Button className="bg-[#00BA88] hover:bg-[#00a377] text-white font-bold rounded-xl px-6 py-3 shadow-lg shadow-emerald-500/20 active:scale-95" asChild>
-                  <Link href="/overview" className="flex items-center">Sign up <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link href="/sign-up" className="flex items-center">Sign up <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </div>
             ) : (
@@ -202,7 +203,7 @@ export default function Navbar() {
               className="flex items-center w-full h-full"
             >
               <MobileTab href="/" icon={Home} label="Home" />
-              <MobileTab href="/market" icon={Briefcase} label="Market" />
+              <MobileTab href="/overview" icon={Briefcase} label="Market" />
               <MobileTab 
                 onClick={() => setIsSearching(true)} 
                 icon={Search} 
@@ -210,8 +211,8 @@ export default function Navbar() {
               />
               {isLandingPage ? (
                 <>
-                  <MobileTab href="/login" icon={LogIn} label="Sign In" />
-                  <MobileTab href="/overview" icon={UserPlus} label="Join" />
+                  <MobileTab href="/sign-in" icon={LogIn} label="Sign In" />
+                  <MobileTab href="/sign-up" icon={UserRoundPlus} label="Join" />
                 </>
               ) : (
                 <>
