@@ -51,7 +51,7 @@ export default function CardDetails({ card }: { card: any }) {
             {/* UPDATED BACK BUTTON */}
             <button 
               onClick={handleBack} 
-              className="hover:text-[#00BA88] transition-colors flex items-center gap-1 uppercase"
+              className="hover:text-[#00BA88] transition-colors flex items-center gap-1 uppercase cursor-pointer"
             >
               <ArrowLeft size={14} /> <span>Back</span>
             </button>
