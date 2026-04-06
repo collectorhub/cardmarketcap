@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation' // Added for intelligent back navigation
 import { 
   Share2, Star, Info, ArrowLeft, Activity, 
   Globe, ExternalLink, TrendingUp,
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Navbar from './Navbar'
 
 export default function CardDetails({ card }: { card: any }) {
+  const router = useRouter() // Initialize router
   const [selectedGrade, setSelectedGrade] = useState("PSA 10");
   const [selectedTimeframe, setSelectedTimeframe] = useState("1M");
 
@@ -26,6 +28,18 @@ export default function CardDetails({ card }: { card: any }) {
   // Refined scroll behavior for desktop, standard for mobile
   const columnClass = "lg:h-full lg:overflow-y-auto no-scrollbar lg:pb-10";
 
+  // Back navigation handler
+  const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault()
+    // This will take them back to exactly where they were (Market or Trending)
+    // and preserve their scroll position on the previous page.
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/') // Fallback if no history exists
+    }
+  }
+
   return (
     <div className="min-h-screen lg:h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 font-inter selection:bg-[#00BA88]/30">
       <Navbar />
@@ -34,9 +48,13 @@ export default function CardDetails({ card }: { card: any }) {
       <div className="border-b border-slate-100 dark:border-white/5 flex-shrink-0 bg-white/50 dark:bg-[#020617]/50 backdrop-blur-md sticky top-0 z-20 pt-15 md:pt-0">
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
-            <Link href="/#market" className="hover:text-[#00BA88] transition-colors flex items-center gap-1">
-              <ArrowLeft size={14} /> <span className="">Market</span>
-            </Link>
+            {/* UPDATED BACK BUTTON */}
+            <button 
+              onClick={handleBack} 
+              className="hover:text-[#00BA88] transition-colors flex items-center gap-1 uppercase"
+            >
+              <ArrowLeft size={14} /> <span>Back</span>
+            </button>
             <span className="opacity-20 hidden md:block">/</span>
             <span className="text-slate-600 dark:text-slate-400 hidden md:block truncate max-w-[80px] md:max-w-none">{cardSet}</span>
             <span className="opacity-20">/</span>
@@ -55,7 +73,7 @@ export default function CardDetails({ card }: { card: any }) {
           
           {/* --- LEFT: ASSET PROFILE --- */}
           <div className={cn("lg:col-span-3 space-y-8", columnClass)}>
-            <div className="rounded-3xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-6 md:p-8 shadow-sm flex items-center justify-center">
+            <div className="rounded-3xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-4 shadow-sm flex items-center justify-center">
               <img src={cardImage} alt={cardName} className="h-auto w-full max-w-[280px] lg:max-w-none object-contain hover:scale-105 transition-transform duration-500" />
             </div>
 
@@ -98,7 +116,7 @@ export default function CardDetails({ card }: { card: any }) {
                   <span className="bg-emerald-500/10 text-[#00BA88] px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Rank #124</span>
                   <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em]">Market Index</span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-none">
+                <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-none">
                   {cardName}
                 </h1>
               </div>
@@ -125,7 +143,7 @@ export default function CardDetails({ card }: { card: any }) {
                 <div>
                   <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-sora">Current Value ({selectedGrade})</p>
                   <div className="flex items-baseline gap-4">
-                    <span className="text-5xl md:text-6xl font-black tabular-nums tracking-tighter">{price}</span>
+                    <span className="text-5xl font-black tabular-nums tracking-tighter">{price}</span>
                     <span className="text-[12px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg flex items-center">
                       <TrendingUp size={14} className="mr-1" /> 12.4%
                     </span>
@@ -199,9 +217,9 @@ export default function CardDetails({ card }: { card: any }) {
               <TabsContent value="sales" className="pt-6">
                 <div className="border border-slate-100 dark:border-white/5 rounded-[1.5rem] overflow-hidden">
                    <div className="grid grid-cols-3 bg-slate-50/50 dark:bg-white/5 px-6 py-4 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      <span>Execution Date</span>
-                      <span>Market</span>
-                      <span className="text-right">Settled</span>
+                     <span>Execution Date</span>
+                     <span>Market</span>
+                     <span className="text-right">Settled</span>
                    </div>
                    {[1, 2, 3].map(i => (
                      <div key={i} className="grid grid-cols-3 px-6 py-5 text-[12px] md:text-[13px] font-bold border-t border-slate-50 dark:border-white/5 items-center hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group">

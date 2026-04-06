@@ -94,24 +94,41 @@ export async function fetchCMCCards(
 
 export async function fetchCardById(id: string) {
   try {
-    // We add search=${id} because your API uses 'search' to filter specific cards/IDs
-    const response = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
+    // 1. Try fetching from CMC Cards first (Primary Source)
+    const cmcResponse = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
       next: { revalidate: 60 } 
     });
 
-    if (!response.ok) return null;
-    
-    const result = await response.json();
-    
-    // Look into the data array for the specific card
-    if (result.success && result.data && result.data.length > 0) {
-      // Find the exact match in case the search returns multiple
-      return result.data.find((c: any) => c.id === id) || result.data[0];
+    if (cmcResponse.ok) {
+      const cmcResult = await cmcResponse.json();
+      if (cmcResult.success && cmcResult.data?.length > 0) {
+        const found = cmcResult.data.find((c: any) => String(c.id) === id);
+        if (found) return found;
+      }
+    }
+
+    // 2. Fallback: Check Trending Cards if not found in CMC
+    // Since trending IDs (like 12931) might not be in the CMC search
+    const trendingCards = await fetchTrendingCards();
+    const trendingMatch = trendingCards.find(c => String(c.id) === id);
+
+    if (trendingMatch) {
+      // Map trending format to your Detail Page format
+      return {
+        id: trendingMatch.id,
+        name: trendingMatch.name,
+        imageUrl: trendingMatch.image,
+        marketPrice: parseFloat(trendingMatch.price.replace('$', '').replace(',', '')),
+        // Add other default fields your Detail UI expects
+        set_name: trendingMatch.set,
+        rarity: "Trending",
+        grade: trendingMatch.grade
+      };
     }
     
     return null;
   } catch (error) {
-    console.error("Error fetching card by ID:", error);
+    console.error("Error in unified fetchCardById:", error);
     return null;
   }
 }

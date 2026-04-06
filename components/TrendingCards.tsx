@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation' // 1. Import useRouter
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, ArrowRight, ArrowUp, ArrowDown, Inbox, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Flame, ArrowUp, ArrowDown, Inbox, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 export interface Card {
@@ -24,7 +24,7 @@ interface TrendingCardsProps {
 }
 
 export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsProps) {
-  const router = useRouter() // 2. Initialize router
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -48,9 +48,14 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
     setCurrentPage(1)
   }
 
+  // NAVIGATION HANDLER - Updated to ensure string consistency
+  const handleCardClick = (id: number) => {
+    // If your folder is app/cards/[id], change this to /cards/
+    router.push(`/card/${id}`)
+  }
+
   return (
     <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-      {/* HEADER SECTION */}
       <div className="p-5 md:p-8 border-b border-slate-100 dark:border-slate-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
@@ -87,7 +92,6 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
         </div>
       </div>
 
-      {/* CONTENT SECTION */}
       <div className="relative min-h-[400px]">
         <AnimatePresence mode="wait">
           {paginatedCards.length > 0 ? (
@@ -98,12 +102,11 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {/* --- MOBILE VIEW --- */}
               <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                 {paginatedCards.map((card) => (
                   <div 
                     key={card.id} 
-                    onClick={() => router.push(`/card/${card.id}`)} // 3. Click to Details
+                    onClick={() => handleCardClick(card.id)}
                     className="p-4 flex items-center gap-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <div className="h-16 w-12 shrink-0 rounded-lg bg-slate-100 overflow-hidden border border-slate-200">
@@ -127,7 +130,6 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
                 ))}
               </div>
 
-              {/* --- DESKTOP VIEW --- */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse table-fixed">
                   <thead>
@@ -143,7 +145,7 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
                     {paginatedCards.map((card) => (
                       <tr 
                         key={card.id} 
-                        onClick={() => router.push(`/card/${card.id}`)} // 4. Click to Details
+                        onClick={() => handleCardClick(card.id)}
                         className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                       >
                         <td className="px-8 py-5">
@@ -185,7 +187,6 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
         </AnimatePresence>
       </div>
       
-      {/* PAGINATION FOOTER */}
       <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
           Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredCards.length)} of {filteredCards.length}
@@ -219,7 +220,7 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
 
           <button 
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(prev => prev + 1)}
+            onClick={() => setCurrentPage(prev => prev + 1)} // FIXED: was prev - 1
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
           >
             <ChevronRight className="h-4 w-4" />

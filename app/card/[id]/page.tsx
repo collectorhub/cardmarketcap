@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import CardDetails from "@/components/CardDetails";
-import { fetchCardById } from "@/lib/queries/market"; // Updated to match your naming convention
+import { fetchCardById } from "@/lib/queries/market";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  // 1. Unwrapping params (Promise)
+  // 1. Unwrap params
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  // 2. Fetch data using the new function
+  // 2. Fetch data using the unified function
   const cardData = await fetchCardById(id);
 
   // 3. Handle 404
@@ -15,5 +15,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     notFound();
   }
 
+  // 4. Return UI
   return <CardDetails card={cardData} />;
 }
