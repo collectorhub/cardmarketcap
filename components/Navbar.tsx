@@ -6,9 +6,10 @@ import { useTheme } from "next-themes"
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
-  Search, Bell, Moon, Sun, Menu, Command, ChevronRight, 
-  Briefcase, ArrowRight, Home, UserPlus, LogIn, X, ArrowLeft,
-  UserRoundPlus
+  Search, Bell, Moon, Sun, Menu, Command, 
+  Briefcase, ArrowRight, Home, LogIn, X, ArrowLeft,
+  UserRoundPlus,
+  ChevronRight
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
@@ -50,7 +51,6 @@ export default function Navbar() {
     e?.preventDefault()
     if (searchQuery.trim()) {
       console.log("Search query submitted:", searchQuery)
-      // Logic for router.push will go here
       setIsSearching(false)
       setSearchQuery("")
     }
@@ -103,32 +103,60 @@ export default function Navbar() {
         </Button>
       </div>
 
-      {/* --- DESKTOP HEADER (Modified for Breadcrumbs) --- */}
+      {/* --- DESKTOP HEADER --- */}
       <header className="hidden md:flex sticky top-0 z-40 w-full items-center border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl px-8 py-3 transition-all duration-300">
         <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
           
-          <div className="flex items-center gap-2">
-            {isLandingPage ? (
+          <div className="flex items-center gap-8">
+            {/* LOGO - Hidden on /overview because the sidebar has it */}
+            {pathname !== "/overview" && (
               <Link href="/" className="flex items-center gap-2 group">
                 <div className="relative h-10 w-10 flex-shrink-0">
-                  <Image src="/logo.png" alt="Logo" fill className="object-contain transition-transform duration-500 group-hover:scale-110" />
+                  <Image 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    fill 
+                    className="object-contain transition-transform duration-500 group-hover:scale-110" 
+                  />
                 </div>
                 <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
                   CardMarket<span className="text-[#00BA88]">Cap</span>
                 </span>
               </Link>
-            ) : (
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
-                <Link href="/" className="group flex items-center transition-colors hover:text-slate-900 dark:hover:text-slate-100">
-                  <span className="relative">Platform<span className="absolute -bottom-0.5 left-0 h-px w-0 bg-[#00BA88] transition-all duration-300 group-hover:w-full" /></span>
-                </Link>
-                <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-700" />
-                <span className="text-slate-900 dark:text-slate-100 font-bold font-heading tracking-tight">Market Overview</span>
-              </div>
             )}
+{/* DESKTOP NAV - Breadcrumb Style */}
+            <nav className={cn(
+              "flex items-center gap-2",
+              pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
+            )}>
+              {pathname === "/overview" && (
+                <>
+                  <Link 
+                    href="/" 
+                    className="text-sm font-medium text-slate-400 hover:text-[#00BA88] transition-colors"
+                  >
+                    Home
+                  </Link>
+                  <ChevronRight className="h-4 w-4 text-slate-300" />
+                </>
+              )}
+              
+              <Link 
+                href="/overview" 
+                className={cn(
+                  "text-sm font-bold transition-all",
+                  pathname === "/overview" 
+                    ? "text-slate-900 dark:text-white" 
+                    : "text-slate-600 dark:text-slate-300 hover:text-[#00BA88]"
+                )}
+              >
+                Market Overview
+              </Link>
+            </nav>
           </div>
 
           <div className="flex items-center gap-6">
+            {/* ... rest of your search and user actions code ... */}
             <div className="relative group hidden lg:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#00BA88] transition-colors" />
               <input 
@@ -170,15 +198,15 @@ export default function Navbar() {
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 pl-1 outline-none">
+                  <button className="flex items-center gap-2 pl-1 outline-none group">
                     <div className="h-10 w-10 rounded-full bg-[#00BA88] border-2 border-white dark:border-slate-800 shadow-md flex items-center justify-center text-white font-bold text-xs">JD</div>
                     <div className="hidden lg:block text-left">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">John Doe</p>
-                      <p className="text-[10px] font-bold text-[#00BA88] uppercase tracking-wider">Pro</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#00BA88] transition-colors">John Doe</p>
+                      <p className="text-[10px] font-bold text-[#00BA88] uppercase tracking-wider">Pro Account</p>
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 mt-2 rounded-2xl dark:bg-slate-900">
+                <DropdownMenuContent align="end" className="w-56 mt-2 rounded-2xl dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                   <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer">Profile</DropdownMenuItem>
                   <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer">Subscription</DropdownMenuItem>
                   <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2" />
@@ -190,7 +218,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* --- MOBILE TAB BAR & SEARCH --- */}
+      {/* --- MOBILE TAB BAR --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800 h-16 pb-safe flex items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] overflow-hidden">
         <AnimatePresence mode="wait">
           {!isSearching ? (

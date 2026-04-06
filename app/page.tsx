@@ -106,7 +106,7 @@ export default async function Page({
         </section>
 
         {/* Table Section */}
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
+        <section  id="market-table" className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
   
           <MarketTable 
             initialCards={data} 

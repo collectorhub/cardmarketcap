@@ -81,7 +81,7 @@ export default function SignupPage() {
           <div className="mb-8 flex justify-between items-baseline border-b border-slate-100 dark:border-slate-800 pb-6">
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Sign up to CardMarketCap</h2>
             <div className="text-[13px] text-slate-500">
-              Already have an account? <Link href="/sign-in" className="text-blue-600 hover:underline font-bold">Sign in →</Link>
+              Already have an account? <Link href="/sign-in" className="text-[#00BA88] hover:underline font-bold">Sign in →</Link>
             </div>
           </div>
 
