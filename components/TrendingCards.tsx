@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation' // 1. Import useRouter
 import { motion, AnimatePresence } from 'framer-motion'
 import { Flame, ArrowRight, ArrowUp, ArrowDown, Inbox, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from "@/lib/utils"
@@ -23,10 +24,10 @@ interface TrendingCardsProps {
 }
 
 export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsProps) {
+  const router = useRouter() // 2. Initialize router
   const [activeTab, setActiveTab] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
 
-  // 1. Filter Logic
   const filteredCards = useMemo(() => {
     return cards.filter(card => {
       if (activeTab === 'All') return true
@@ -38,12 +39,10 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
     })
   }, [cards, activeTab])
 
-  // 2. Pagination Logic
   const totalPages = Math.ceil(filteredCards.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedCards = filteredCards.slice(startIndex, startIndex + itemsPerPage)
 
-  // Reset page when tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
     setCurrentPage(1)
@@ -99,16 +98,20 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {/* --- MOBILE VIEW (Visible on small screens) --- */}
+              {/* --- MOBILE VIEW --- */}
               <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                 {paginatedCards.map((card) => (
-                  <div key={card.id} className="p-4 flex items-center gap-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors">
+                  <div 
+                    key={card.id} 
+                    onClick={() => router.push(`/card/${card.id}`)} // 3. Click to Details
+                    className="p-4 flex items-center gap-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors cursor-pointer"
+                  >
                     <div className="h-16 w-12 shrink-0 rounded-lg bg-slate-100 overflow-hidden border border-slate-200">
                       <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-2">{card.name}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-2 group-hover:text-[#00BA88]">{card.name}</p>
                         <span className="text-sm font-black text-slate-900 dark:text-white">{card.price}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -124,10 +127,9 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
                 ))}
               </div>
 
-              {/* --- DESKTOP VIEW (Visible on md and larger) --- */}
+              {/* --- DESKTOP VIEW --- */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse table-fixed">
-                  {/* ... same table code as before ... */}
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-950/20 text-[10px] uppercase tracking-widest text-slate-400 font-black border-b border-slate-100 dark:border-slate-800">
                       <th className="px-8 py-4 w-[40%]">Card</th>
@@ -139,11 +141,15 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {paginatedCards.map((card) => (
-                      <tr key={card.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                      <tr 
+                        key={card.id} 
+                        onClick={() => router.push(`/card/${card.id}`)} // 4. Click to Details
+                        className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                      >
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4 truncate">
                             <div className="h-12 w-9 shrink-0 rounded-md bg-slate-100 overflow-hidden border border-slate-200">
-                               <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
+                               <img src={card.image} alt={card.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                             </div>
                             <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#00BA88] transition-colors truncate">{card.name}</p>
                           </div>

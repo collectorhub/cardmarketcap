@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, ChevronDown, Check, Search, X, Inbox } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import Link from 'next/link'
 
 const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
 const SUBCAT_OPTIONS = ["All", "Modern", "Japanese", "Promos", "Common", "Sealed"];
@@ -30,7 +31,7 @@ const CustomDropdown = ({ label, value, options, onChange }: { label: string, va
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-950 border px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all duration-200",
+          "w-full flex items-center justify-between gap-2 bg-white dark:bg-slate-950 border px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl transition-all duration-200",
           isOpen ? "border-[#00BA88] ring-1 ring-[#00BA88]/20" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
         )}
       >
@@ -225,70 +226,85 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                <TableSkeleton />
-              ) : initialCards && initialCards.length > 0 ? (
-                initialCards.map((card: any, idx: number) => (
-                  <motion.tr 
-                    key={card.id || idx}
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }}
-                    className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
-                      {(currentPage - 1) * 50 + idx + 1}
-                    </td>
+  {isLoading ? (
+    <TableSkeleton />
+  ) : initialCards && initialCards.length > 0 ? (
+    initialCards.map((card: any, idx: number) => (
+      <motion.tr
+        key={card.id || idx}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        // 1. ADD ONCLICK TO THE ROW
+        onClick={() => router.push(`/card/${card.id}`)}
+        // 2. ADD CURSOR POINTER
+        className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+      >
+        <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
+          {(currentPage - 1) * 50 + idx + 1}
+        </td>
 
-                    <td className="p-4 md:p-6">
-                      <div className="flex items-center gap-3 md:gap-5">
-                        <div className="h-10 w-7 md:h-12 md:w-9 shrink-0 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden shadow-sm">
-                          <img 
-                            src={card.imageUrl} 
-                            className="h-full w-full object-cover" 
-                            onError={(e) => { e.currentTarget.src = "https://pokecollectorhub.com/assets/placeholder.png"; }} 
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-black text-slate-900 dark:text-white text-[12px] md:text-sm truncate leading-tight mb-0.5">{card.name}</div>
-                          <div className="text-[9px] md:text-[12px] font-black text-[#00BA88] uppercase tracking-wider">
-                            {card.type}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+        <td className="p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-5 group/item">
+            <div className="h-10 w-7 md:h-12 md:w-9 shrink-0 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden shadow-sm">
+              <img
+                src={card.imageUrl}
+                alt={card.name}
+                className="h-full w-full object-cover group-hover/item:scale-110 transition-transform"
+                onError={(e) => {
+                  e.currentTarget.src = "https://pokecollectorhub.com/assets/placeholder.png";
+                }}
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="font-black text-slate-900 dark:text-white text-[12px] md:text-sm truncate leading-tight mb-0.5 group-hover/item:text-[#00BA88] transition-colors">
+                {card.name}
+              </div>
+              <div className="text-[9px] md:text-[12px] font-black text-[#00BA88] uppercase tracking-wider">
+                {card.type}
+              </div>
+            </div>
+          </div>
+        </td>
 
-                    <td className="p-4 md:p-6 text-slate-500 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
-                      {card.set}
-                    </td>
+        <td className="p-4 md:p-6 text-slate-500 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
+          {card.set}
+        </td>
 
-                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
-                      {card.price}
-                      <div className="text-[8px] md:text-[12px] text-slate-400 font-bold mt-0.5 uppercase tracking-tighter">Avg: $0.00</div>
-                    </td>
+        <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
+          {card.price}
+          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold mt-0.5 uppercase tracking-tighter">Avg: $0.00</div>
+        </td>
 
-                    <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
-                    <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
-                    
-                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
-                      {card.marketCap}
-                    </td>
+        <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
+        <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
 
-                    <td className="p-4 md:p-6 text-right">
-                      <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">{card.gradeCount}</div>
-                      <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">Total: {card.popTotal}</div>
-                    </td>
+        <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
+          {card.marketCap}
+        </td>
 
-                    <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-400 whitespace-nowrap">
-                      {card.sales90d} sales
-                    </td>
+        <td className="p-4 md:p-6 text-right">
+          <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">{card.gradeCount}</div>
+          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">Total: {card.popTotal}</div>
+        </td>
 
-                    <td className="p-4 md:p-6 text-center">
-                      <button className="mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all">
-                        Buy
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))
+        <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-400 whitespace-nowrap">
+          {card.sales90d} sales
+        </td>
+
+        <td className="p-4 md:p-6 text-center">
+          <button
+            // 3. STOP PROPAGATION SO BUTTON CLICK DOESN'T TRIGGER ROW CLICK
+            onClick={(e) => {
+              e.stopPropagation();
+              // Add your buy logic here
+            }}
+            className="relative z-10 mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
+          >
+            Buy
+          </button>
+        </td>
+      </motion.tr>
+    ))
               ) : (
                 /* --- NO RESULTS STATE (Shows inside table body) --- */
                 <tr>

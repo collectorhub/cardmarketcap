@@ -49,7 +49,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#020617] transition-colors duration-300">
+    <footer className="w-full border-t border-slate-200 dark:border-slate-800 bg-[#F9FAFB] dark:bg-[#020617] transition-colors duration-300">
       <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-12 md:py-16">
         
         {/* Main Footer Grid */}

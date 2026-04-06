@@ -57,42 +57,61 @@ export async function fetchCMCCards(
   grade = "psa 10"
 ) {
   try {
-    // Construct the URL with all the new filter parameters
     const baseUrl = `https://pokecollectorhub.com/api/cmc_cards.php`;
     const queryParams = new URLSearchParams({
       page: page.toString(),
-      search: search,
-      sort: sort,
-      category: category,
-      grade: grade
+      search: search || "",     // Ensure it's never undefined
+      sort: sort || "top",
+      category: category || "all",
+      grade: grade || "psa 10"
     });
 
-    const response = await fetch(`${baseUrl}?${queryParams.toString()}`);
+    // Add a cache tag so you can revalidate this specific data later
+    const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
+      next: { revalidate: 60, tags: ['cards'] } 
+    });
 
-    if (!response.ok) {
-      console.error("API Response Error:", response.statusText);
-      return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
-    }
+    if (!response.ok) return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
     
     const result = await response.json();
-
-    // Safety check for successful response
-    if (!result.success) {
-      return { data: [], metadata: result.metadata || {} };
-    }
+    if (!result.success) return { data: [], metadata: result.metadata || {} };
 
     const formattedData = result.data.map((card: any) => ({
       ...card,
-      // Map imageUrl to image for the UI components
-      image: card.imageUrl || "https://images.pokemontcg.io/base1/4_hires.png",
-      // Ensure numbers are actual numbers for frontend sorting/math if needed
-      popTotalNum: parseInt(card.popTotal.replace(/,/g, '')),
-      gradeCountNum: parseInt(card.gradeCount.replace(/,/g, ''))
+      // Priority 1: imageUrl from API, Priority 2: placeholder
+      image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
+      // Convert formatted strings ("1,200") back to numbers for the UI to use in math
+      popTotalNum: parseInt(card.popTotal?.replace(/,/g, '') || "0"),
+      gradeCountNum: parseInt(card.gradeCount?.replace(/,/g, '') || "0")
     }));
 
     return { data: formattedData, metadata: result.metadata };
   } catch (error) {
     console.error("Fetch error:", error);
     return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
+  }
+}
+
+export async function fetchCardById(id: string) {
+  try {
+    // We add search=${id} because your API uses 'search' to filter specific cards/IDs
+    const response = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
+      next: { revalidate: 60 } 
+    });
+
+    if (!response.ok) return null;
+    
+    const result = await response.json();
+    
+    // Look into the data array for the specific card
+    if (result.success && result.data && result.data.length > 0) {
+      // Find the exact match in case the search returns multiple
+      return result.data.find((c: any) => c.id === id) || result.data[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error fetching card by ID:", error);
+    return null;
   }
 }

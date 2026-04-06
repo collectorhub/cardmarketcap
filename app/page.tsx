@@ -10,13 +10,24 @@ import Navbar from "@/components/Navbar";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }> | { page?: string }
+  searchParams: Promise<{ 
+    page?: string; 
+    search?: string; 
+    sort?: string; 
+    category?: string; 
+    grade?: string 
+  }>
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
+  const search = params.q || "";
+  const sort = params.sort || "top";
+  const category = params.category || "all";
+  const grade = params.grade || "psa 10";
 
   const [cardResponse, statsResponse] = await Promise.all([
-    fetchCMCCards(currentPage),
+    // PASS ALL PARAMS HERE
+    fetchCMCCards(currentPage, search, sort, category, grade),
     fetchMarketStats()
   ]);
 
@@ -56,7 +67,7 @@ export default async function Page({
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-[#020617] transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-[#F9FAFB] dark:bg-[#020617] transition-colors duration-300">
       {/* NAVBAR: Manual render here because this page is outside /(root).
           This ensures the frontpage looks exactly like your design 
       */}
@@ -96,7 +107,7 @@ export default async function Page({
 
         {/* Table Section */}
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
-          <h2 className="text-lg font-black uppercase tracking-tight mb-4 dark:text-white">Card Overview</h2>
+  
           <MarketTable 
             initialCards={data} 
             totalRecords={totalCardsCount}
