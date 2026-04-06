@@ -51,7 +51,7 @@ export default function ForgotPassword() {
               />
             </div>
 
-            <Button className="w-full h-11 bg-[#238636] hover:bg-[#2ea043] text-white font-bold rounded-md text-[14px] mt-2 shadow-none transition-all active:scale-[0.98] border border-[rgba(27,31,35,0.15)]">
+            <Button className="w-full h-11 bg-[#00BA88] hover:bg-[#01aa7d] text-white font-bold rounded-md text-[14px] mt-2 shadow-none transition-all active:scale-[0.98] border border-[rgba(27,31,35,0.15)]">
               Send password reset email
             </Button>
           </form>
@@ -60,7 +60,7 @@ export default function ForgotPassword() {
           <div className="text-center mt-6">
             <Link 
               href="/sign-in" 
-              className="text-[14px] text-[#00BA88] hover:underline font-semibold flex items-center justify-center gap-1"
+              className="text-[14px] text-[#00BA88] hover:underline font-bold flex items-center justify-center gap-1"
             >
               Back to Sign in
             </Link>

@@ -55,18 +55,18 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <div className="relative z-10 mt-auto pt-12">
+        {/* <div className="relative z-10 mt-auto pt-12">
            <motion.div 
              animate={{ y: [0, -12, 0] }}
              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
              className="w-32 h-32 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 flex items-center justify-center shadow-[0_0_50px_-12px_rgba(0,186,136,0.3)]"
            >
-              {/* <div className="text-center">
+              <div className="text-center">
                 <div className="text-[#00BA88] font-black text-2xl tracking-tighter">LIVE</div>
                 <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Market Data</div>
-              </div> */}
+              </div>
            </motion.div>
-        </div>
+        </div> */}
       </motion.div>
 
       {/* --- RIGHT SIDE: SIGN UP FORM --- 
@@ -150,7 +150,7 @@ export default function SignupPage() {
                 />
                 <div className="space-y-1">
                   <label htmlFor="marketing-emails" className="text-[13px] text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
-                    Receive occasional product updates and announcements
+                    Receive occasional card updates and announcements
                   </label>
                 </div>
               </div>
@@ -164,8 +164,8 @@ export default function SignupPage() {
 
           <div className="mt-8">
             <p className="text-[12px] text-slate-500 leading-relaxed">
-              By creating an account, you agree to the <Link href="#" className="text-blue-600 hover:underline">Terms of Service</Link>. 
-              For more information about CardMarketCap&apos;s privacy practices, see the <Link href="#" className="text-blue-600 hover:underline">GitHub Privacy Statement</Link>. 
+              By creating an account, you agree to the <Link href="#" className="text-[#00BA88] hover:underline font-bold">Terms of Service</Link>. 
+              For more information about CardMarketCap&apos;s privacy practices, see the <Link href="#" className="text-[#00BA88] hover:underline font-bold">GitHub Privacy Statement</Link>. 
               We&apos;ll occasionally send you account-related emails.
             </p>
           </div>
