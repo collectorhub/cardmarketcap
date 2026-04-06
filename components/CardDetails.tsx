@@ -3,10 +3,10 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { 
-  ArrowUpRight, Share2, Star, ExternalLink, 
-  TrendingUp, BarChart3, Bell, Lightbulb, 
-  MousePointer2, Info, Link as LinkIcon,
-  ArrowLeft
+  Share2, Star, Info, ArrowLeft, Activity, 
+  Globe, ExternalLink, TrendingUp,
+  BarChart3, Zap, ArrowRight,
+  History
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -15,245 +15,246 @@ import Navbar from './Navbar'
 
 export default function CardDetails({ card }: { card: any }) {
   const [selectedGrade, setSelectedGrade] = useState("PSA 10");
+  const [selectedTimeframe, setSelectedTimeframe] = useState("1M");
 
   const cardName = card.name || "Unknown Card";
-  const cardSet = card.expansion_name || card.set || "Expansion Pack";
-  const cardImage = card.imageUrl || card.large_image || "https://pokecollectorhub.com/assets/placeholder.png";
+  const cardSet = card.expansion_name || card.set || "Unknown Set";
+  const cardImage = card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png";
   const price = card.price || "$0.00";
+  const cardType = card.type || "Holo";
+
+  // Refined scroll behavior for desktop, standard for mobile
+  const columnClass = "lg:h-full lg:overflow-y-auto no-scrollbar lg:pb-10";
 
   return (
-    <div className="h-screen overflow-hidden bg-[#F9FAFB] dark:bg-[#020617] text-slate-900 dark:text-white font-sans selection:bg-[#00BA88]/30 transition-colors duration-300">
+    <div className="min-h-screen lg:h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 font-inter selection:bg-[#00BA88]/30">
       <Navbar />
 
-      {/* SCROLL LOGIC: 
-          Desktop (lg): h-[calc(100vh-64px)] + overflow-hidden (locked layout)
-          Mobile: h-auto + overflow-y-auto (natural scrolling)
-      */}
-      <main className="max-w-[1400px] mx-auto px-4 md:px-8 pt-15 md:pt-0 h-[calc(100vh-64px)] overflow-y-auto lg:overflow-hidden no-scrollbar">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 h-full py-4 lg:py-6">
-          
-          {/* --- LEFT COLUMN: IMAGE & METADATA --- */}
-          <div className="lg:col-span-4 xl:col-span-3 flex flex-col lg:h-full lg:overflow-y-auto no-scrollbar space-y-6">
-            <div>
-              <Link href="/#market-table" className="group flex items-center gap-2 text-slate-400 hover:text-[#00BA88] mb-6 w-fit transition-colors">
-                <ArrowLeft size={18} strokeWidth={2.5} className="transform group-hover:-translate-x-1 transition-transform duration-300" />
-                <span className="text-[13px] font-bold tracking-tight">Back</span>
-              </Link>
+      {/* --- SUB-HEADER --- */}
+      <div className="border-b border-slate-100 dark:border-white/5 flex-shrink-0 bg-white/50 dark:bg-[#020617]/50 backdrop-blur-md sticky top-0 z-20 pt-15 md:pt-0">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
+            <Link href="/#market" className="hover:text-[#00BA88] transition-colors flex items-center gap-1">
+              <ArrowLeft size={14} /> <span className="">Market</span>
+            </Link>
+            <span className="opacity-20 hidden md:block">/</span>
+            <span className="text-slate-600 dark:text-slate-400 hidden md:block truncate max-w-[80px] md:max-w-none">{cardSet}</span>
+            <span className="opacity-20">/</span>
+            <span className="text-[#00BA88] truncate max-w-[100px] md:max-w-none">{cardName}</span>
+          </div>
+          <div className="flex items-center gap-4">
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight hidden sm:inline">Vol 24h: <span className="text-slate-900 dark:text-white">$42,831</span></span>
+             <div className="h-3 w-px bg-slate-200 dark:bg-white/10 hidden sm:block" />
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">Cap: <span className="text-slate-900 dark:text-white">{card.marketCap || "$1.2M"}</span></span>
+          </div>
+        </div>
+      </div>
 
-              <div className="relative aspect-[3/4.2] rounded-[2rem] overflow-hidden bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 shadow-2xl group">
-                <img src={cardImage} alt={cardName} className="h-full w-full object-contain p-4 transform group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute top-4 right-4 px-3 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-md rounded-full border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-white">
-                  {card.rarity || 'Holo Rare'}
-                </div>
-              </div>
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-6 overflow-x-hidden lg:overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 h-full py-6 md:py-8">
+          
+          {/* --- LEFT: ASSET PROFILE --- */}
+          <div className={cn("lg:col-span-3 space-y-8", columnClass)}>
+            <div className="rounded-3xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-6 md:p-8 shadow-sm flex items-center justify-center">
+              <img src={cardImage} alt={cardName} className="h-auto w-full max-w-[280px] lg:max-w-none object-contain hover:scale-105 transition-transform duration-500" />
             </div>
 
-            <div className="p-6 bg-white dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <Info size={14} className="text-[#00BA88]" /> Card Metadata
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { l: "Type", v: card.type || "Pokémon" },
-                  { l: "HP", v: card.hp || "110" },
-                  { l: "Types", v: card.types || "Colorless" },
-                  { l: "Artist", v: card.artist || "hncl" },
-                  { l: "Category", v: "Pokémon" },
-                  { l: "Variant", v: card.rarity || "Rare" }
-                ].map((row, idx) => (
-                  <div key={idx} className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-white/5 last:border-0 last:pb-0">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{row.l}</span>
-                    <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{row.v}</span>
-                  </div>
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#00BA88] mb-5 flex items-center gap-2">
+                  <Activity size={14} /> Asset Specs
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    { l: "Registry ID", v: card.number || "012/055" },
+                    { l: "Artist", v: card.artist || "hncl" },
+                    { l: "Rarity", v: cardType },
+                    { l: "Release", v: card.release_date || "2023" }
+                  ].map((row, idx) => (
+                    <div key={idx} className="flex justify-between items-center border-b border-slate-50 dark:border-white/5 pb-3 last:border-0">
+                      <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider">{row.l}</span>
+                      <span className="text-[12px] md:text-[13px] font-black tabular-nums">{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 h-11 text-[10px] md:text-[11px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                  <Share2 size={14} className="mr-2" /> Share
+                </Button>
+                <Button variant="outline" className="flex-1 h-11 text-[10px] md:text-[11px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                  <Star size={14} className="mr-2" /> Watch
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* --- CENTER: TERMINAL DATA --- */}
+          <div className={cn("lg:col-span-6 space-y-10", columnClass)}>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-500/10 text-[#00BA88] px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Rank #124</span>
+                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em]">Market Index</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-none">
+                  {cardName}
+                </h1>
+              </div>
+              
+              <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
+                {["PSA 10", "PSA 9", "RAW"].map(g => (
+                  <button 
+                    key={g} 
+                    onClick={() => setSelectedGrade(g)} 
+                    className={cn(
+                      "px-5 py-2.5 text-[10px] md:text-[11px] font-black uppercase rounded-xl transition-all", 
+                      selectedGrade === g ? "bg-white dark:bg-slate-800 text-[#00BA88] shadow-sm" : "text-slate-400 hover:text-slate-200"
+                    )}
+                  >
+                    {g}
+                  </button>
                 ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pb-4 lg:pb-0">
-               <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
-                 <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Release</p>
-                 <p className="text-sm font-bold">{card.release_date || '2023'}</p>
-               </div>
-               <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
-                 <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Artist</p>
-                 <p className="text-sm font-bold truncate">{card.artist || 'N/A'}</p>
-               </div>
-            </div>
-          </div>
-
-          {/* --- CENTER COLUMN: MAIN DATA --- */}
-          <div className="lg:col-span-8 xl:col-span-6 lg:h-full lg:overflow-y-auto no-scrollbar pb-10 lg:pb-20 space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-[#00BA88] text-white dark:text-black rounded-full text-[10px] font-black uppercase shadow-sm">Verified Market Data</span>
-                <span className="text-slate-400 text-sm font-medium tracking-tight">#{card.number || '017'}/{card.total || '055'}</span>
-              </div>
-
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9] text-slate-900 dark:text-white max-w-2xl">{cardName}</h1>
-                <div className="flex items-center gap-2">
-                  {[Share2, Star, Bell].map((Icon, i) => (
-                    <button key={i} className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-[#00BA88] hover:border-[#00BA88]/50 transition-all duration-300">
-                      <Icon size={18} />
+            {/* MAIN CHART AREA */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 md:p-8 shadow-sm space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div>
+                  <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-sora">Current Value ({selectedGrade})</p>
+                  <div className="flex items-baseline gap-4">
+                    <span className="text-5xl md:text-6xl font-black tabular-nums tracking-tighter">{price}</span>
+                    <span className="text-[12px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg flex items-center">
+                      <TrendingUp size={14} className="mr-1" /> 12.4%
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl self-start sm:self-center">
+                  {['1D', '1M', '3M', '1Y', 'MAX'].map((t) => (
+                    <button 
+                      key={t} 
+                      onClick={() => setSelectedTimeframe(t)}
+                      className={cn(
+                        "px-3.5 py-2 text-[9px] md:text-[10px] font-black rounded-lg transition-all", 
+                        selectedTimeframe === t ? "bg-[#00BA88] text-white shadow-md" : "text-slate-500 hover:text-slate-200"
+                      )}
+                    >
+                      {t}
                     </button>
                   ))}
                 </div>
               </div>
-              <button className="flex items-center gap-2 text-[#00BA88] transition-colors font-bold text-sm uppercase tracking-widest">
-                {cardSet} 
-              </button>
+              
+              <div className="h-[220px] md:h-[260px] w-full bg-slate-50/50 dark:bg-white/[0.02] rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">
+                <div className="absolute inset-0 flex items-end justify-between px-6 md:px-10 pb-4 opacity-20">
+                  {[40, 70, 45, 90, 65, 80, 30, 50, 40, 60, 85, 45, 60, 30, 75, 40].map((h, i) => (
+                    <div key={i} style={{ height: `${h}%` }} className="w-2 md:w-3 bg-[#00BA88] rounded-t-sm group-hover:opacity-100 transition-opacity" />
+                  ))}
+                </div>
+                <div className="z-10 flex flex-col items-center gap-2 opacity-50">
+                  <BarChart3 size={28} className="text-slate-400" />
+                  <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Terminal Link Active</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-100 dark:border-white/5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h Low</span>
+                  <span className="text-[14px] md:text-[16px] font-black tabular-nums">$412.00</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h High</span>
+                  <span className="text-[14px] md:text-[16px] font-black tabular-nums">$485.00</span>
+                </div>
+              </div>
             </div>
 
-            {/* Price Visualization */}
-<div className="p-5 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#020617] border border-slate-200 dark:border-white/10 relative overflow-hidden group">
-  <TrendingUp className="absolute -right-8 -top-8 w-48 h-48 text-[#00BA88] opacity-5" />
-  
-  <p className="text-[10px] md:text-[12px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2 md:mb-4">
-    Current Market Value
-  </p>
-  
-  <div className="flex flex-wrap items-baseline gap-2 md:gap-4">
-    <span className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 dark:text-white">
-      {price}
-    </span>
-    <div className="flex items-center gap-1 text-[#00BA88] bg-[#00BA88]/10 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[11px] md:text-sm font-black">
-      <ArrowUpRight size={14} className="md:w-[18px] md:h-[18px]"/> 12.4%
-    </div>
-  </div>
-  
-  {/* Grade Selector - Optimized for Mobile */}
-  <div className="mt-8 md:mt-12 bg-slate-50 dark:bg-black/40 p-1 md:p-1.5 rounded-xl md:rounded-2xl w-full sm:w-fit border border-slate-200 dark:border-white/5">
-    <div className="flex flex-row items-center justify-between sm:justify-start gap-1 md:gap-2">
-      {["PSA 10", "PSA 9", "RAW"].map(g => (
-        <button 
-          key={g} 
-          onClick={() => setSelectedGrade(g)} 
-          className={cn(
-            "flex-1 sm:flex-none px-3 md:px-8 py-2.5 md:py-3 text-[9px] md:text-[11px] font-black uppercase rounded-lg md:rounded-xl transition-all duration-300", 
-            selectedGrade === g 
-              ? "bg-[#00BA88] text-white dark:text-black shadow-lg shadow-[#00BA88]/30" 
-              : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-          )}
-        >
-          {g}
-        </button>
-      ))}
-    </div>
-  </div>
-</div>
-
-            {/* PSA Population */}
-            <div className="p-8 bg-white dark:bg-white/5 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-8 text-slate-900 dark:text-white">PSA Population Report</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {/* PSA POPULATION REPORT - 0s Mock Data */}
+            <div className="space-y-6 px-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-sora">PSA Population Data</h3>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Audit</span>
+              </div>
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 md:gap-4">
                 {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => (
-                  <div key={grade} className="p-4 bg-slate-50 dark:bg-black/40 rounded-2xl border border-slate-200 dark:border-white/5 text-center transition-transform hover:scale-105">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-tighter">PSA {grade}</p>
-                    <p className="text-lg font-black text-[#00BA88]">0</p>
+                  <div key={grade} className="bg-slate-50/50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-4 text-center hover:border-[#00BA88]/30 transition-colors">
+                    <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-1">Grade {grade}</p>
+                    <p className="text-lg md:text-xl font-black tabular-nums">0</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Tabs */}
-            {/* Tabs */}
-<Tabs defaultValue="sales" className="w-full">
-  <TabsList className="w-full justify-start h-12 md:h-14 bg-transparent border-b border-slate-200 dark:border-white/5 px-1 md:px-2 gap-6 md:gap-10 overflow-x-auto no-scrollbar">
-    <TabsTrigger value="sales" className="text-[10px] md:text-[11px] font-black uppercase data-[state=active]:text-[#00BA88] border-b-2 border-transparent data-[state=active]:border-[#00BA88] rounded-none px-0 transition-all text-slate-400">Last Sales</TabsTrigger>
-    <TabsTrigger value="history" className="text-[10px] md:text-[11px] font-black uppercase data-[state=active]:text-[#00BA88] border-b-2 border-transparent data-[state=active]:border-[#00BA88] rounded-none px-0 transition-all text-slate-400">Price History</TabsTrigger>
-    <TabsTrigger value="links" className="text-[10px] md:text-[11px] font-black uppercase data-[state=active]:text-[#00BA88] border-b-2 border-transparent data-[state=active]:border-[#00BA88] rounded-none px-0 transition-all text-slate-400">Market Links</TabsTrigger>
-  </TabsList>
+            {/* TABS */}
+            <Tabs defaultValue="sales" className="w-full">
+              <TabsList className="w-full justify-start h-12 bg-transparent border-b border-slate-200 dark:border-white/5 p-0 gap-8">
+                {["sales", "history", "markets"].map(tab => (
+                  <TabsTrigger key={tab} value={tab} className="text-[10px] md:text-[11px] font-black uppercase tracking-widest data-[state=active]:text-[#00BA88] border-b-2 border-transparent data-[state=active]:border-[#00BA88] rounded-none px-0 h-full bg-transparent shadow-none">
+                    {tab}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="sales" className="pt-6">
+                <div className="border border-slate-100 dark:border-white/5 rounded-[1.5rem] overflow-hidden">
+                   <div className="grid grid-cols-3 bg-slate-50/50 dark:bg-white/5 px-6 py-4 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <span>Execution Date</span>
+                      <span>Market</span>
+                      <span className="text-right">Settled</span>
+                   </div>
+                   {[1, 2, 3].map(i => (
+                     <div key={i} className="grid grid-cols-3 px-6 py-5 text-[12px] md:text-[13px] font-bold border-t border-slate-50 dark:border-white/5 items-center hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group">
+                        <span className="text-slate-400 uppercase text-[10px] md:text-[11px]">Oct {12+i}, 2025</span>
+                        <span className="flex items-center gap-2"><Globe size={14} className="text-[#00BA88]" /> Verified Auction</span>
+                        <span className="text-right font-black tabular-nums group-hover:text-[#00BA88] transition-colors">{price}</span>
+                     </div>
+                   ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
 
-  <TabsContent value="sales" className="mt-6 md:mt-8">
-    <div className="bg-white dark:bg-white/5 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 dark:border-white/5 divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="p-4 md:p-6 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group/row">
-            <div className="flex items-center gap-3 md:gap-5">
-              {/* Date Badge - Scaled for mobile */}
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[#00BA88] font-black text-[9px] md:text-[10px] tracking-widest uppercase">OCT</div>
-              <div>
-                <p className="text-[13px] md:text-[15px] font-bold text-slate-900 dark:text-white leading-tight">October {14-i}, 2025</p>
-                <p className="text-[9px] md:text-[11px] text-slate-400 font-bold uppercase tracking-tight mt-0.5 md:mt-1">Verified {selectedGrade} • eBay</p>
+          {/* --- RIGHT: INTELLIGENCE --- */}
+          <div className={cn("lg:col-span-3 space-y-10 flex flex-col pb-15", columnClass)}>
+            <div className="space-y-8 flex-1">
+              <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-[#00BA88] flex items-center gap-2 font-sora">
+                <Info size={14}/> Live Intel
+              </h3>
+              <div className="space-y-8">
+                {[
+                  { t: `Institutional whale accumulation detected (+42%)`, d: "2h ago" },
+                  { t: `Expansion support level confirmed at ${price}`, d: "1d ago" },
+                  { t: `Sell-side liquidity increasing for ${cardSet}`, d: "2d ago" }
+                ].map((news, i) => (
+                  <div key={i} className="group cursor-pointer">
+                    <p className="text-[13px] md:text-[14px] font-bold leading-relaxed mb-1.5 group-hover:text-[#00BA88] transition-colors">{news.t}</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter">{news.d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-10 border-t border-slate-100 dark:border-white/5">
+                <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">Correlations</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="aspect-square bg-slate-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center border border-transparent hover:border-[#00BA88]/20 transition-all cursor-pointer group">
+                      <div className="w-10 h-10 bg-slate-100 dark:bg-white/10 rounded-xl mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Asset #01{i}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              {/* Price - Reduced slightly on mobile */}
-              <p className="text-lg md:text-xl font-black text-[#00BA88]">$450.00</p>
-              <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase">Final Bid</p>
-            </div>
-          </div>
-        ))}
-    </div>
-  </TabsContent>
 
-  <TabsContent value="history" className="mt-6 md:mt-8">
-    <div className="p-10 md:p-16 bg-white dark:bg-white/5 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 dark:border-white/5 text-center">
-      <BarChart3 size={40} className="mx-auto text-slate-200 dark:text-slate-800 mb-4 md:mb-6" />
-      <p className="text-xs md:text-sm font-bold text-slate-500">Live Chart Engine Initializing...</p>
-    </div>
-  </TabsContent>
-
-  <TabsContent value="links" className="mt-6 md:mt-8">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-      <Button variant="outline" className="h-14 md:h-16 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 hover:bg-[#00BA88]/5 justify-between px-5 md:px-6 text-slate-700 dark:text-white">
-        <span className="font-bold text-sm md:text-base">Buy on eBay</span> <LinkIcon size={16} />
-      </Button>
-      <Button variant="outline" className="h-14 md:h-16 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 hover:bg-[#00BA88]/5 justify-between px-5 md:px-6 text-slate-700 dark:text-white">
-        <span className="font-bold text-sm md:text-base">Check TCGPlayer</span> <LinkIcon size={16} />
-      </Button>
-    </div>
-  </TabsContent>
-</Tabs>
-          </div>
-
-          {/* --- RIGHT COLUMN: INTELLIGENCE --- 
-              VISIBLE on Mobile (flow) and Desktop (sidebar)
-          */}
-          <div className="lg:col-span-12 xl:col-span-3 flex flex-col h-full lg:overflow-y-auto no-scrollbar pb-10 space-y-6">
-            <div className="relative group w-full bg-white dark:bg-slate-900/50 rounded-[2rem] border border-slate-200 dark:border-white/5 flex flex-col items-center justify-center p-10 text-center min-h-[280px] lg:min-h-[320px] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00BA88]/5 to-transparent" />
-                <span className="absolute top-6 right-8 text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Advert</span>
-                <div className="relative w-20 h-20 rounded-3xl bg-[#00BA88]/10 flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform duration-500">
-                  <MousePointer2 className="text-[#00BA88] w-8 h-8" />
-                </div>
-                <h4 className="relative text-sm font-black mb-2 tracking-tight">PARTNER SLOT</h4>
-                <p className="relative text-[12px] text-slate-500 leading-relaxed font-medium">Direct placement for card shops and vendors.</p>
-            </div>
-
-            <div className="p-8 rounded-[2rem] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 space-y-8 shadow-sm">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#00BA88] animate-pulse" />
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Live Intel</h3>
-                </div>
-                <div className="space-y-8">
-                    {[
-                        { t: `${cardName} volume increased by 40% in last 24h.`, d: "2H AGO" },
-                        { t: `Comparison guide: PSA 10 ${cardName} vs Alternatives.`, d: "1D AGO" },
-                        { t: `New record sale detected for ${cardName} Raw.`, d: "3D AGO" }
-                    ].map((news, i) => (
-                        <div key={i} className="group cursor-pointer">
-                            <p className="text-[13px] font-bold leading-snug group-hover:text-[#00BA88] transition-colors text-slate-800 dark:text-slate-200">{news.t}</p>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-600 font-black mt-3 tracking-tighter italic">{news.d}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="p-8 rounded-[2rem] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 shadow-sm">
-                <div className="flex items-center gap-2 mb-8">
-                  <Lightbulb size={18} className="text-yellow-500" />
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Recommendations</h3>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-                    {[1,2,3,4,5,6].map(i => (
-                        <div key={i} className="aspect-[3/4] bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/5 p-2 hover:border-[#00BA88]/40 transition-all cursor-pointer group">
-                            <div className="h-full w-full bg-slate-100 dark:bg-white/[0.03] rounded-xl flex items-center justify-center">
-                                <TrendingUp size={24} className="text-slate-200 dark:text-white/5 group-hover:text-[#00BA88]/20 transition-colors" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <p className="text-[10px] text-slate-400 font-bold mt-6 text-center italic">Based on {card.type || 'Holo'} collectors</p>
+            {/* CTA SECTION - Sticky for mobile */}
+            <div className="pt-8 mt-auto sticky bottom-6 lg:relative lg:bottom-0">
+              <Button className="w-full bg-[#00BA88] hover:bg-[#00966d] text-white font-black text-[11px] md:text-[12px] uppercase tracking-[0.2em] h-16 rounded-[1.5rem] shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all">
+                Execute Purchase <ExternalLink size={16} className="ml-2" />
+              </Button>
+              <p className="text-[8px] md:text-[9px] text-center text-slate-400 font-bold uppercase mt-4 tracking-widest opacity-60">
+                Secured via Partner Market Liquidity
+              </p>
             </div>
           </div>
         </div>
