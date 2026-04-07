@@ -89,14 +89,14 @@ export default function Navbar() {
     <>
       {/* --- MOBILE TOP HEADER --- */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="relative h-11 w-11">
             <Image src="/logo.png" alt="Logo" fill className="object-contain" />
           </div>
           <span className="text-xl font-black tracking-tighter dark:text-white">
             CardMarket<span className="text-[#00BA88]">Cap</span>
           </span>
-        </div>
+        </Link>
         
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-slate-500 rounded-xl h-9 w-9">
           {mounted && (resolvedTheme === 'dark' ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5" />)}
@@ -240,7 +240,7 @@ export default function Navbar() {
               {isLandingPage ? (
                 <>
                   <MobileTab href="/sign-in" icon={LogIn} label="Sign In" />
-                  <MobileTab href="/sign-up" icon={UserRoundPlus} label="Join" />
+                  <MobileTab onClick={toggleMenu} icon={Menu} label="Menu" />
                 </>
               ) : (
                 <>

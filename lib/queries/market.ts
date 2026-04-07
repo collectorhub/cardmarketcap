@@ -78,7 +78,15 @@ export async function fetchCMCCards(
     const formattedData = result.data.map((card: any) => ({
       ...card,
       image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
-      // UI Safety: Parse prices and pops into actual numbers
+      
+      // EXPLICIT RARITY FETCHING
+      rarity: card.rarity || card.type || "Standard", 
+      
+      // EXPANSION ASSETS
+      setLogo: card.setLogo || null,
+      setSymbol: card.setSymbol || null,
+
+      // NUMBER PARSING
       priceNum: parseFloat(card.price?.replace(/[$,]/g, '') || "0"),
       popTotalNum: parseInt(card.popTotal?.replace(/,/g, '') || "0"),
       gradeCountNum: parseInt(card.gradeCount?.replace(/,/g, '') || "0"),
@@ -94,7 +102,6 @@ export async function fetchCMCCards(
 
 export async function fetchCardById(id: string) {
   try {
-    // 1. Primary Source
     const cmcResponse = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
       next: { revalidate: 60 } 
     });
@@ -102,12 +109,13 @@ export async function fetchCardById(id: string) {
     if (cmcResponse.ok) {
       const cmcResult = await cmcResponse.json();
       if (cmcResult.success && cmcResult.data?.length > 0) {
-        // Use exact ID match to prevent getting 'base1-44' when searching for 'base1-4'
         const found = cmcResult.data.find((c: any) => String(c.id) === id);
         if (found) {
            return {
              ...found,
-             // Ensure this matches the Detail Page's expected prop names
+             rarity: found.rarity || found.type || "Standard", // Pass rarity to detail page
+             setLogo: found.setLogo,
+             setSymbol: found.setSymbol,
              priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
              image: found.imageUrl
            };
@@ -115,7 +123,7 @@ export async function fetchCardById(id: string) {
       }
     }
 
-    // 2. Fallback to Trending
+    // 2. Fallback to Trending (if primary source fails)
     const trendingCards = await fetchTrendingCards();
     const trendingMatch = trendingCards.find(c => String(c.id) === id);
 
@@ -124,13 +132,16 @@ export async function fetchCardById(id: string) {
         id: trendingMatch.id,
         name: trendingMatch.name,
         imageUrl: trendingMatch.image,
-        image: trendingMatch.image, // Duplicate for consistency
+        image: trendingMatch.image, 
         priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
         price: trendingMatch.price,
         set: trendingMatch.set,
         set_name: trendingMatch.set,
         rarity: "Trending",
-        grade: trendingMatch.grade || "Raw"
+        grade: trendingMatch.grade || "Raw",
+        // Note: Fallback likely won't have these URLs unless trending API is also updated
+        setLogo: null,
+        setSymbol: null
       };
     }
     

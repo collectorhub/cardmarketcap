@@ -6,6 +6,7 @@ import { Newsletter } from "@/components/Newsletter";
 import { MarketTicker } from "@/components/MarketTicker";
 import { fetchCMCCards, fetchMarketStats } from "@/lib/queries/market" 
 import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 
 export default async function Page({
   searchParams,
@@ -72,6 +73,9 @@ export default async function Page({
           This ensures the frontpage looks exactly like your design 
       */}
       <Navbar />
+      <div className="lg:hidden">
+  <Sidebar />
+</div>
 
       {/* Main Content: pt-24 provides enough space for the fixed Navbar.
           We use max-w-[1600px] to match your dashboard's inner width.
@@ -80,25 +84,37 @@ export default async function Page({
         
         {/* Header Section */}
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <nav className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
-              <span className="text-slate-300 dark:text-slate-700 text-[10px]">/</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Market Intelligence</span>
-            </nav>
-            <div className="space-y-3">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
-                Pokémon Graded Card Tracker
-                <span className="ml-3 inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
-                  PSA Verified
-                </span>
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                Showing {totalCardsCount.toLocaleString()} total cards across the global market.
-              </p>
-            </div>
-          </div>
-        </header>
+  <div className="space-y-1">
+    <nav className="flex items-center gap-2 mb-2">
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
+      <span className="text-slate-300 dark:text-slate-700 text-[10px]">/</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Market Intelligence</span>
+    </nav>
+    
+    <div className="space-y-3">
+      <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
+        Pokémon Graded Card Tracker
+        {/* DESKTOP PILL: Hidden on mobile, shown on md+ */}
+        <span className="hidden md:inline-flex ml-3 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+          PSA Verified
+        </span>
+      </h1>
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+          Showing {totalCardsCount.toLocaleString()} total cards across the global market.
+        </p>
+
+        {/* MOBILE PILL: Shown on mobile, hidden on md+ */}
+        <div className="flex md:hidden">
+          <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+            PSA Verified
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
 
         {/* Stats Grid Section */}
         <section className="mb-8 md:mb-12">
