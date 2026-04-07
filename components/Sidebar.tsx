@@ -93,7 +93,7 @@ export default function Sidebar() {
       >
         {/* HEADER */}
         <div className="px-6 py-10 flex items-center justify-between">
-          <Link href="/overview" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <div className="relative h-8 w-8 flex-shrink-0">
               <Image 
                 src="/logo.png" 
