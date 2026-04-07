@@ -11,75 +11,77 @@ import { Button } from "@/components/ui/button"
 
 export default function SignupPage() {
   return (
-    // REMOVED: overflow-hidden from the main wrapper
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col md:flex-row font-sans selection:bg-[#00BA88]/20">
       
-      {/* --- LEFT SIDE: BRAND/MARKETING SECTION --- 
-          TWEAK: Added md:sticky top-0 md:h-screen to lock it in place on desktop
-      */}
+      {/* --- LEFT SIDE: BRAND/MARKETING SECTION --- */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative w-full md:w-1/2 bg-[#040d21] p-10 md:p-20 flex flex-col justify-between min-h-[450px] md:h-screen md:sticky md:top-0 overflow-hidden"
+        transition={{ duration: 0.5 }}
+        className="relative w-full md:w-1/2 bg-[#040d21] p-10 md:p-20 flex flex-col justify-between min-h-[550px] md:h-screen md:sticky md:top-0 overflow-hidden"
       >
+        {/* Background Layers */}
         <div className="absolute inset-0 z-0">
           <Image 
             src="/auth-bg.jpg" 
             alt="Market background"
             fill
-            className="object-cover opacity-30 mix-blend-overlay"
+            className="object-cover opacity-10 mix-blend-overlay"
             priority
             onError={(e) => (e.currentTarget.style.display = 'none')} 
           />
-          <div className="absolute bottom-0 left-0 w-full h-[60%] bg-gradient-to-t from-[#00BA88]/10 to-transparent pointer-events-none" />
+          
+          {/* Character Banner - FULL WIDTH AT BOTTOM WITH SOFT TRANSITION */}
+          <div className="absolute bottom-0 left-0 w-full h-[380px] md:h-[480px] pointer-events-none">
+            <Image 
+              src="/signup-banner.jpeg" 
+              alt="Background characters" 
+              fill 
+              className="object-cover object-bottom"
+              priority
+            />
+            {/* The "Perfect Edge" Fade: Blurs the top edge of the character image into the navy background */}
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-[#040d21]/10 to-[#040d21] top-[-2px]" />
+            {/* Side vignettes to keep focus center-left */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#040d21]/40 via-transparent to-[#040d21]/40" />
+          </div>
+
+          <div className="absolute bottom-0 left-0 w-full h-[20%] bg-gradient-to-t from-[#040d21] to-transparent pointer-events-none z-10" />
         </div>
 
-        <div className="relative z-10">
-          <Link href="/" className="flex items-center gap-2 mb-20">
+        {/* Content Layer */}
+        <div className="relative z-20">
+          <Link href="/" className="flex items-center gap-2 mb-10">
             <div className="relative h-10 w-10">
               <Image src="/logo.png" alt="Logo" fill className="object-contain" />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-white">
+            <span className="text-xl font-black tracking-tighter text-white">
               CardMarket<span className="text-[#00BA88]">Cap</span>
             </span>
           </Link>
 
           <div className="max-w-lg">
-            <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.05] mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-[1.05] mb-4 font-sora selection:text-white selection:bg-[#00BA88]/30">
               Create your <br /> 
               <span className="text-[#00BA88]">free account</span>
             </h1>
-            <p className="text-slate-400 text-xl font-medium leading-relaxed mb-12 max-w-md">
+            <p className="text-slate-400 text-[14px] font-medium leading-relaxed mb-12 max-w-md">
               Explore CardMarketCap&apos;s core features for individuals and organizations.
             </p>
           </div>
         </div>
-
-        {/* <div className="relative z-10 mt-auto pt-12">
-           <motion.div 
-             animate={{ y: [0, -12, 0] }}
-             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-             className="w-32 h-32 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 flex items-center justify-center shadow-[0_0_50px_-12px_rgba(0,186,136,0.3)]"
-           >
-              <div className="text-center">
-                <div className="text-[#00BA88] font-black text-2xl tracking-tighter">LIVE</div>
-                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Market Data</div>
-              </div>
-           </motion.div>
-        </div> */}
       </motion.div>
 
-      {/* --- RIGHT SIDE: SIGN UP FORM --- 
-          TWEAK: This side remains relative and scrolls naturally as the form grows
-      */}
+      {/* --- RIGHT SIDE: SIGN UP FORM --- */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16 bg-white dark:bg-slate-950">
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
           className="w-full max-w-[440px] py-10"
         >
           <div className="mb-8 flex justify-between items-baseline border-b border-slate-100 dark:border-slate-800 pb-6">
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Sign up to CardMarketCap</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight font-sora">Sign up to CardMarketCap</h2>
             <div className="text-[13px] text-slate-500">
               Already have an account? <Link href="/sign-in" className="text-[#00BA88] hover:underline font-bold">Sign in →</Link>
             </div>
@@ -109,7 +111,7 @@ export default function SignupPage() {
               <input 
                 type="email" 
                 placeholder="Email"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
                 required
               />
             </div>
@@ -119,7 +121,7 @@ export default function SignupPage() {
               <input 
                 type="password" 
                 placeholder="Password"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
                 required
               />
               <p className="text-[12px] text-slate-500 leading-normal px-0.5">
@@ -132,7 +134,7 @@ export default function SignupPage() {
               <input 
                 type="text" 
                 placeholder="Username"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
                 required
               />
               <p className="text-[12px] text-slate-500 leading-normal px-0.5">
@@ -146,7 +148,7 @@ export default function SignupPage() {
                 <input 
                   type="checkbox" 
                   id="marketing-emails"
-                  className="mt-1 h-4 w-4 rounded border-[#d0d7de] text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="mt-1 h-4 w-4 rounded border-[#d0d7de] text-[#00BA88] focus:ring-[#00BA88] cursor-pointer"
                 />
                 <div className="space-y-1">
                   <label htmlFor="marketing-emails" className="text-[13px] text-slate-700 dark:text-slate-300 font-medium cursor-pointer">

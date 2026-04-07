@@ -60,13 +60,12 @@ export async function fetchCMCCards(
     const baseUrl = `https://pokecollectorhub.com/api/cmc_cards.php`;
     const queryParams = new URLSearchParams({
       page: page.toString(),
-      search: search || "",     // Ensure it's never undefined
+      search: search || "",
       sort: sort || "top",
       category: category || "all",
       grade: grade || "psa 10"
     });
 
-    // Add a cache tag so you can revalidate this specific data later
     const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
       next: { revalidate: 60, tags: ['cards'] } 
     });
@@ -78,11 +77,12 @@ export async function fetchCMCCards(
 
     const formattedData = result.data.map((card: any) => ({
       ...card,
-      // Priority 1: imageUrl from API, Priority 2: placeholder
       image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
-      // Convert formatted strings ("1,200") back to numbers for the UI to use in math
+      // UI Safety: Parse prices and pops into actual numbers
+      priceNum: parseFloat(card.price?.replace(/[$,]/g, '') || "0"),
       popTotalNum: parseInt(card.popTotal?.replace(/,/g, '') || "0"),
-      gradeCountNum: parseInt(card.gradeCount?.replace(/,/g, '') || "0")
+      gradeCountNum: parseInt(card.gradeCount?.replace(/,/g, '') || "0"),
+      marketCapNum: parseFloat(card.marketCap?.replace(/[$,M]/g, '') || "0")
     }));
 
     return { data: formattedData, metadata: result.metadata };
@@ -94,7 +94,7 @@ export async function fetchCMCCards(
 
 export async function fetchCardById(id: string) {
   try {
-    // 1. Try fetching from CMC Cards first (Primary Source)
+    // 1. Primary Source
     const cmcResponse = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
       next: { revalidate: 60 } 
     });
@@ -102,27 +102,35 @@ export async function fetchCardById(id: string) {
     if (cmcResponse.ok) {
       const cmcResult = await cmcResponse.json();
       if (cmcResult.success && cmcResult.data?.length > 0) {
+        // Use exact ID match to prevent getting 'base1-44' when searching for 'base1-4'
         const found = cmcResult.data.find((c: any) => String(c.id) === id);
-        if (found) return found;
+        if (found) {
+           return {
+             ...found,
+             // Ensure this matches the Detail Page's expected prop names
+             priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
+             image: found.imageUrl
+           };
+        }
       }
     }
 
-    // 2. Fallback: Check Trending Cards if not found in CMC
-    // Since trending IDs (like 12931) might not be in the CMC search
+    // 2. Fallback to Trending
     const trendingCards = await fetchTrendingCards();
     const trendingMatch = trendingCards.find(c => String(c.id) === id);
 
     if (trendingMatch) {
-      // Map trending format to your Detail Page format
       return {
         id: trendingMatch.id,
         name: trendingMatch.name,
         imageUrl: trendingMatch.image,
-        marketPrice: parseFloat(trendingMatch.price.replace('$', '').replace(',', '')),
-        // Add other default fields your Detail UI expects
+        image: trendingMatch.image, // Duplicate for consistency
+        priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
+        price: trendingMatch.price,
+        set: trendingMatch.set,
         set_name: trendingMatch.set,
         rarity: "Trending",
-        grade: trendingMatch.grade
+        grade: trendingMatch.grade || "Raw"
       };
     }
     

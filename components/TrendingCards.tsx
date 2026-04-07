@@ -48,9 +48,8 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
     setCurrentPage(1)
   }
 
-  // NAVIGATION HANDLER - Updated to ensure string consistency
+  // NAVIGATION HANDLER - Updated for unified /card/[id] logic
   const handleCardClick = (id: number) => {
-    // If your folder is app/cards/[id], change this to /cards/
     router.push(`/card/${id}`)
   }
 
@@ -102,6 +101,7 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Mobile View */}
               <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                 {paginatedCards.map((card) => (
                   <div 
@@ -130,6 +130,7 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
                 ))}
               </div>
 
+              {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse table-fixed">
                   <thead>
@@ -220,7 +221,7 @@ export function TrendingCards({ cards = [], itemsPerPage = 8 }: TrendingCardsPro
 
           <button 
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(prev => prev + 1)} // FIXED: was prev - 1
+            onClick={() => setCurrentPage(prev => prev + 1)} 
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
           >
             <ChevronRight className="h-4 w-4" />

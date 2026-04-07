@@ -114,7 +114,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   const currentSubcat = searchParams.get('category') || 'All';
   const currentGrade = searchParams.get('grade') || 'PSA 10';
 
-  // Listen for prop changes to stop loading
   useEffect(() => { setIsLoading(false); }, [initialCards, currentPage, searchParams]);
 
   const updateParams = (key: string, val: string | number) => {
@@ -134,7 +133,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
     updateParams('q', searchQuery);
   };
 
-  // Helper to clear search
   const clearSearch = () => {
     setSearchQuery('');
     updateParams('q', '');
@@ -231,14 +229,22 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   ) : initialCards && initialCards.length > 0 ? (
     initialCards.map((card: any, idx: number) => (
       <motion.tr
-        key={card.id || idx}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        // 1. ADD ONCLICK TO THE ROW
-        onClick={() => router.push(`/card/${card.id}`)}
-        // 2. ADD CURSOR POINTER
-        className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-      >
+    key={card.id || idx}
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    // FIX: Check if canonicalUrl exists, then navigate. 
+    // We remove the hardcoded "/card" because canonicalUrl from your DB 
+    // already starts with language/category (e.g., "/en/pokemon/...")
+    onClick={() => {
+      if (card.canonicalUrl) {
+        router.push(`/card${card.canonicalUrl}`);
+      } else {
+        // Fallback to ID if canonical is missing
+        router.push(`/card/${card.id}`);
+      }
+    }}
+    className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+  >
         <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
           {(currentPage - 1) * 50 + idx + 1}
         </td>
@@ -288,15 +294,14 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
         </td>
 
         <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-400 whitespace-nowrap">
-          {card.sales90d} sales
+          {card.sales90d || 0} sales
         </td>
 
         <td className="p-4 md:p-6 text-center">
           <button
-            // 3. STOP PROPAGATION SO BUTTON CLICK DOESN'T TRIGGER ROW CLICK
             onClick={(e) => {
               e.stopPropagation();
-              // Add your buy logic here
+              // Add buy logic here
             }}
             className="relative z-10 mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
           >
@@ -306,7 +311,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
       </motion.tr>
     ))
               ) : (
-                /* --- NO RESULTS STATE (Shows inside table body) --- */
                 <tr>
                   <td colSpan={10} className="py-32 text-center">
                     <motion.div 
@@ -340,7 +344,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
           </table>
         </div>
 
-        {/* 3. PAGINATION (Only show if cards exist) */}
         {initialCards.length > 0 && (
           <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <p className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-400">Page {currentPage} / {totalPages}</p>
@@ -353,22 +356,22 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="hidden md:flex gap-1.5">
-                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                   let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
-                   if (pageNum > totalPages) return null;
-                   return (
-                    <button
-                      key={pageNum}
-                      onClick={() => updateParams('page', pageNum)}
-                      className={cn(
-                        "h-9 w-9 rounded-lg text-xs font-black transition-all cursor-pointer",
-                        currentPage === pageNum ? "bg-[#00BA88] text-white" : "text-slate-400 hover:text-slate-900"
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                   )
-                 })}
+                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                    let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                    if (pageNum > totalPages) return null;
+                    return (
+                     <button
+                       key={pageNum}
+                       onClick={() => updateParams('page', pageNum)}
+                       className={cn(
+                         "h-9 w-9 rounded-lg text-xs font-black transition-all cursor-pointer",
+                         currentPage === pageNum ? "bg-[#00BA88] text-white" : "text-slate-400 hover:text-slate-900"
+                       )}
+                     >
+                       {pageNum}
+                     </button>
+                    )
+                  })}
               </div>
               <button 
                 disabled={currentPage === totalPages || isLoading}
@@ -382,7 +385,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
         )}
       </div>
       
-      {/* 4. FOOTER STATS */}
       <div className="flex items-center gap-4 px-1 text-[9px] md:text-xs font-black uppercase text-slate-400 tracking-widest">
         <div className="flex items-center gap-1.5">
           <span>Total Records:</span>

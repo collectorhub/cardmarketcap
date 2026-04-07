@@ -1,13 +1,10 @@
 "use client"
 
 import React, { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation' // Added for intelligent back navigation
+import { useRouter } from 'next/navigation'
 import { 
   Share2, Star, Info, ArrowLeft, Activity, 
-  Globe, ExternalLink, TrendingUp,
-  BarChart3, Zap, ArrowRight,
-  History
+  Globe, TrendingUp, BarChart3
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -15,44 +12,82 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Navbar from './Navbar'
 
 export default function CardDetails({ card }: { card: any }) {
-  const router = useRouter() // Initialize router
+  const router = useRouter()
   const [selectedGrade, setSelectedGrade] = useState("PSA 10");
   const [selectedTimeframe, setSelectedTimeframe] = useState("1M");
 
+  // Data Mapping from Props
   const cardName = card.name || "Unknown Card";
   const cardSet = card.expansion_name || card.set || "Unknown Set";
   const cardImage = card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png";
-  const price = card.price || "$0.00";
   const cardType = card.type || "Holo";
+  const popData = card.population || {}; 
 
-  // Refined scroll behavior for desktop, standard for mobile
+  /**
+   * DYNAMIC PRICE RESOLVER
+   * This addresses the client's concern by pulling the specific price 
+   * based on the user's grade selection.
+   */
+  const getDynamicPrice = () => {
+    const gradeKey = selectedGrade.toLowerCase().replace(" ", ""); // e.g., "psa10" or "raw"
+    if (card.prices && card.prices[gradeKey]) {
+      return card.prices[gradeKey];
+    }
+    return card.price || "$0.00";
+  };
+
+  const currentDisplayPrice = getDynamicPrice();
+
   const columnClass = "lg:h-full lg:overflow-y-auto no-scrollbar lg:pb-10";
 
-  // Back navigation handler
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault()
-    // This will take them back to exactly where they were (Market or Trending)
-    // and preserve their scroll position on the previous page.
     if (window.history.length > 1) {
       router.back()
     } else {
-      router.push('/') // Fallback if no history exists
+      router.push('/')
     }
   }
+
+  const AssetHeader = () => (
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="bg-emerald-500/10 text-[#00BA88] px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">
+            Rank #{card.rank || "124"}
+          </span>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em]">Market Index</span>
+        </div>
+        <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-none">
+          {cardName}
+        </h1>
+      </div>
+      
+      <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
+        {["PSA 10", "PSA 9", "RAW"].map(g => (
+          <button 
+            key={g} 
+            onClick={() => setSelectedGrade(g)} 
+            className={cn(
+              "px-5 py-2.5 text-[10px] md:text-[11px] font-black uppercase rounded-xl transition-all", 
+              selectedGrade === g ? "bg-white dark:bg-slate-800 text-[#00BA88] shadow-sm" : "text-slate-400 hover:text-slate-200"
+            )}
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen lg:h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 font-inter selection:bg-[#00BA88]/30">
       <Navbar />
 
-      {/* --- SUB-HEADER --- */}
       <div className="border-b border-slate-100 dark:border-white/5 flex-shrink-0 bg-white/50 dark:bg-[#020617]/50 backdrop-blur-md sticky top-0 z-20 pt-15 md:pt-0">
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
-            {/* UPDATED BACK BUTTON */}
-            <button 
-              onClick={handleBack} 
-              className="hover:text-[#00BA88] transition-colors flex items-center gap-1 uppercase cursor-pointer"
-            >
+            <button onClick={handleBack} className="hover:text-[#00BA88] transition-colors flex items-center gap-1 uppercase cursor-pointer">
               <ArrowLeft size={14} /> <span>Back</span>
             </button>
             <span className="opacity-20 hidden md:block">/</span>
@@ -69,9 +104,13 @@ export default function CardDetails({ card }: { card: any }) {
       </div>
 
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-6 overflow-x-hidden lg:overflow-hidden">
+        
+        <div className="block lg:hidden pt-6">
+          <AssetHeader />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 h-full py-6 md:py-8">
           
-          {/* --- LEFT: ASSET PROFILE --- */}
           <div className={cn("lg:col-span-3 space-y-8", columnClass)}>
             <div className="rounded-3xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-4 shadow-sm flex items-center justify-center">
               <img src={cardImage} alt={cardName} className="h-auto w-full max-w-[280px] lg:max-w-none object-contain hover:scale-105 transition-transform duration-500" />
@@ -108,42 +147,18 @@ export default function CardDetails({ card }: { card: any }) {
             </div>
           </div>
 
-          {/* --- CENTER: TERMINAL DATA --- */}
           <div className={cn("lg:col-span-6 space-y-10", columnClass)}>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="bg-emerald-500/10 text-[#00BA88] px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Rank #124</span>
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em]">Market Index</span>
-                </div>
-                <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-none">
-                  {cardName}
-                </h1>
-              </div>
-              
-              <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-2xl w-fit">
-                {["PSA 10", "PSA 9", "RAW"].map(g => (
-                  <button 
-                    key={g} 
-                    onClick={() => setSelectedGrade(g)} 
-                    className={cn(
-                      "px-5 py-2.5 text-[10px] md:text-[11px] font-black uppercase rounded-xl transition-all", 
-                      selectedGrade === g ? "bg-white dark:bg-slate-800 text-[#00BA88] shadow-sm" : "text-slate-400 hover:text-slate-200"
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
+            
+            <div className="hidden lg:block">
+              <AssetHeader />
             </div>
 
-            {/* MAIN CHART AREA */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 md:p-8 shadow-sm space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
                   <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-sora">Current Value ({selectedGrade})</p>
                   <div className="flex items-baseline gap-4">
-                    <span className="text-5xl font-black tabular-nums tracking-tighter">{price}</span>
+                    <span className="text-5xl font-black tabular-nums tracking-tighter">{currentDisplayPrice}</span>
                     <span className="text-[12px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg flex items-center">
                       <TrendingUp size={14} className="mr-1" /> 12.4%
                     </span>
@@ -189,7 +204,6 @@ export default function CardDetails({ card }: { card: any }) {
               </div>
             </div>
 
-            {/* PSA POPULATION REPORT - 0s Mock Data */}
             <div className="space-y-6 px-1">
               <div className="flex items-center justify-between">
                 <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-sora">PSA Population Data</h3>
@@ -199,13 +213,14 @@ export default function CardDetails({ card }: { card: any }) {
                 {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => (
                   <div key={grade} className="bg-slate-50/50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-4 text-center hover:border-[#00BA88]/30 transition-colors">
                     <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-1">Grade {grade}</p>
-                    <p className="text-lg md:text-xl font-black tabular-nums">0</p>
+                    <p className="text-lg md:text-xl font-black tabular-nums">
+                      {popData[`psa${grade}`] || "0"}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* TABS */}
             <Tabs defaultValue="sales" className="w-full">
               <TabsList className="w-full justify-start h-12 bg-transparent border-b border-slate-200 dark:border-white/5 p-0 gap-8">
                 {["sales", "history", "markets"].map(tab => (
@@ -225,7 +240,7 @@ export default function CardDetails({ card }: { card: any }) {
                      <div key={i} className="grid grid-cols-3 px-6 py-5 text-[12px] md:text-[13px] font-bold border-t border-slate-50 dark:border-white/5 items-center hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group">
                         <span className="text-slate-400 uppercase text-[10px] md:text-[11px]">Oct {12+i}, 2025</span>
                         <span className="flex items-center gap-2"><Globe size={14} className="text-[#00BA88]" /> Verified Auction</span>
-                        <span className="text-right font-black tabular-nums group-hover:text-[#00BA88] transition-colors">{price}</span>
+                        <span className="text-right font-black tabular-nums group-hover:text-[#00BA88] transition-colors">{currentDisplayPrice}</span>
                      </div>
                    ))}
                 </div>
@@ -233,7 +248,6 @@ export default function CardDetails({ card }: { card: any }) {
             </Tabs>
           </div>
 
-          {/* --- RIGHT: INTELLIGENCE --- */}
           <div className={cn("lg:col-span-3 space-y-10 flex flex-col pb-15", columnClass)}>
             <div className="space-y-8 flex-1">
               <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-[#00BA88] flex items-center gap-2 font-sora">
@@ -242,7 +256,7 @@ export default function CardDetails({ card }: { card: any }) {
               <div className="space-y-8">
                 {[
                   { t: `Institutional whale accumulation detected (+42%)`, d: "2h ago" },
-                  { t: `Expansion support level confirmed at ${price}`, d: "1d ago" },
+                  { t: `Expansion support level confirmed at ${currentDisplayPrice}`, d: "1d ago" },
                   { t: `Sell-side liquidity increasing for ${cardSet}`, d: "2d ago" }
                 ].map((news, i) => (
                   <div key={i} className="group cursor-pointer">
@@ -263,16 +277,6 @@ export default function CardDetails({ card }: { card: any }) {
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* CTA SECTION - Sticky for mobile */}
-            <div className="pt-8 mt-auto sticky bottom-6 lg:relative lg:bottom-0">
-              <Button className="w-full bg-[#00BA88] hover:bg-[#00966d] text-white font-black text-[11px] md:text-[12px] uppercase tracking-[0.2em] h-16 rounded-[1.5rem] shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all">
-                Execute Purchase <ExternalLink size={16} className="ml-2" />
-              </Button>
-              <p className="text-[8px] md:text-[9px] text-center text-slate-400 font-bold uppercase mt-4 tracking-widest opacity-60">
-                Secured via Partner Market Liquidity
-              </p>
             </div>
           </div>
         </div>
