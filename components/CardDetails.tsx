@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Navbar from './Navbar'
+import Sidebar from './Sidebar'
 
 export default function CardDetails({ card }: { card: any }) {
   const router = useRouter()
@@ -93,6 +94,9 @@ export default function CardDetails({ card }: { card: any }) {
   return (
     <div className="min-h-screen lg:h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 font-inter selection:bg-[#00BA88]/30">
       <Navbar />
+      <div className="lg:hidden">
+        <Sidebar />
+      </div>
 
       <div className="border-b border-slate-100 dark:border-white/5 flex-shrink-0 bg-white/50 dark:bg-[#020617]/50 backdrop-blur-md sticky top-0 z-20 pt-15 md:pt-0">
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
