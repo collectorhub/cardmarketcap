@@ -151,3 +151,46 @@ export async function fetchCardById(id: string) {
     return null;
   }
 }
+
+export async function fetchExpansions() {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+  try {
+    const response = await fetch('https://pokecollectorhub.com/api/sets.php', {
+      signal: controller.signal,
+      next: { revalidate: 3600 } // Sets don't change often, cache for 1 hour
+    });
+
+    clearTimeout(id);
+
+    if (!response.ok) return { success: false, count: 0, data: [] };
+
+    const result = await response.json();
+
+    if (!result.success || !Array.isArray(result.data)) {
+      return { success: false, count: 0, data: [] };
+    }
+
+    // Map the data to ensure consistency with your SetCard component needs
+    const formattedData = result.data.map((set: any) => ({
+      ...set,
+      // Ensure numeric values for potential sorting/filtering in the UI
+      totalCardsNum: parseInt(set.totalCards) || 0,
+      marketCapNum: parseFloat(set.marketCap?.replace(/[$,M]/g, '') || "0"),
+      // Fallback for missing logos
+      logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-logo.png",
+      // Adding era grouping logic if needed by the frontend tabs (Modern/Vintage)
+      era: (new Date(set.releaseDate).getFullYear() < 2011) ? "Vintage" : "Modern"
+    }));
+
+    return {
+      success: true,
+      count: result.count,
+      data: formattedData
+    };
+  } catch (error) {
+    console.error("⚠️ Expansions Fetch Error:", error);
+    return { success: false, count: 0, data: [] }; // Safe fallback for the UI
+  }
+}
