@@ -124,35 +124,37 @@ export default function Navbar() {
                 </span>
               </Link>
             )}
-{/* DESKTOP NAV - Breadcrumb Style */}
-            <nav className={cn(
-              "flex items-center gap-2",
-              pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
-            )}>
-              {pathname === "/overview" && (
-                <>
-                  <Link 
-                    href="/" 
-                    className="text-sm font-medium text-slate-400 hover:text-[#00BA88] transition-colors"
-                  >
-                    Home
-                  </Link>
-                  <ChevronRight className="h-4 w-4 text-slate-300" />
-                </>
-              )}
-              
-              <Link 
-                href="/overview" 
-                className={cn(
-                  "text-sm font-bold transition-all",
-                  pathname === "/overview" 
-                    ? "text-slate-900 dark:text-white" 
-                    : "text-slate-600 dark:text-slate-300 hover:text-[#00BA88]"
-                )}
-              >
-                Market Overview
-              </Link>
-            </nav>
+{/* DESKTOP NAV - Multi-link Style */}
+<nav className={cn(
+  "flex items-center gap-6",
+  pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
+)}>
+  {/* Card Sets Link */}
+  <Link 
+    href="/sets" 
+    className={cn(
+      "text-sm font-bold transition-all whitespace-nowrap",
+      pathname === "/overview" 
+        ? "text-slate-900 dark:text-white" 
+        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+    )}
+  >
+    Card Sets
+  </Link>
+
+  {/* Market Overview Link */}
+  <Link 
+    href="/overview" 
+    className={cn(
+      "text-sm font-bold transition-all whitespace-nowrap",
+      pathname === "/overview" 
+        ? "text-slate-900 dark:text-white" 
+        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+    )}
+  >
+    Market Overview
+  </Link>
+</nav>
           </div>
 
           <div className="flex items-center gap-6">

@@ -194,3 +194,43 @@ export async function fetchExpansions() {
     return { success: false, count: 0, data: [] }; // Safe fallback for the UI
   }
 }
+
+// Add this alongside your existing fetchExpansions function
+export async function fetchExpansionDetails(setId: string) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    // Note: Adjust the URL if your PHP API uses a different endpoint for single sets
+    // e.g., 'https://pokecollectorhub.com/api/set-details.php?id='
+    const response = await fetch(`https://pokecollectorhub.com/api/sets.php?id=${setId}`, {
+      signal: controller.signal,
+      next: { revalidate: 3600 } 
+    });
+
+    clearTimeout(id);
+
+    if (!response.ok) return { success: false, data: null };
+
+    const result = await response.json();
+
+    if (!result.success || !result.data) {
+      return { success: false, data: null };
+    }
+
+    // Ensure the data structure matches what SetDetailsPage expects
+    const formattedData = {
+      ...result.data,
+      logoUrl: result.data.logoUrl || "https://pokecollectorhub.com/assets/placeholder-logo.png",
+      cards: result.data.cards || [] // Ensure cards array exists
+    };
+
+    return {
+      success: true,
+      data: formattedData
+    };
+  } catch (error) {
+    console.error(`⚠️ Set Details Fetch Error (${setId}):`, error);
+    return { success: false, data: null };
+  }
+}

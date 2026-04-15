@@ -54,7 +54,7 @@ const desktopNavigation = [
 // --- NEW MOBILE NAVIGATION ---
 const mobileNavigation = [
   { name: "Market overview", href: "/overview", icon: BarChart3 },
-  { name: "Card sets", href: "/card-sets", icon: Layers },
+  { name: "Card sets", href: "/sets", icon: Layers },
   { name: "Sign in", href: "/auth/join", icon: LogIn },
   { name: "Sign up", href: "/auth/signup", icon: UserRoundPlus, isButton: true },
 ]
