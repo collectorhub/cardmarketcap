@@ -76,13 +76,13 @@ export function GameSelector() {
         ref={scrollContainerRef}
         onScroll={checkScroll}
         style={{ WebkitMaskImage: getMaskImage(), maskImage: getMaskImage() }}
-        className="flex gap-2 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth"
+        className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth"
       >
         {GAMES.map((game) => (
           <button
             key={game.name}
             className={`
-              group relative flex-shrink-0 rounded-3xl overflow-hidden border transition-all snap-start
+              group relative flex-shrink-0 rounded-xl md:rounded-3xl overflow-hidden border transition-all snap-start
               /* Mobile Fix: 30% width means 3 full cards (30x3 = 90%) 
                  plus a 10% peek of the 4th card.
               */

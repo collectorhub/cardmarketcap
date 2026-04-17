@@ -129,6 +129,19 @@ export default function Navbar() {
   "flex items-center gap-6",
   pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
 )}>
+  {/* Market Overview Link */}
+  <Link 
+    href="/overview" 
+    className={cn(
+      "text-sm font-bold transition-all whitespace-nowrap",
+      pathname === "/overview" 
+        ? "text-slate-900 dark:text-white" 
+        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+    )}
+  >
+    Market Overview
+  </Link>
+  
   {/* Card Sets Link */}
   <Link 
     href="/sets" 
@@ -141,10 +154,9 @@ export default function Navbar() {
   >
     Card Sets
   </Link>
-
-  {/* Market Overview Link */}
+  {/* Card Sets Link */}
   <Link 
-    href="/overview" 
+    href="/card-search" 
     className={cn(
       "text-sm font-bold transition-all whitespace-nowrap",
       pathname === "/overview" 
@@ -152,7 +164,7 @@ export default function Navbar() {
         : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
     )}
   >
-    Market Overview
+    Card Search
   </Link>
 </nav>
           </div>
