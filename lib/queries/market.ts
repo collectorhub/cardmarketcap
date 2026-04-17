@@ -153,45 +153,51 @@ export async function fetchCardById(id: string) {
 }
 
 export async function fetchExpansions(
+  game = "pokemon", // Add game parameter
   language = "English", 
   search = "", 
   page = 1
 ) {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const id = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const baseUrl = 'https://pokecollectorhub.com/api/cmc_mtg_expansions.php';
+    // Mapping frontend "English/Japanese" to DB "en/ja"
+    const langMap: Record<string, string> = {
+      "English": "en",
+      "Japanese": "ja"
+    };
+    const dbLang = langMap[language] || "en";
+
+    // Use your new unified PHP filename
+    const baseUrl = 'https://pokecollectorhub.com/api/cmc_expansions.php';
     const queryParams = new URLSearchParams({
-      language: language,
+      game: game, // Pass 'pokemon' or 'mtg'
+      language: dbLang, // Passes 'en' or 'ja'
       search: search,
       page: page.toString(),
-      limit: "100" // Fetching a larger set for the grouping logic
+      limit: "100" 
     });
 
     const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
       signal: controller.signal,
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 } 
     });
 
     clearTimeout(id);
 
     if (!response.ok) return { success: false, data: [] };
-
     const result = await response.json();
 
     if (!result.success || !Array.isArray(result.data)) {
       return { success: false, data: [] };
     }
 
-    // Map the data to match the UI expectations
     const formattedData = result.data.map((set: any) => ({
       ...set,
-      // Ensure the language field from PHP is preserved and has a fallback
-      language: set.language || language, 
-      // Ensure numeric values for components
+      // Ensure frontend sees 'English' instead of 'en' if needed for UI
+      language: language, 
       totalCards: parseInt(set.totalCards) || 0,
-      // Fallback for missing logos
       logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
       floorPrice: set.floorPrice || "$0.00",
       change: set.change || "0.00%"
@@ -203,7 +209,7 @@ export async function fetchExpansions(
       metadata: result.metadata
     };
   } catch (error) {
-    console.error("⚠️ MTG Expansions Fetch Error:", error);
+    console.error("⚠️ Expansions Fetch Error:", error);
     return { success: false, data: [] }; 
   }
 }

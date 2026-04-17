@@ -1,24 +1,21 @@
 import Navbar from "@/components/Navbar";
 import { SetCard } from "@/components/sets/SetCard";
 import { GameSelector } from "@/components/sets/GameSelector";
-import { LayoutGrid, Sparkles, Languages, Inbox } from "lucide-react";
+import { Sparkles, Inbox } from "lucide-react";
 import { fetchExpansions } from "@/lib/queries/market";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 
-// Helper to make series names look professional
 const formatSeriesName = (name: string) => {
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-async function getSetsData(language: string = "English", search: string = "") {
-  // Pass current filters to the API
-  const result = await fetchExpansions(language, search);
+async function getSetsData(game: string = "pokemon", language: string = "English", search: string = "") {
+  const result = await fetchExpansions(game, language, search);
   if (!result.success || !result.data) return [];
 
   const rawData = result.data;
 
-  // Grouping logic (Now using the dynamic data from PHP)
   const groups = rawData.reduce((acc: any[], set: any) => {
     const seriesName = set.series || "Other";
     const existingGroup = acc.find((g) => g.series === seriesName);
@@ -36,7 +33,6 @@ async function getSetsData(language: string = "English", search: string = "") {
     return acc;
   }, []);
 
-  // Sort groups and internal sets by release date
   groups.forEach((group: any) => {
     group.sets.sort((a: any, b: any) => 
       new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
@@ -50,16 +46,20 @@ async function getSetsData(language: string = "English", search: string = "") {
 export default async function SetsPage({
   searchParams,
 }: {
-  // Next.js 15 fix: searchParams must be treated as a Promise
-  searchParams: Promise<{ lang?: string; q?: string }>;
+  searchParams: Promise<{ lang?: string; q?: string; game?: string }>;
 }) {
-  // Unwrap the promise to access the current filters
   const params = await searchParams;
+  
+  // Game Logic: Map UI names to DB table slugs
+  const rawGame = params.game?.toLowerCase() || "pokemon";
+  const currentGameSlug = rawGame.includes("magic") ? "mtg" : "pokemon";
+  const displayGameName = currentGameSlug === "mtg" ? "Magic" : "Pokémon";
+
   const currentLang = params.lang || "English";
   const searchQuery = params.q || "";
-  
-  const allSeriesData = await getSetsData(currentLang, searchQuery);
   const languages = ["English", "Japanese"];
+  
+  const allSeriesData = await getSetsData(currentGameSlug, currentLang, searchQuery);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
@@ -74,20 +74,20 @@ export default async function SetsPage({
             <div className="max-w-3xl mx-auto lg:mx-0 space-y-2 md:space-y-5">
               <div className="flex items-center justify-center lg:justify-start gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
                 <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
-                Live {currentLang} Market Database
+                Live {currentLang} {displayGameName} Database
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
                 Trading Card <span className="text-[#00BA88]">Expansions</span>
               </h2>
               <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg">
-                Showing active eras for the {currentLang} market.
+                Showing active eras for the {currentLang} {displayGameName} market.
               </p>
             </div>
           </div>
         </header>
 
         <div className="mb-10">
-           <GameSelector />
+           <GameSelector currentGame={currentGameSlug} currentLang={currentLang} />
         </div>
 
         {/* --- CENTERED LANGUAGE TABS --- */}
@@ -96,7 +96,7 @@ export default async function SetsPage({
             {languages.map((lang) => (
               <Link
                 key={lang}
-                href={`?lang=${lang}${searchQuery ? `&q=${searchQuery}` : ""}`}
+                href={`?game=${currentGameSlug}&lang=${lang}${searchQuery ? `&q=${searchQuery}` : ""}`}
                 className={`pb-4 text-[11px] md:text-xs font-black uppercase tracking-[0.3em] transition-all relative ${
                   currentLang === lang 
                     ? "text-[#00BA88]" 
@@ -110,11 +110,6 @@ export default async function SetsPage({
               </Link>
             ))}
           </div>
-          
-          {/* <div className="mt-4 flex items-center gap-2 text-slate-400/60">
-            <Languages size={12} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Regional Filtering Active</span>
-          </div> */}
         </div>
 
         {/* --- DYNAMIC CONTENT --- */}
@@ -143,7 +138,6 @@ export default async function SetsPage({
             ))}
           </div>
         ) : (
-          /* --- EMPTY STATE (Shows if PHP returns no data for the language) --- */
           <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 bg-white dark:bg-slate-900/50 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
              <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-full">
                 <Inbox className="text-slate-300 dark:text-slate-700" size={48} strokeWidth={1.5} />
@@ -151,14 +145,14 @@ export default async function SetsPage({
              <div className="space-y-2">
                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">No Data Available</h3>
                 <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto text-sm font-medium">
-                   We haven't indexed the <span className="text-[#00BA88] font-bold">{currentLang}</span> database for these cards yet.
+                    We haven't indexed the <span className="text-[#00BA88] font-bold">{currentLang}</span> {displayGameName} database for these cards yet.
                 </p>
              </div>
              <Link 
-                href="/sets?lang=English"
+                href={`?game=pokemon&lang=English`}
                 className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00BA88] transition-colors"
              >
-                Return to English Sets
+                Return to Pokémon English
              </Link>
           </div>
         )}
