@@ -152,46 +152,92 @@ export async function fetchCardById(id: string) {
   }
 }
 
-export async function fetchExpansions() {
+export async function fetchExpansions(
+  language = "English", 
+  search = "", 
+  page = 1
+) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
   try {
-    const response = await fetch('https://pokecollectorhub.com/api/sets.php', {
+    const baseUrl = 'https://pokecollectorhub.com/api/cmc_mtg_expansions.php';
+    const queryParams = new URLSearchParams({
+      language: language,
+      search: search,
+      page: page.toString(),
+      limit: "100" // Fetching a larger set for the grouping logic
+    });
+
+    const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
       signal: controller.signal,
-      next: { revalidate: 3600 } // Sets don't change often, cache for 1 hour
+      next: { revalidate: 3600 } // Cache for 1 hour
     });
 
     clearTimeout(id);
 
-    if (!response.ok) return { success: false, count: 0, data: [] };
+    if (!response.ok) return { success: false, data: [] };
 
     const result = await response.json();
 
     if (!result.success || !Array.isArray(result.data)) {
-      return { success: false, count: 0, data: [] };
+      return { success: false, data: [] };
     }
 
-    // Map the data to ensure consistency with your SetCard component needs
+    // Map the data to match the UI expectations
     const formattedData = result.data.map((set: any) => ({
       ...set,
-      // Ensure numeric values for potential sorting/filtering in the UI
-      totalCardsNum: parseInt(set.totalCards) || 0,
-      marketCapNum: parseFloat(set.marketCap?.replace(/[$,M]/g, '') || "0"),
+      // Ensure the language field from PHP is preserved and has a fallback
+      language: set.language || language, 
+      // Ensure numeric values for components
+      totalCards: parseInt(set.totalCards) || 0,
       // Fallback for missing logos
-      logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-logo.png",
-      // Adding era grouping logic if needed by the frontend tabs (Modern/Vintage)
-      era: (new Date(set.releaseDate).getFullYear() < 2011) ? "Vintage" : "Modern"
+      logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
+      floorPrice: set.floorPrice || "$0.00",
+      change: set.change || "0.00%"
     }));
 
     return {
       success: true,
-      count: result.count,
-      data: formattedData
+      data: formattedData,
+      metadata: result.metadata
     };
   } catch (error) {
-    console.error("⚠️ Expansions Fetch Error:", error);
-    return { success: false, count: 0, data: [] }; // Safe fallback for the UI
+    console.error("⚠️ MTG Expansions Fetch Error:", error);
+    return { success: false, data: [] }; 
+  }
+}
+
+export async function fetchSetDetails(setId: string) {
+  try {
+    // Assuming your cards.php can filter by expansion_id
+    const response = await fetch(`https://pokecollectorhub.com/api/cards.php?expansion_id=${setId}`);
+    const result = await response.json();
+
+    if (!result.success || !result.data || result.data.length === 0) {
+      return { success: false, set: null, assets: [] };
+    }
+
+    // Extract set-level info from the first card record since it's repeated
+    const firstCard = result.data[0];
+    const setInfo = {
+      id: firstCard.expansion_id,
+      name: firstCard.expansion_name,
+      series: firstCard.series || "Standard",
+      releaseDate: firstCard.expansion_release_date,
+      totalCards: firstCard.expansion_total,
+      logoUrl: firstCard.expansion_logo_url,
+      marketCap: "$0.00" // You can calculate this by summing floor prices if available
+    };
+
+    return {
+      success: true,
+      set: setInfo,
+      assets: result.data // The full list of cards
+    };
+  } catch (error) {
+    console.error("Fetch set details error:", error);
+    return { success: false, set: null, assets: [] };
   }
 }
 
