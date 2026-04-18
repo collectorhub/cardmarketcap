@@ -153,8 +153,7 @@ export async function fetchCardById(id: string) {
 }
 
 export async function fetchExpansions(
-  game = "pokemon", // Add game parameter
-  language = "English", 
+  game = "pokemon", 
   search = "", 
   page = 1
 ) {
@@ -162,21 +161,12 @@ export async function fetchExpansions(
   const id = setTimeout(() => controller.abort(), 10000);
 
   try {
-    // Mapping frontend "English/Japanese" to DB "en/ja"
-    const langMap: Record<string, string> = {
-      "English": "en",
-      "Japanese": "ja"
-    };
-    const dbLang = langMap[language] || "en";
-
-    // Use your new unified PHP filename
     const baseUrl = 'https://pokecollectorhub.com/api/cmc_expansions.php';
     const queryParams = new URLSearchParams({
-      game: game, // Pass 'pokemon' or 'mtg'
-      language: dbLang, // Passes 'en' or 'ja'
+      game: game,
       search: search,
       page: page.toString(),
-      limit: "100" 
+      limit: "1000" // Fetch everything to allow instant local filtering
     });
 
     const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
@@ -195,12 +185,11 @@ export async function fetchExpansions(
 
     const formattedData = result.data.map((set: any) => ({
       ...set,
-      // Ensure frontend sees 'English' instead of 'en' if needed for UI
-      language: language, 
       totalCards: parseInt(set.totalCards) || 0,
       logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
       floorPrice: set.floorPrice || "$0.00",
-      change: set.change || "0.00%"
+      change: set.change || "0.00%",
+      language: set.language // Keep the 'en' or 'ja' from the DB
     }));
 
     return {

@@ -1,23 +1,60 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-const GAMES = [
-  { name: "Pokémon", slug: "pokemon", logo: "https://tcg.pokemon.com/assets/img/global/logos/pokemon-tcg-logo.png", bgImage: "https://images.scrydex.com/pokemon/base1-4/large", count: "42,810 Assets" },
-  { name: "Magic: The Gathering", slug: "mtg", logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Magicthegathering-logo.svg", bgImage: "https://images.scrydex.com/pokemon/swsh4-185/large", count: "55,201 Assets" },
-  { name: "Yu-Gi-Oh!", slug: "yugioh", logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Yu-Gi-Oh%21_TCG_logo.png", bgImage: "https://images.scrydex.com/pokemon/base1-2/large", count: "12,402 Assets" },
-  { name: "One Piece", slug: "onepiece", logo: "https://en.onepiece-cardgame.com/images/common/logo.png", bgImage: "https://images.scrydex.com/pokemon/base1-15/large", count: "3,120 Assets" },
-  { name: "Lorcana", slug: "lorcana", logo: "https://www.disneylorcana.com/static/media/logo.8e5a7e93.png", bgImage: "https://images.scrydex.com/pokemon/sm12-241/large", count: "1,845 Assets" },
-  { name: "One Piece", slug: "onepiece", logo: "https://en.onepiece-cardgame.com/images/common/logo.png", bgImage: "https://images.scrydex.com/pokemon/base1-15/large", count: "3,120 Assets" },
-  { name: "Lorcana", slug: "lorcana", logo: "https://www.disneylorcana.com/static/media/logo.8e5a7e93.png", bgImage: "https://images.scrydex.com/pokemon/sm12-241/large", count: "1,845 Assets" },
-];
+interface GameSelectorProps {
+  currentGame: string;
+  currentLang: string;
+  realCounts: { pokemon: number; mtg: number };
+}
 
-export function GameSelector({ currentGame, currentLang }: { currentGame: string, currentLang: string }) {
+export function GameSelector({ currentGame, currentLang, realCounts }: GameSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const formatNum = (num: number) => new Intl.NumberFormat().format(num);
+
+  // useMemo prevents hydration mismatch by stabilizing the object
+  const GAMES = useMemo(() => [
+    { 
+      name: "Pokémon", 
+      slug: "pokemon", 
+      logo: "https://tcg.pokemon.com/assets/img/global/logos/pokemon-tcg-logo.png", 
+      bgImage: "https://images.scrydex.com/pokemon/base1-4/large", 
+      count: `${formatNum(realCounts?.pokemon || 416)} Cards` 
+    },
+    { 
+      name: "Magic: The Gathering", 
+      slug: "mtg", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Magicthegathering-logo.svg", 
+      bgImage: "https://images.scrydex.com/pokemon/swsh4-185/large", 
+      count: `${formatNum(realCounts?.mtg || 798)} Cards` 
+    },
+    { 
+      name: "Yu-Gi-Oh!", 
+      slug: "yugioh", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Yu-Gi-Oh%21_TCG_logo.png", 
+      bgImage: "https://images.scrydex.com/pokemon/base1-2/large", 
+      count: "12,402 Assets" 
+    },
+    { 
+      name: "One Piece", 
+      slug: "onepiece", 
+      logo: "https://en.onepiece-cardgame.com/images/common/logo.png", 
+      bgImage: "https://images.scrydex.com/pokemon/base1-15/large", 
+      count: "3,120 Assets" 
+    },
+    { 
+      name: "Lorcana", 
+      slug: "lorcana", 
+      logo: "https://www.disneylorcana.com/static/media/logo.8e5a7e93.png", 
+      bgImage: "https://images.scrydex.com/pokemon/sm12-241/large", 
+      count: "1,845 Assets" 
+    },
+  ], [realCounts]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -83,7 +120,7 @@ export function GameSelector({ currentGame, currentLang }: { currentGame: string
               href={`?game=${game.slug}&lang=${currentLang}`}
               className={`
                 group relative flex-shrink-0 rounded-xl md:rounded-3xl overflow-hidden border transition-all snap-start
-                w-[35%] md:w-[22%] lg:w-[18.5%] 
+                w-[45%] md:w-[22%] lg:w-[18.5%] 
                 h-32 md:h-40
                 ${isActive ? "border-[#00BA88] ring-4 ring-[#00BA88]/10" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}
               `}
@@ -104,7 +141,7 @@ export function GameSelector({ currentGame, currentLang }: { currentGame: string
                   className={`h-6 md:h-10 object-contain ${!isActive && "grayscale opacity-50 group-hover:opacity-100 group-hover:grayscale-0"} transition-all`}
                 />
                 <div className="text-left">
-                  <p className="text-[7px] md:text-[10px] font-black text-[#00BA88] uppercase tracking-widest whitespace-nowrap">
+                  <p className="text-[9px] md:text-[10px] font-black text-[#00BA88] uppercase tracking-widest whitespace-nowrap">
                     {game.count}
                   </p>
                 </div>
