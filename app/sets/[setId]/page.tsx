@@ -196,16 +196,21 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
         </div>
 
         <div className="flex items-center justify-between mb-8 px-1">
-          <div className="space-y-1">
-            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-              <Activity className="h-6 w-6 text-[#00BA88]" strokeWidth={2.5} />
-              Market Index
-            </h3>
-          </div>
-          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
-            {filteredAssets.length} Assets found
-          </span>
-        </div>
+  <div className="space-y-1">
+    <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+      <Activity className="h-6 w-6 text-[#00BA88]" strokeWidth={2.5} />
+      Market Index
+    </h3>
+    {/* New Paragraph Text */}
+    <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-9">
+      Real-time floor prices and population metrics across the global hobby market.
+    </p>
+  </div>
+  
+  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
+    {filteredAssets.length} Assets found
+  </span>
+</div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
           {filteredAssets.map((asset) => (
