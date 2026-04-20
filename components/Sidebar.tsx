@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, 
   BarChart3, 
@@ -14,15 +14,15 @@ import {
   LogOut, 
   ChevronDown,
   X,
-  UserPlus,
   Layers,
   UserRoundPlus,
-  LogIn
-} from 'lucide-react'
-import { cn } from "@/lib/utils"
-import { useMobileMenu } from '@/context/MobileMenuContext'
+  LogIn,
+  PackageSearch
+} from 'lucide-react';
+import { cn } from "@/lib/utils";
+import { useMobileMenu } from '@/context/MobileMenuContext';
 
-// --- RESTORED DESKTOP NAVIGATION ---
+// --- NAVIGATION CONFIGURATIONS ---
 const desktopNavigation = [
   {
     title: "Markets",
@@ -49,28 +49,34 @@ const desktopNavigation = [
       { name: "Gengar 20 Index", href: "/specialty/gengar" },
     ]
   }
-]
+];
 
-// --- NEW MOBILE NAVIGATION ---
 const mobileNavigation = [
   { name: "Market overview", href: "/overview", icon: BarChart3 },
   { name: "Card sets", href: "/sets", icon: Layers },
-  { name: "Sign in", href: "/auth/join", icon: LogIn },
-  { name: "Sign up", href: "/auth/signup", icon: UserRoundPlus, isButton: true },
-]
+  { name: "Card Search", href: "/card-search", icon: PackageSearch },
+  { name: "Sign in", href: "/sign-in", icon: LogIn },
+  { name: "Sign up", href: "/sign-up", icon: UserRoundPlus, isButton: true },
+];
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const [isIndicesOpen, setIsIndicesOpen] = useState(true)
-  const { isOpen, closeMenu } = useMobileMenu()
-  const [isMobile, setIsMobile] = useState(false)
+  const pathname = usePathname();
+  const [isIndicesOpen, setIsIndicesOpen] = useState(true);
+  const { isOpen, closeMenu } = useMobileMenu();
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Handle Hydration and Resize
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024)
-    check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
-  }, [])
+    setMounted(true);
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Prevent SSR flicker by returning null or a static placeholder until mounted
+  if (!mounted) return null;
 
   return (
     <>
@@ -88,13 +94,14 @@ export default function Sidebar() {
       </AnimatePresence>
 
       <motion.aside
-        initial={false}
+        initial={false} // Prevents animation on first load
         animate={{
-          x: isMobile ? (isOpen ? 0 : 300) : 0
+          // On mobile, use isOpen. On desktop, it's always visible (0)
+          x: isMobile ? (isOpen ? 0 : "100%") : 0 
         }}
-        transition={{ type: "tween", duration: 0.25 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={cn(
-          "fixed right-0 top-0 z-80 h-screen w-72 lg:w-64 flex flex-col font-sans",
+          "fixed right-0 top-0 z-50 h-screen w-72 lg:w-64 flex flex-col font-sans",
           "border-l border-slate-200/50 dark:border-slate-800",
           "bg-[#F9FAFB] dark:bg-slate-950",
           "lg:static lg:translate-x-0"
@@ -111,7 +118,7 @@ export default function Sidebar() {
             </span>
           </Link>
           {isMobile && (
-            <button onClick={closeMenu} className="p-2 text-slate-500">
+            <button onClick={closeMenu} className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white">
               <X className="h-6 w-6" />
             </button>
           )}
@@ -120,7 +127,7 @@ export default function Sidebar() {
         {/* NAV CONTENT */}
         <nav className="flex-1 px-3 space-y-7 overflow-y-auto custom-scrollbar">
           {isMobile ? (
-            // MOBILE VIEW: FLAT LIST
+            /* MOBILE VIEW: Uses your defined mobileNavigation list */
             <div className="space-y-2">
               {mobileNavigation.map((item) => (
                 <Link
@@ -130,7 +137,7 @@ export default function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
                     item.isButton 
-                      ? "bg-[#00BA88] text-white font-bold hover:bg-[#00a377]" 
+                      ? "bg-[#00BA88] text-white font-bold hover:bg-[#00a377] mt-4" 
                       : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
                   )}
                 >
@@ -140,9 +147,9 @@ export default function Sidebar() {
               ))}
             </div>
           ) : (
-            // DESKTOP VIEW: ORIGINAL ACCORDION
+            /* DESKTOP VIEW: Uses the Accordion/Indices list */
             desktopNavigation.map((group) => {
-              const isIndices = group.title === "Indices"
+              const isIndices = group.title === "Indices";
               return (
                 <div key={group.title} className="space-y-1.5">
                   <button 
@@ -164,7 +171,7 @@ export default function Sidebar() {
                         className="space-y-[2px]"
                       >
                         {group.items.map((item) => {
-                          const active = pathname === item.href
+                          const active = pathname === item.href;
                           return (
                             <Link
                               key={item.name}
@@ -182,13 +189,13 @@ export default function Sidebar() {
                                 {item.name}
                               </span>
                             </Link>
-                          )
+                          );
                         })}
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-              )
+              );
             })
           )}
         </nav>
@@ -219,5 +226,5 @@ export default function Sidebar() {
         </div>
       </motion.aside>
     </>
-  )
+  );
 }

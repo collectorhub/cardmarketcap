@@ -88,7 +88,7 @@ export default async function Page({
     <nav className="flex items-center gap-2 mb-2">
       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
       <span className="text-slate-300 dark:text-slate-700 text-[10px]">/</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Market Intelligence</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 hidden md:block">Market Intelligence</span>
     </nav>
     
     <div className="space-y-3">

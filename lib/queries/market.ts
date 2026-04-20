@@ -205,33 +205,55 @@ export async function fetchExpansions(
 
 export async function fetchSetDetails(setId: string) {
   try {
-    // Assuming your cards.php can filter by expansion_id
-    const response = await fetch(`https://pokecollectorhub.com/api/cards.php?expansion_id=${setId}`);
-    const result = await response.json();
+    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php`);
+    const expResult = await expResponse.json();
+    const decodedId = decodeURIComponent(setId);
+    const targetSet = expResult.data?.find((s: any) => s.id === decodedId);
 
-    if (!result.success || !result.data || result.data.length === 0) {
-      return { success: false, set: null, assets: [] };
+    if (!targetSet) return { success: false, set: null, assets: [] };
+
+    // Fetch cards for this set
+    const cardsResponse = await fetch(
+      `https://pokecollectorhub.com/api/cmc_cards.php?set=${encodeURIComponent(targetSet.name)}&limit=500`
+    );
+    let cardsResult = await cardsResponse.json();
+
+    // Fallback if name search fails
+    if (!cardsResult.data || cardsResult.data.length === 0) {
+      const fallbackResponse = await fetch(
+        `https://pokecollectorhub.com/api/cmc_cards.php?expansion_id=${encodeURIComponent(decodedId)}&limit=500`
+      );
+      cardsResult = await fallbackResponse.json();
     }
 
-    // Extract set-level info from the first card record since it's repeated
-    const firstCard = result.data[0];
     const setInfo = {
-      id: firstCard.expansion_id,
-      name: firstCard.expansion_name,
-      series: firstCard.series || "Standard",
-      releaseDate: firstCard.expansion_release_date,
-      totalCards: firstCard.expansion_total,
-      logoUrl: firstCard.expansion_logo_url,
-      marketCap: "$0.00" // You can calculate this by summing floor prices if available
+      id: decodedId,
+      name: targetSet.name,
+      series: targetSet.series || "Standard",
+      releaseDate: targetSet.releaseDate,
+      totalCards: targetSet.totalCards || cardsResult.data?.length || 0,
+      logoUrl: targetSet.logoUrl,
+      marketCap: targetSet.floorPrice || "$0.00"
     };
+
+    // MAP DATA HERE: Crucial for the AssetCard to have the canonicalUrl
+    const formattedAssets = (cardsResult.data || []).map((card: any) => ({
+      ...card,
+      id: card.id,
+      name: card.name,
+      imageUrl: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
+      price: card.price || "$0.00",
+      canonicalUrl: card.canonicalUrl // Passed from PHP API
+    }));
 
     return {
       success: true,
       set: setInfo,
-      assets: result.data // The full list of cards
+      assets: formattedAssets
     };
+
   } catch (error) {
-    console.error("Fetch set details error:", error);
+    console.error("fetchSetDetails Error:", error);
     return { success: false, set: null, assets: [] };
   }
 }

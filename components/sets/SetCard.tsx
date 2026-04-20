@@ -14,7 +14,7 @@ interface Set {
 
 export function SetCard({ set }: { set: Set }) {
   return (
-    <Link href={`/sets/${set.id}`} className="block group">
+    <Link href={`/sets/${encodeURIComponent(set.id)}`} className="block group">
       <div className="relative overflow-hidden rounded-[1.25rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-5 shadow-sm transition-all hover:shadow-2xl hover:shadow-[#00BA88]/10 hover:-translate-y-2 active:scale-[0.98]">
         
         {/* Set Logo Container */}

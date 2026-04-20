@@ -58,15 +58,15 @@ export default async function SetsPage({
         <Sidebar />
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-4 md:px-10 pt-24 md:pt-16 pb-20">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-10 pt-22 md:pt-16 pb-20">
         {/* --- HEADER SECTION --- */}
-        <header className="mb-12">
+        <header className="mb-8 md:mb-12">
           <div className="max-w-3xl space-y-2 md:space-y-4">
-            <div className="flex items-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[#00BA88] font-bold text-[10px] md:text-[11px] uppercase tracking-widest">
               <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
               Live {currentGameSlug === "mtg" ? "" : currentLang} {displayGameName} Database
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
               Trading Card <span className="text-[#00BA88]">Expansions</span>
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg">
