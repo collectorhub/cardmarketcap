@@ -6,6 +6,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 selection:bg-brand/30">
       <Navbar />
+      <div className="lg:hidden"><Sidebar /></div>
       
       {/* Subtle background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
