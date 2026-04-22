@@ -167,7 +167,7 @@ export default function SignupPage() {
           <div className="mt-8">
             <p className="text-[12px] text-slate-500 leading-relaxed">
               By creating an account, you agree to the <Link href="#" className="text-[#00BA88] hover:underline font-bold">Terms of Service</Link>. 
-              For more information about CardMarketCap&apos;s privacy practices, see the <Link href="#" className="text-[#00BA88] hover:underline font-bold">GitHub Privacy Statement</Link>. 
+              For more information about CardMarketCap&apos;s privacy practices, see the <Link href="#" className="text-[#00BA88] hover:underline font-bold">CardMarketCap Privacy Statement</Link>. 
               We&apos;ll occasionally send you account-related emails.
             </p>
           </div>

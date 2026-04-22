@@ -80,7 +80,7 @@ export default async function Page({
       {/* Main Content: pt-24 provides enough space for the fixed Navbar.
           We use max-w-[1600px] to match your dashboard's inner width.
       */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-10 pt-24 pb-8 md:py-16">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-24 pb-8 md:py-16">
         
         {/* Header Section */}
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
