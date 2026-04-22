@@ -33,14 +33,14 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
     { 
       name: "One Piece", 
       slug: "onepiece", 
-      logo: "https://images.ctfassets.net/60ty0vllzbe7/2wI8iF098YvI0EclW6DkCH/005e55e04e902b7008101476d080345d/one-piece-card-game-logo.png", 
+      logo: "https://www.toei-animation.com/wp-content/uploads/2025/01/OP-card.webp", 
       bgImage: "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png",
       count: `${formatNum(realCounts?.onepiece)} Sets` 
     },
     { 
       name: "Lorcana", 
       slug: "lorcana", 
-      logo: "https://api.lorcana-api.com/images/logo.png", 
+      logo: "https://wiki.mushureport.com/images/thumb/5/57/Disney_Lorcana_TCG_Logo_transparent.png/640px-Disney_Lorcana_TCG_Logo_transparent.png", 
       bgImage: "https://lorcana-api.com/images/cards/1/12-EN-1.png",
       count: `${formatNum(realCounts?.lorcana)} Sets` 
     },
