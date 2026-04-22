@@ -169,10 +169,10 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
    "One Piece TCG"}
 </div>
             <h1 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-              {setInfo.name} <span className="text-[#00BA88]">Assets</span>
+              {setInfo.name} <span className="text-[#00BA88]">Cards</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg max-w-2xl leading-relaxed font-medium">
-              Released on {setInfo.releaseDate}. Explore {setInfo.totalCards} unique assets indexed in the live market.
+              Released on {setInfo.releaseDate}. Explore {setInfo.totalCards} unique cards indexed in the live market.
             </p>
           </div>
         </header>
@@ -214,7 +214,7 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
             </p>
           </div>
           <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
-            {filteredAssets.length} Assets found
+            {filteredAssets.length} Cards found
           </span>
         </div>
 
