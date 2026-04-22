@@ -2,21 +2,22 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  Search, X, Flame, SlidersHorizontal, 
-  ArrowUpRight, Sparkles, Zap, Wand2, 
+  Search, X, Flame, Sparkles, Zap, Wand2, 
   Star, Anchor, Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchCMCCards, fetchTrendingCards } from "@/lib/queries/market";
+import { fetchUniversalSearch } from "@/lib/queries/search";
+import { SearchResult } from '@/types/search';
 
 const CATEGORIES = [
-  { name: "Pokémon", icon: Zap, color: "hover:text-[#00BA88] border-[#00BA88]", active: "text-[#00BA88] border-[#00BA88]" },
-  { name: "Magic", icon: Wand2, color: "hover:bg-purple-500/10 hover:text-purple-600", active: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  { name: "Lorcana", icon: Star, color: "hover:bg-amber-500/10 hover:text-amber-600", active: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { name: "One Piece", icon: Anchor, color: "hover:bg-blue-500/10 hover:text-blue-600", active: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { name: "Sports", icon: Trophy, color: "hover:bg-orange-500/10 hover:text-orange-600", active: "bg-orange-500/10 text-orange-600 border-orange-500/20" }
+  { id: "pokemon", name: "Pokémon", icon: Zap },
+  { id: "mtg", name: "Magic", icon: Wand2 },
+  { id: "lorcana", name: "Lorcana", icon: Star },
+  { id: "onepiece", name: "One Piece", icon: Anchor },
+  { id: "sports", name: "Sports", icon: Trophy, isComingSoon: true }
 ];
 
 const LoadingGrid = () => (
@@ -39,50 +40,67 @@ export default function CardSearch() {
   const [isFocused, setIsFocused] = useState(false);
   const [trendingAssets, setTrendingAssets] = useState<any[]>([]);
   const [popularAssets, setPopularAssets] = useState<any[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to normalize API data to ensure 'imageUrl' property exists for AssetCard
+  const getAssetImage = (asset: any) => {
+    return asset.image_large || asset.image_medium || asset.image_small || asset.imageUrl || asset.image || asset.image_url;
+  };
+
   const normalizeData = (data: any[]) => {
     return (data || []).map(item => ({
       ...item,
-      // We map the incoming image data to 'imageUrl' to match your AssetCard props
-      imageUrl: item.imageUrl || item.image || item.largeImage || item.image_url 
+      imageUrl: getAssetImage(item),
+      href: item.canonical_path || item.url || item.href || `/card/${item.id}`
     }));
   };
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        const [trending, popular] = await Promise.all([
-          fetchTrendingCards(),
-          fetchCMCCards(1, "", "top", "all")
-        ]);
-        setTrendingAssets(normalizeData(trending));
-        setPopularAssets(normalizeData(popular.data));
-      } catch (error) {
-        console.error("Failed to fetch initial data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadInitialData();
+  // Logic to load initial data based on selected category (game)
+  const loadInitialData = useCallback(async (category: string | null) => {
+    setIsLoading(true);
+    try {
+      const gameParam = category || "pokemon";
+      // Using your market.ts functions which now accept 'game'
+      const [trending, popular] = await Promise.all([
+        fetchTrendingCards(), // Currently doesn't take game in your market.ts, but could be added
+        fetchCMCCards(1, "", "top", "all", "psa 10", gameParam)
+      ]);
+      
+      // Local filter for trending if category is set (since API might not filter it yet)
+      const filteredTrending = category 
+        ? trending.filter((t: any) => t.game?.toLowerCase() === category.toLowerCase() || category === "pokemon")
+        : trending;
+
+      setTrendingAssets(normalizeData(filteredTrending));
+      setPopularAssets(normalizeData(popular.data));
+    } catch (error) {
+      console.error("Failed to fetch initial data", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const handleSearch = useCallback(async (q: string, cat: string | null) => {
-    if (!q && !cat) {
+  useEffect(() => {
+    if (query.length < 2) {
+      loadInitialData(selectedCategory);
+    }
+  }, [selectedCategory, query.length, loadInitialData]);
+
+  const performSearch = useCallback(async (searchQuery: string, categoryId: string | null) => {
+    if (searchQuery.length < 2) {
       setSearchResults([]);
       setIsSearching(false);
       return;
     }
+
     setIsSearching(true);
     try {
-      const categoryParam = cat ? cat.toLowerCase() : "all";
-      const results = await fetchCMCCards(1, q, "top", categoryParam);
-      setSearchResults(normalizeData(results.data));
+      const results = await fetchUniversalSearch(searchQuery, categoryId, 100);
+      setSearchResults(results);
+    } catch (err) {
+      console.error("Search failed:", err);
     } finally {
       setIsSearching(false);
     }
@@ -90,23 +108,32 @@ export default function CardSearch() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      handleSearch(query, selectedCategory);
-    }, 600); 
+      performSearch(query, selectedCategory);
+    }, 300); 
     return () => clearTimeout(timer);
-  }, [query, selectedCategory, handleSearch]);
+  }, [query, selectedCategory, performSearch]);
 
-  const toggleCategory = (catName: string) => {
-    setSelectedCategory(selectedCategory === catName ? null : catName);
+  const toggleCategory = (cat: any) => {
+    if (cat.isComingSoon) return;
+    const newCategoryId = selectedCategory === cat.id ? null : cat.id;
+    setSelectedCategory(newCategoryId);
   };
 
-  const isFiltering = query || selectedCategory;
+  const isFiltering = query.length >= 2;
   const displayAssets = isFiltering ? searchResults : trendingAssets;
   const showSkeletons = isLoading || (isFiltering && isSearching);
+  
+  // Dynamic header logic
+  const currentCategoryName = CATEGORIES.find(c => c.id === selectedCategory)?.name;
+  const sectionTitle = isFiltering 
+    ? `${currentCategoryName || 'Universal'} Results` 
+    : selectedCategory 
+      ? `Trending ${currentCategoryName}` 
+      : "Trending Cards";
 
   return (
     <div className="space-y-1 md:space-y-20 animate-in fade-in duration-1000 pt-23 md:pt-15 pb-20">
       
-      {/* --- HERO SEARCH SECTION --- */}
       <section className="flex flex-col items-center text-center space-y-8 md:space-y-10">
         <div className="space-y-4">
           <div className="flex items-center justify-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-[0.2em]">
@@ -121,7 +148,7 @@ export default function CardSearch() {
           </p>
         </div>
 
-        {/* Neural Search Bar */}
+        {/* Search Input */}
         <div className="relative w-full max-w-3xl px-4 group">
           <div className={cn(
             "absolute -inset-0.5 bg-gradient-to-r from-[#00BA88] to-emerald-500 rounded-2xl opacity-0 blur-md transition-all duration-500",
@@ -144,7 +171,7 @@ export default function CardSearch() {
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name or rarity..."
+                placeholder="Search name, set, or card number..."
                 className={cn(
                   "bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-sm md:text-base font-bold py-3 outline-none",
                   !isFocused && !query ? "w-auto px-3 text-center" : "w-full px-4 text-left"
@@ -152,28 +179,43 @@ export default function CardSearch() {
               />
             </div>
             {(isFocused || query) && (
-              <button onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} className="absolute right-4 p-1.5 text-slate-400 hover:text-[#00BA88]">
+              <button 
+                onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} 
+                className="absolute right-4 p-1.5 text-slate-400 hover:text-[#00BA88]"
+              >
                 <X size={18} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Categories */}
+        {/* Filter Buttons */}
         <div className="hidden md:flex flex-wrap justify-center gap-3">
-          {CATEGORIES.map((cat) => (
-            <button 
-              key={cat.name} 
-              onClick={() => toggleCategory(cat.name)}
-              className={cn(
-                "flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full transition-all duration-300",
-                selectedCategory === cat.name ? cat.active : cat.color
-              )}
-            >
-              <cat.icon size={16} />
-              <span className="text-sm font-semibold">{cat.name}</span>
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button 
+                key={cat.id} 
+                onClick={() => toggleCategory(cat)}
+                className={cn(
+                  "group relative flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 border rounded-full transition-all duration-300",
+                  cat.isComingSoon 
+                    ? "opacity-40 cursor-not-allowed grayscale border-slate-200 dark:border-white/10" 
+                    : isActive 
+                      ? "border-[#00BA88] text-[#00BA88] shadow-[0_0_15px_rgba(0,186,136,0.1)]" 
+                      : "border-slate-200 dark:border-white/10 hover:border-[#00BA88] hover:text-[#00BA88] text-slate-600 dark:text-slate-400"
+                )}
+              >
+                <cat.icon size={16} className={cn(isActive && "animate-pulse")} />
+                <span className="text-sm font-bold tracking-tight">{cat.name}</span>
+                {cat.isComingSoon && (
+                  <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-orange-500 text-[8px] font-black text-white rounded-full uppercase tracking-tighter">
+                    Soon
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -182,10 +224,10 @@ export default function CardSearch() {
         <div className="space-y-1">
           <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
             <Flame className="h-5 w-5 text-orange-500" />
-            {isFiltering ? "Search Results" : "Trending Cards"}
+            {sectionTitle}
           </h3>
           <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
-            {showSkeletons ? "Syncing with live marketplace..." : isFiltering ? `Displaying ${displayAssets.length} matches` : "Most active assets in the last 24 hours"}
+            {showSkeletons ? "Searching index..." : isFiltering ? `Displaying top matches` : `Most active ${currentCategoryName || ''} assets in the last 24 hours`}
           </p>
         </div>
 
@@ -193,43 +235,62 @@ export default function CardSearch() {
           <LoadingGrid />
         ) : displayAssets.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-            {displayAssets.map((asset) => (
-              <AssetCard key={asset.id} asset={asset} />
+            {displayAssets.map((asset, idx) => (
+              <AssetCard 
+                key={`${asset.asset_id || asset.id}-${idx}`} 
+                asset={{ 
+                  ...asset, 
+                  imageUrl: getAssetImage(asset),
+                  href: asset.canonical_path || asset.url || asset.href || `/card/${asset.id}`
+                }} 
+              />
             ))}
           </div>
         ) : (
           <div className="py-20 text-center space-y-4 bg-white dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
             <Search className="mx-auto text-slate-300" size={48} />
             <p className="text-slate-500 font-bold">No assets found matching your criteria.</p>
-            <button onClick={() => {setQuery(""); setSelectedCategory(null);}} className="text-[#00BA88] text-sm font-black uppercase tracking-widest">Reset Search</button>
+            <button 
+              onClick={() => {setQuery(""); setSelectedCategory(null);}} 
+              className="text-[#00BA88] text-sm font-black uppercase tracking-widest"
+            >
+              Reset Search
+            </button>
           </div>
         )}
       </section>
-{/* --- POPULAR SECTION --- */}
-{!isFiltering && (
-  <section className="space-y-6 md:space-y-8 px-4 md:px-0">
-    <div className="space-y-1">
-      <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-        <Sparkles className="h-5 w-5 text-[#00BA88]" />
-        Popular Cards
-      </h3>
-      {/* Added paragraph text here */}
-      <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
-        All-time fan favorites and community staples.
-      </p>
-    </div>
 
-    {isLoading ? (
-      <LoadingGrid />
-    ) : (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-        {popularAssets.map((asset) => (
-          <AssetCard key={`pop-${asset.id}`} asset={asset} />
-        ))}
-      </div>
-    )}
-  </section>
-)}
+      {/* --- POPULAR SECTION --- */}
+      {!isFiltering && (
+        <section className="space-y-6 md:space-y-8 px-4 md:px-0">
+          <div className="space-y-1">
+            <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-[#00BA88]" />
+              Popular {currentCategoryName || 'Cards'}
+            </h3>
+            <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
+              All-time fan favorites and community staples.
+            </p>
+          </div>
+
+          {isLoading ? (
+            <LoadingGrid />
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+              {popularAssets.map((asset, idx) => (
+                <AssetCard 
+                  key={`pop-${asset.id}-${idx}`} 
+                  asset={{
+                    ...asset,
+                    imageUrl: getAssetImage(asset),
+                    href: asset.canonical_path || asset.url || asset.href || `/card/${asset.id}`
+                  }} 
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

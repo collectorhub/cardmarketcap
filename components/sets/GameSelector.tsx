@@ -31,13 +31,6 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
       count: `${formatNum(realCounts?.pokemon)} Sets` 
     },
     { 
-      name: "One Piece", 
-      slug: "onepiece", 
-      logo: "https://www.toei-animation.com/wp-content/uploads/2025/01/OP-card.webp", 
-      bgImage: "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png",
-      count: `${formatNum(realCounts?.onepiece)} Sets` 
-    },
-    { 
       name: "Lorcana", 
       slug: "lorcana", 
       logo: "https://wiki.mushureport.com/images/thumb/5/57/Disney_Lorcana_TCG_Logo_transparent.png/640px-Disney_Lorcana_TCG_Logo_transparent.png", 
@@ -51,43 +44,29 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
       bgImage: "https://cards.scryfall.io/large/front/5/4/541f1c6d.jpg",
       count: `${formatNum(realCounts?.mtg)} Sets` 
     },
-  { 
-    name: "Yu-Gi-Oh!", 
-    slug: "yugioh", 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Yu-Gi-Oh%21_TCG_logo.png", 
-    bgImage: "https://ms.yugipedia.com//thumb/5/5a/DarkMagician-LOB-EN.png/300px-DarkMagician-LOB-EN.png",
-    count: "12,402 Sets" 
-  },
-  // ✅ NEW GAMES
-  { 
-    name: "Dragon Ball", 
-    slug: "dragonball", 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Dragon_Ball_Super_Card_Game_logo.png", 
-    bgImage: "https://en.dragon-ball-official.com/assets/img/cardgame/cardlist/card/BT1-001.png",
-    count: "2,300 Sets" 
-  },
-  { 
-    name: "Flesh & Blood", 
-    slug: "fleshblood", 
-    logo: "https://upload.wikimedia.org/wikipedia/en/0/0f/Flesh_and_Blood_TCG_logo.png", 
-    bgImage: "https://fabdb2.imgix.net/cards/printings/WTR001.png",
-    count: "1,100 Sets" 
-  },
-  { 
-    name: "Digimon", 
-    slug: "digimon", 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Digimon_card_game_logo.png", 
-    bgImage: "https://digimoncard.io/images/cards/BT1-084.jpg",
-    count: "900 Sets" 
-  },
-  { 
-    name: "Star Wars Unlimited", 
-    slug: "starwars", 
-    logo: "https://lumiere-a.akamaihd.net/v1/images/sw-logo_7f26a0c2.png", 
-    bgImage: "https://cdn.starwarsunlimited.com/cards/card_1_EN_1.png",
-    count: "600 Sets" 
-  },
-], [realCounts]);
+    { 
+      name: "One Piece", 
+      slug: "onepiece", 
+      logo: "https://www.toei-animation.com/wp-content/uploads/2025/01/OP-card.webp", 
+      bgImage: "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png",
+      count: `${formatNum(realCounts?.onepiece)} Sets` 
+    },
+    
+    { 
+      name: "Yu-Gi-Oh!", 
+      slug: "yugioh", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Yu-Gi-Oh%21_TCG_logo.png", 
+      bgImage: "https://ms.yugipedia.com//thumb/5/5a/DarkMagician-LOB-EN.png/300px-DarkMagician-LOB-EN.png",
+      count: "12,402 Sets" 
+    },
+    { 
+      name: "Dragon Ball", 
+      slug: "dragonball", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Dragon_Ball_Super_Card_Game_logo.png", 
+      bgImage: "https://en.dragon-ball-official.com/assets/img/cardgame/cardlist/card/BT1-001.png",
+      count: "2,300 Sets" 
+    }
+  ], [realCounts]);
 
   const checkScroll = useCallback(() => {
     if (scrollContainerRef.current) {
@@ -113,34 +92,27 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
     }
   };
 
-  const getMaskImage = () => {
-    const fadeStart = canScrollLeft ? "rgba(0,0,0,0) 0%, rgba(0,0,0,1) 8%" : "rgba(0,0,0,1) 0%";
-    const fadeEnd = canScrollRight ? "rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%" : "rgba(0,0,0,1) 100%";
-    return `linear-gradient(to right, ${fadeStart}, ${fadeEnd})`;
-  };
-
   return (
     <section className="relative mb-8 md:mb-16 group/selector">
-      {/* Desktop Navigation Buttons */}
+      {/* Desktop Navigation */}
       <button 
         onClick={() => scroll("left")} 
-        className={`absolute -left-5 top-1/2 -translate-y-1/2 z-30 h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-slate-600 hover:text-[#00BA88] transition-all hidden lg:flex ${!canScrollLeft ? "opacity-0 pointer-events-none" : "opacity-0 group-hover/selector:opacity-100"}`}
+        className={`absolute -left-5 top-1/2 -translate-y-1/2 z-30 h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-slate-600 hover:text-[#00BA88] transition-all hidden lg:flex ${!canScrollLeft ? "opacity-0 pointer-events-none" : "opacity-0 group-hover/selector:opacity-100"}`}
       >
-        <ChevronLeft size={20} strokeWidth={3} />
+        <ChevronLeft size={22} strokeWidth={3} />
       </button>
 
       <button 
         onClick={() => scroll("right")} 
-        className={`absolute -right-5 top-1/2 -translate-y-1/2 z-30 h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-slate-600 hover:text-[#00BA88] transition-all hidden lg:flex ${!canScrollRight ? "opacity-0 pointer-events-none" : "opacity-0 group-hover/selector:opacity-100"}`}
+        className={`absolute -right-5 top-1/2 -translate-y-1/2 z-30 h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-slate-600 hover:text-[#00BA88] transition-all hidden lg:flex ${!canScrollRight ? "opacity-0 pointer-events-none" : "opacity-0 group-hover/selector:opacity-100"}`}
       >
-        <ChevronRight size={20} strokeWidth={3} />
+        <ChevronRight size={22} strokeWidth={3} />
       </button>
 
       <div
         ref={scrollContainerRef}
         onScroll={checkScroll}
-        style={{ WebkitMaskImage: getMaskImage(), maskImage: getMaskImage() }}
-        className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth p-1 -mx-1"
+        className="flex gap-2 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth p-2 -mx-2"
       >
         {GAMES.map((game) => {
           const isActive = currentGame === game.slug;
@@ -149,32 +121,42 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
               key={game.slug}
               href={`?game=${game.slug}&lang=${currentLang}`}
               className={`
-                group relative flex-shrink-0 rounded-[1rem] md:rounded-3xl overflow-hidden border transition-all snap-start
-                /* Mobile: ~28% width leaves room for the 4th card to "peek" */
-                w-[29%] md:w-[22%] lg:w-[18.5%] h-28 md:h-44
-                ${isActive ? "border-[#00BA88] ring-4 ring-[#00BA88]/10 bg-white" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"}
+                group relative flex-shrink-0 rounded-2xl md:rounded-[2.5rem] overflow-hidden border transition-all duration-300 snap-start
+                w-[33%] md:w-[24%] lg:w-[19%] h-32 md:h-52
+                ${isActive 
+                  ? "border-[#00BA88] ring-[6px] ring-[#00BA88]/10 bg-white shadow-2xl shadow-[#00BA88]/10" 
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-[#00BA88]/50 hover:shadow-lg hover:-translate-y-1"
+                }
               `}
             >
-              {/* Background Art */}
+              {/* Subtle Background Art */}
               <div className="absolute inset-0 z-0">
                 <img
                   src={game.bgImage}
                   alt=""
-                  className="w-full h-full object-cover opacity-[0.05] grayscale group-hover:grayscale-0 group-hover:opacity-15 transition-all duration-700"
+                  className="w-full h-full object-cover opacity-[0.03] grayscale group-hover:grayscale-0 group-hover:opacity-10 transition-all duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white dark:to-slate-950" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/80 dark:to-slate-950/80" />
               </div>
               
-              <div className="relative z-10 p-3 md:p-6 h-full flex flex-col justify-between items-start">
-                <img
-                  src={game.logo}
-                  alt={game.name}
-                  className="h-6 md:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="text-left">
-                  <p className="text-[8px] md:text-[11px] font-black text-[#00BA88] uppercase tracking-widest leading-none">
+              <div className="relative z-10 p-4 md:p-8 h-full flex flex-col items-center justify-center gap-3">
+                {/* Logo - Centered and Scaled */}
+                <div className="flex-1 flex items-center justify-center w-full">
+                  <img
+                    src={game.logo}
+                    alt={game.name}
+                    className="max-h-full w-auto object-contain transition-transform duration-500 group-hover:scale-110 drop-shadow-sm"
+                  />
+                </div>
+                
+                {/* Count Badge */}
+                <div className="text-center">
+                  <span className={`
+                    text-[7px] md:text-[12px] font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full
+                    ${isActive ? "bg-[#00BA88] text-white" : "bg-slate-100 dark:bg-slate-800 text-[#00BA88]"}
+                  `}>
                     {game.count}
-                  </p>
+                  </span>
                 </div>
               </div>
             </Link>
