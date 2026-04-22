@@ -34,21 +34,43 @@ export default async function SetsPage({
   
   // Normalize Game Slug
   const rawGame = params.game?.toLowerCase() || "pokemon";
-  const currentGameSlug = rawGame.includes("magic") || rawGame === "mtg" ? "mtg" : "pokemon";
-  const displayGameName = currentGameSlug === "mtg" ? "Magic" : "Pokémon";
+  
+  // Updated Mapping Logic
+  const gameMap: Record<string, string> = {
+    pokemon: "pokemon",
+    mtg: "mtg",
+    magic: "mtg",
+    lorcana: "lorcana",
+    onepiece: "onepiece"
+  };
+  
+  const currentGameSlug = gameMap[rawGame] || "pokemon";
+  
+  // Dynamic Display Names
+  const displayNames: Record<string, string> = {
+    pokemon: "Pokémon",
+    mtg: "Magic",
+    lorcana: "Lorcana",
+    onepiece: "One Piece"
+  };
+  const displayGameName = displayNames[currentGameSlug];
   
   const currentLang = params.lang || "English";
   const searchQuery = params.q || "";
 
-  // 1. Fetch real counts for the GameSelector to show accurate "X Cards" labels
-  const [pokemonRes, mtgRes] = await Promise.all([
+  // 1. Fetch real counts for ALL active games
+  const [pokemonRes, mtgRes, lorcanaRes, onepieceRes] = await Promise.all([
     fetchExpansions("pokemon", ""),
-    fetchExpansions("mtg", "")
+    fetchExpansions("mtg", ""),
+    fetchExpansions("lorcana", ""),
+    fetchExpansions("onepiece", "")
   ]);
 
   const realCounts = {
-    pokemon: pokemonRes.metadata?.total_records || 416, // Fallback to DB state
-    mtg: mtgRes.metadata?.total_records || 798,     // Fallback to DB state
+    pokemon: pokemonRes.metadata?.total_records || 416,
+    mtg: mtgRes.metadata?.total_records || 798,
+    lorcana: lorcanaRes.metadata?.total_records || 20,
+    onepiece: onepieceRes.metadata?.total_records || 50,
   };
 
   return (

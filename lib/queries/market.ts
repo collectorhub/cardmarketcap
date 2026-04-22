@@ -54,11 +54,13 @@ export async function fetchCMCCards(
   search = "", 
   sort = "top", 
   category = "all", 
-  grade = "psa 10"
+  grade = "psa 10",
+  game = "pokemon" // Added game parameter
 ) {
   try {
     const baseUrl = `https://pokecollectorhub.com/api/cmc_cards.php`;
     const queryParams = new URLSearchParams({
+      game: game, // Pass the game to PHP
       page: page.toString(),
       search: search || "",
       sort: sort || "top",
@@ -100,22 +102,32 @@ export async function fetchCMCCards(
   }
 }
 
-export async function fetchCardById(id: string) {
+export async function fetchCardById(id: string, game: string = "pokemon") {
   try {
-    const cmcResponse = await fetch(`https://pokecollectorhub.com/api/cmc_cards.php?search=${id}`, {
-      next: { revalidate: 60 } 
-    });
+    // 1. Primary Fetch: Include the 'game' parameter so the API knows which database to search
+    const cmcResponse = await fetch(
+      `https://pokecollectorhub.com/api/cmc_cards.php?search=${id}&game=${game}`, 
+      {
+        next: { revalidate: 60 } 
+      }
+    );
 
     if (cmcResponse.ok) {
       const cmcResult = await cmcResponse.json();
+      
+      // Ensure the API returned success and has data
       if (cmcResult.success && cmcResult.data?.length > 0) {
+        // Match the specific card ID from the returned array
         const found = cmcResult.data.find((c: any) => String(c.id) === id);
+        
         if (found) {
            return {
              ...found,
-             rarity: found.rarity || found.type || "Standard", // Pass rarity to detail page
+             // Fallback to "Standard" if rarity/type is missing
+             rarity: found.rarity || found.type || "Standard", 
              setLogo: found.setLogo,
              setSymbol: found.setSymbol,
+             // Clean the price string into a number for the UI
              priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
              image: found.imageUrl
            };
@@ -123,7 +135,7 @@ export async function fetchCardById(id: string) {
       }
     }
 
-    // 2. Fallback to Trending (if primary source fails)
+    // 2. Fallback to Trending: Used if the primary API call fails or doesn't find the card
     const trendingCards = await fetchTrendingCards();
     const trendingMatch = trendingCards.find(c => String(c.id) === id);
 
@@ -139,7 +151,6 @@ export async function fetchCardById(id: string) {
         set_name: trendingMatch.set,
         rarity: "Trending",
         grade: trendingMatch.grade || "Raw",
-        // Note: Fallback likely won't have these URLs unless trending API is also updated
         setLogo: null,
         setSymbol: null
       };
@@ -203,47 +214,86 @@ export async function fetchExpansions(
   }
 }
 
+function getGameFromSetId(setId: string): string {
+  const id = setId.toUpperCase();
+
+  // 1. ONE PIECE: Detects codes like OP01, EB01, ST01, PRB01, or P
+  if (/^(OP|EB|ST|PRB)\d+/.test(id) || id === 'P') {
+    return 'onepiece';
+  }
+
+  // 2. LORCANA: Detects all known Lorcana codes from your API
+  const lorcanaCodes = [
+    'TFC', 'ROTF', 'ITI', 'UR', 'Q1', 'D100', 'C1', 'D23C24', 
+    'P2', 'SS', 'AZS', 'ARI', 'ROJ', 'FBL', 'P3', 'C2', 'WITW', 'WNTR'
+  ];
+  if (lorcanaCodes.includes(id) || id.startsWith('LOR')) {
+    return 'lorcana';
+  }
+
+  // 3. MAGIC: If it contains 'MTG' or is specifically 3 chars (common for MTG sets)
+  // We check this AFTER Lorcana so 3-letter Lorcana sets like 'TFC' don't get stolen by MTG
+  if (id.includes('MTG') || id.length === 3) {
+    return 'mtg';
+  }
+
+  // 4. POKEMON: Default
+  return 'pokemon';
+}
+
 export async function fetchSetDetails(setId: string) {
   try {
-    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php`);
-    const expResult = await expResponse.json();
     const decodedId = decodeURIComponent(setId);
-    const targetSet = expResult.data?.find((s: any) => s.id === decodedId);
+    const game = getGameFromSetId(decodedId);
+    
+    // Fetch expansions for the detected game
+    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php?game=${game}`);
+    const expResult = await expResponse.json();
+    
+    // Find the set in the data array
+    // PHP already maps expansion_id/expansion_key to "id" for you
+    const targetSet = expResult.data?.find((s: any) => 
+      s.id.toLowerCase() === decodedId.toLowerCase()
+    );
 
-    if (!targetSet) return { success: false, set: null, assets: [] };
+    if (!targetSet) {
+      console.warn(`Set ${decodedId} not found in ${game} expansions.`);
+      return { success: false, set: null, assets: [] };
+    }
 
-    // Fetch cards for this set
+    // Use the exact ID from the API to fetch cards
+    const activeId = targetSet.id;
     const cardsResponse = await fetch(
-      `https://pokecollectorhub.com/api/cmc_cards.php?set=${encodeURIComponent(targetSet.name)}&limit=500`
+      `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(activeId)}&limit=500`
     );
     let cardsResult = await cardsResponse.json();
 
-    // Fallback if name search fails
+    // Fallback: If expansion_id search yields 0 cards, try searching by Set Name
     if (!cardsResult.data || cardsResult.data.length === 0) {
-      const fallbackResponse = await fetch(
-        `https://pokecollectorhub.com/api/cmc_cards.php?expansion_id=${encodeURIComponent(decodedId)}&limit=500`
+      const nameResponse = await fetch(
+        `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`
       );
-      cardsResult = await fallbackResponse.json();
+      cardsResult = await nameResponse.json();
     }
 
+    // Build the set info object using the PHP-mapped keys
     const setInfo = {
-      id: decodedId,
+      id: targetSet.id,
       name: targetSet.name,
-      series: targetSet.series || "Standard",
+      series: targetSet.series, // PHP already handles 'Disney Lorcana' vs 'One Piece CG'
       releaseDate: targetSet.releaseDate,
       totalCards: targetSet.totalCards || cardsResult.data?.length || 0,
       logoUrl: targetSet.logoUrl,
       marketCap: targetSet.floorPrice || "$0.00"
     };
 
-    // MAP DATA HERE: Crucial for the AssetCard to have the canonicalUrl
+    // Format cards for the UI
     const formattedAssets = (cardsResult.data || []).map((card: any) => ({
       ...card,
-      id: card.id,
-      name: card.name,
-      imageUrl: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
+      // Priority: use largeImage if available, fallback to imageUrl
+      imageUrl: card.largeImage || card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
       price: card.price || "$0.00",
-      canonicalUrl: card.canonicalUrl // Passed from PHP API
+      rarity: card.rarity || "Standard"
     }));
 
     return {

@@ -7,7 +7,12 @@ import Link from "next/link";
 interface GameSelectorProps {
   currentGame: string;
   currentLang: string;
-  realCounts: { pokemon: number; mtg: number };
+  realCounts: { 
+    pokemon: number; 
+    mtg: number; 
+    lorcana: number; 
+    onepiece: number 
+  };
 }
 
 export function GameSelector({ currentGame, currentLang, realCounts }: GameSelectorProps) {
@@ -18,70 +23,69 @@ export function GameSelector({ currentGame, currentLang, realCounts }: GameSelec
   const formatNum = (num: number) => new Intl.NumberFormat().format(num);
 
   const GAMES = useMemo(() => [
-  { 
-    name: "Pokémon", 
-    slug: "pokemon", 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Pokémon_Trading_Card_Game_logo.svg", 
-    bgImage: "https://images.pokemontcg.io/base1/4_hires.png",
-    count: `${formatNum(realCounts?.pokemon || 416)} Cards` 
-  },
-  { 
-    name: "Magic", 
-    slug: "mtg", 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Magicthegathering-logo.svg", 
-    bgImage: "https://cards.scryfall.io/large/front/5/4/541f1c6d.jpg",
-    count: `${formatNum(realCounts?.mtg || 798)} Cards` 
-  },
+    { 
+      name: "Pokémon", 
+      slug: "pokemon", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Pokémon_Trading_Card_Game_logo.svg", 
+      bgImage: "https://images.pokemontcg.io/base1/4_hires.png",
+      count: `${formatNum(realCounts?.pokemon)} Sets` 
+    },
+    { 
+      name: "One Piece", 
+      slug: "onepiece", 
+      logo: "https://images.ctfassets.net/60ty0vllzbe7/2wI8iF098YvI0EclW6DkCH/005e55e04e902b7008101476d080345d/one-piece-card-game-logo.png", 
+      bgImage: "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png",
+      count: `${formatNum(realCounts?.onepiece)} Sets` 
+    },
+    { 
+      name: "Lorcana", 
+      slug: "lorcana", 
+      logo: "https://api.lorcana-api.com/images/logo.png", 
+      bgImage: "https://lorcana-api.com/images/cards/1/12-EN-1.png",
+      count: `${formatNum(realCounts?.lorcana)} Sets` 
+    },
+    { 
+      name: "Magic", 
+      slug: "mtg", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Magicthegathering-logo.svg", 
+      bgImage: "https://cards.scryfall.io/large/front/5/4/541f1c6d.jpg",
+      count: `${formatNum(realCounts?.mtg)} Sets` 
+    },
   { 
     name: "Yu-Gi-Oh!", 
     slug: "yugioh", 
     logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Yu-Gi-Oh%21_TCG_logo.png", 
     bgImage: "https://ms.yugipedia.com//thumb/5/5a/DarkMagician-LOB-EN.png/300px-DarkMagician-LOB-EN.png",
-    count: "12,402 Assets" 
+    count: "12,402 Sets" 
   },
-  { 
-    name: "One Piece", 
-    slug: "onepiece", 
-    logo: "https://images.ctfassets.net/60ty0vllzbe7/2wI8iF098YvI0EclW6DkCH/005e55e04e902b7008101476d080345d/one-piece-card-game-logo.png", 
-    bgImage: "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png",
-    count: "3,120 Assets" 
-  },
-  { 
-    name: "Lorcana", 
-    slug: "lorcana", 
-    logo: "https://api.lorcana-api.com/images/logo.png", 
-    bgImage: "https://lorcana-api.com/images/cards/1/12-EN-1.png",
-    count: "1,845 Assets" 
-  },
-
   // ✅ NEW GAMES
   { 
     name: "Dragon Ball", 
     slug: "dragonball", 
     logo: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Dragon_Ball_Super_Card_Game_logo.png", 
     bgImage: "https://en.dragon-ball-official.com/assets/img/cardgame/cardlist/card/BT1-001.png",
-    count: "2,300 Assets" 
+    count: "2,300 Sets" 
   },
   { 
     name: "Flesh & Blood", 
     slug: "fleshblood", 
     logo: "https://upload.wikimedia.org/wikipedia/en/0/0f/Flesh_and_Blood_TCG_logo.png", 
     bgImage: "https://fabdb2.imgix.net/cards/printings/WTR001.png",
-    count: "1,100 Cards" 
+    count: "1,100 Sets" 
   },
   { 
     name: "Digimon", 
     slug: "digimon", 
     logo: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Digimon_card_game_logo.png", 
     bgImage: "https://digimoncard.io/images/cards/BT1-084.jpg",
-    count: "900 Cards" 
+    count: "900 Sets" 
   },
   { 
     name: "Star Wars Unlimited", 
     slug: "starwars", 
     logo: "https://lumiere-a.akamaihd.net/v1/images/sw-logo_7f26a0c2.png", 
     bgImage: "https://cdn.starwarsunlimited.com/cards/card_1_EN_1.png",
-    count: "600 Cards" 
+    count: "600 Sets" 
   },
 ], [realCounts]);
 
