@@ -55,7 +55,7 @@ export default function SignupPage() {
             <div className="relative h-10 w-10">
               <Image src="/logo.png" alt="Logo" fill className="object-contain" />
             </div>
-            <span className="text-xl font-black tracking-tighter text-white">
+            <span className="text-xl font-bold tracking-tighter text-white">
               CardMarket<span className="text-[#00BA88]">Cap</span>
             </span>
           </Link>
