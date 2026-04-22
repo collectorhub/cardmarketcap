@@ -14,6 +14,7 @@ export default async function Page({
   searchParams: Promise<{ 
     page?: string; 
     search?: string; 
+    q?: string;
     sort?: string; 
     category?: string; 
     grade?: string 
@@ -26,17 +27,22 @@ export default async function Page({
   const category = params.category || "all";
   const grade = params.grade || "psa 10";
 
-  const [cardResponse, statsResponse] = await Promise.all([
-    // PASS ALL PARAMS HERE
+  // 1. Fetch search results AND a separate "Global" request with no search query
+  const [cardResponse, globalResponse, statsResponse] = await Promise.all([
     fetchCMCCards(currentPage, search, sort, category, grade),
+    fetchCMCCards(1, "", "top", category, grade), // This gets the true total
     fetchMarketStats()
   ]);
 
   const { data, metadata } = cardResponse;
   const apiStats = statsResponse?.stats || [];
 
-  // Sync calculations for the ticker and stats cards
-  const totalCardsCount = metadata?.total_records || 0;
+  // 2. Use the metadata from the GLOBAL response for the big numbers
+  const globalTotalCount = globalResponse.metadata?.total_records || 0;
+  
+  // 3. Keep the search-specific total for the table pagination only
+  const filteredTotalCount = metadata?.total_records || 0;
+
   const psa10Value = apiStats.find((s: any) => s.label === "PSA 10 Index")?.value || "2,396";
   const marketVol = apiStats.find((s: any) => s.label === "Total Market Cap")?.value || "$1.1B";
 
@@ -49,7 +55,7 @@ export default async function Page({
     },
     {
       label: "TRACKED CARDS",
-      value: totalCardsCount.toLocaleString(),
+      value: globalTotalCount.toLocaleString(), // Static Big Number
       change: "Live",
       trend: "up",
     },
@@ -69,64 +75,52 @@ export default async function Page({
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F9FAFB] dark:bg-[#020617] transition-colors duration-300">
-      {/* NAVBAR: Manual render here because this page is outside /(root).
-          This ensures the frontpage looks exactly like your design 
-      */}
       <Navbar />
       <div className="lg:hidden">
-  <Sidebar />
-</div>
+        <Sidebar />
+      </div>
 
-      {/* Main Content: pt-24 provides enough space for the fixed Navbar.
-          We use max-w-[1600px] to match your dashboard's inner width.
-      */}
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-24 pb-8 md:py-16">
         
-        {/* Header Section */}
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-  <div className="space-y-1">
-    <nav className="flex items-center gap-2 mb-2">
-      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
-      <span className="text-slate-300 dark:text-slate-700 text-[10px]">/</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 hidden md:block">Market Intelligence</span>
-    </nav>
-    
-    <div className="space-y-3">
-      <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
-        Pokémon Graded Card Tracker
-        {/* DESKTOP PILL: Hidden on mobile, shown on md+ */}
-        <span className="hidden md:inline-flex ml-3 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
-          PSA Verified
-        </span>
-      </h1>
+          <div className="space-y-1">
+            <nav className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">Analytics</span>
+              <span className="text-slate-300 dark:text-slate-700 text-[10px]">/</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 hidden md:block">Market Intelligence</span>
+            </nav>
+            
+            <div className="space-y-3">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white leading-tight">
+                Pokémon Graded Card Tracker
+                <span className="hidden md:inline-flex ml-3 items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                  PSA Verified
+                </span>
+              </h1>
 
-      <div className="flex flex-col gap-3">
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          Showing {totalCardsCount.toLocaleString()} total cards across the global market.
-        </p>
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  Showing {globalTotalCount.toLocaleString()} total cards across the global market.
+                </p>
 
-        {/* MOBILE PILL: Shown on mobile, hidden on md+ */}
-        <div className="flex md:hidden">
-          <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
-            PSA Verified
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
+                <div className="flex md:hidden">
+                  <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700">
+                    PSA Verified
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
 
-        {/* Stats Grid Section */}
         <section className="mb-8 md:mb-12">
           <MarketStats initialStats={synchronizedStats} />
         </section>
 
-        {/* Table Section */}
-        <section  id="market-table" className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
-  
+        <section id="market-table" className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
           <MarketTable 
             initialCards={data} 
-            totalRecords={totalCardsCount}
+            totalRecords={filteredTotalCount} // Table still needs filtered count for pagination
             totalPages={metadata?.total_pages || 0}
             currentPage={currentPage}
           />
@@ -139,9 +133,8 @@ export default async function Page({
 
       <Footer />
 
-      {/* FIXED TICKER */}
       <MarketTicker 
-        totalCards={totalCardsCount}
+        totalCards={globalTotalCount} // Static Big Number
         psa10Pop={psa10Value}
         volume30d={marketVol}
       />
