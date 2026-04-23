@@ -25,19 +25,25 @@ export function SetsClientContainer({
   
   const filteredAndGroupedData = useMemo(() => {
     const dbLangCode = currentLang === "Japanese" ? "ja" : "en";
+    const isSearching = searchQuery.length > 0;
 
-    // 1. Filter by language and search query
+    // 1. IMPROVED FILTERING
     const filtered = initialData.filter((set) => {
       const matchesSearch = set.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
       if (currentGame === "pokemon") {
-        return matchesSearch && set.language === dbLangCode;
+        // If searching, show all matches regardless of tab. 
+        // If not searching, respect the English/Japanese tabs.
+        return isSearching ? matchesSearch : (matchesSearch && set.language === dbLangCode);
       }
       return matchesSearch;
     });
 
-    // 2. Group into Series/Eras
+    // 2. GROUPING (Stays the same, but now receives all 'Mega' matches)
     const groups = filtered.reduce((acc: any[], set: any) => {
-      const groupKey = currentGame === "mtg" ? (set.series || set.type || "Other") : (set.series || "Other");
+      // Ensure we have a string for series to avoid 'undefined' keys
+      const groupKey = set.series || (currentGame === "mtg" ? set.type : null) || "Other Expansions";
+      
       const releaseDate = set.releaseDate || set.release_date;
       const totalCards = set.totalCards || set.total || 0;
 
@@ -55,7 +61,7 @@ export function SetsClientContainer({
       return acc;
     }, []);
 
-    // 3. Sort
+    // 3. SORTING
     groups.forEach((group: any) => {
       group.sets.sort((a: any, b: any) => 
         new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
@@ -65,6 +71,7 @@ export function SetsClientContainer({
 
     return groups.sort((a, b) => b.latestRelease - a.latestRelease);
   }, [initialData, currentGame, currentLang, searchQuery]);
+
 
   if (filteredAndGroupedData.length === 0) {
     return (

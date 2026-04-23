@@ -57,33 +57,54 @@ export default function Navbar() {
   }
 
   const MobileTab = ({ href, icon: Icon, label, onClick, badge }: any) => {
-    const isActive = pathname === href
-    const content = (
-      <div className="flex flex-col items-center justify-center gap-1 w-full h-full relative">
-        <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400")} />
-        <span className={cn("text-[10px] font-bold transition-colors", isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400")}>
-          {label}
-        </span>
-        {badge && (
-          <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
-        )}
-      </div>
-    )
+  // Use startsWith so sub-pages (like /sets/me3) keep the parent tab active
+  const isActive = href === "/" 
+    ? pathname === "/" 
+    : pathname.startsWith(href)
 
-    if (onClick) {
-      return (
-        <button onClick={onClick} className="flex-1 h-full active:scale-90 transition-transform cursor-pointer">
-          {content}
-        </button>
-      )
-    }
+  const content = (
+    <div className="flex flex-col items-center justify-center gap-1 w-full h-full relative">
+      {/* Top Active Indicator Line */}
+      {isActive && (
+        <motion.div 
+          layoutId="mobile-nav-indicator"
+          className="absolute top-0 h-1 w-12 bg-[#00BA88] rounded-b-full"
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        />
+      )}
 
+      <Icon className={cn(
+        "h-5 w-5 transition-colors", 
+        isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
+      )} />
+      
+      <span className={cn(
+        "text-[10px] font-bold transition-colors", 
+        isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
+      )}>
+        {label}
+      </span>
+
+      {badge && (
+        <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
+      )}
+    </div>
+  )
+
+  if (onClick) {
     return (
-      <Link href={href} className="flex-1 h-full active:scale-90 transition-transform">
+      <button onClick={onClick} className="flex-1 h-full active:scale-90 transition-transform cursor-pointer">
         {content}
-      </Link>
+      </button>
     )
   }
+
+  return (
+    <Link href={href} className="flex-1 h-full active:scale-90 transition-transform">
+      {content}
+    </Link>
+  )
+}
 
   return (
     <>
@@ -126,51 +147,44 @@ export default function Navbar() {
             )}
 {/* DESKTOP NAV - Multi-link Style */}
 <nav className={cn(
-  "flex items-center gap-6",
+  "flex items-center gap-8", // Increased gap for clarity
   pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
 )}>
-  {/* Market Overview Link */}
-  <Link 
-    href="/overview" 
-    className={cn(
-      "text-sm font-bold transition-all whitespace-nowrap",
-      pathname === "/overview" 
-        ? "text-slate-900 dark:text-white" 
-        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
-    )}
-  >
-    Market Overview
-  </Link>
-  
-  {/* Card Sets Link */}
-  <Link 
-    href="/sets" 
-    className={cn(
-      "text-sm font-bold transition-all whitespace-nowrap",
-      pathname === "/overview" 
-        ? "text-slate-900 dark:text-white" 
-        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
-    )}
-  >
-    Card Sets
-  </Link>
-  {/* Card Sets Link */}
-  <Link 
-    href="/card-search" 
-    className={cn(
-      "text-sm font-bold transition-all whitespace-nowrap",
-      pathname === "/overview" 
-        ? "text-slate-900 dark:text-white" 
-        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
-    )}
-  >
-    Card Search
-  </Link>
+  {[
+    { href: "/overview", label: "Market Overview" },
+    { href: "/sets", label: "Card Sets" },
+    { href: "/card-search", label: "Card Search" },
+  ].map((link) => {
+    // Check if current path starts with the link href (to keep it active on sub-pages)
+    const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+    
+    return (
+      <Link 
+        key={link.href}
+        href={link.href} 
+        className={cn(
+          "text-sm font-bold transition-all whitespace-nowrap relative py-1",
+          isActive 
+            ? "text-[#00BA88]" 
+            : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+        )}
+      >
+        {link.label}
+        {/* Optional: Subtle active dot/line under the active link */}
+        {isActive && (
+          <motion.div 
+            layoutId="nav-active"
+            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#00BA88] rounded-full"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+      </Link>
+    );
+  })}
 </nav>
           </div>
 
           <div className="flex items-center gap-6">
-            {/* ... rest of your search and user actions code ... */}
             <div className="relative group hidden lg:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#00BA88] transition-colors" />
               <input 

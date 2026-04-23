@@ -127,25 +127,51 @@ export default function Sidebar() {
         {/* NAV CONTENT */}
         <nav className="flex-1 px-3 space-y-7 overflow-y-auto custom-scrollbar">
           {isMobile ? (
-            /* MOBILE VIEW: Uses your defined mobileNavigation list */
-            <div className="space-y-2">
-              {mobileNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={closeMenu}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    item.isButton 
-                      ? "bg-[#00BA88] text-white font-bold hover:bg-[#00a377] mt-4" 
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="text-sm">{item.name}</span>
-                </Link>
-              ))}
-            </div>
+/* MOBILE VIEW: Uses your defined mobileNavigation list */
+<div className="space-y-2">
+  {mobileNavigation.map((item) => {
+    // Check if the current path matches or starts with the link href
+    const isActive = item.href === "/" 
+      ? pathname === "/" 
+      : pathname.startsWith(item.href);
+
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        onClick={closeMenu}
+        className={cn(
+          "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+          // Removed the hardcoded green background for isButton
+          isActive 
+            ? "text-white" 
+            : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
+        )}
+      >
+        {/* The green highlight now applies to ALL items (including Sign Up) ONLY when active */}
+        {isActive && (
+          <motion.div 
+            layoutId="mobileSidebarHighlight" 
+            className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+
+        <item.icon className={cn(
+          "h-5 w-5 transition-colors", 
+          isActive ? "text-white" : "group-hover:text-[#00BA88]"
+        )} />
+        
+        <span className={cn(
+          "text-sm transition-colors", 
+          isActive ? "font-bold" : "font-medium group-hover:text-[#00BA88]"
+        )}>
+          {item.name}
+        </span>
+      </Link>
+    );
+  })}
+</div>
           ) : (
             /* DESKTOP VIEW: Uses the Accordion/Indices list */
             desktopNavigation.map((group) => {
