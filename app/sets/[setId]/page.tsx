@@ -49,40 +49,27 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
   const [loading, setLoading] = useState(true);
   const [gameContext, setGameContext] = useState("pokemon");
 
-  useEffect(() => {
+  // Inside SetDetailsPage
+useEffect(() => {
   async function loadData() {
     if (!setId) return;
     setLoading(true);
 
-    const decodedId = decodeURIComponent(setId).toUpperCase();
-    let game = "pokemon"; // Default fallback
-
-    // 1. ONE PIECE: Match your getGameFromSetId logic
-    if (/^(OP|EB|ST|PRB)\d+/.test(decodedId) || decodedId === 'P') {
-      game = "onepiece";
-    } 
-    // 2. LORCANA: Match your getGameFromSetId list exactly
-    else if (
-      ['TFC', 'ROTF', 'ITI', 'UR', 'Q1', 'D100', 'C1', 'D23C24', 
-       'P2', 'SS', 'AZS', 'ARI', 'ROJ', 'FBL', 'P3', 'C2', 'WITW', 'WNTR'].includes(decodedId) || 
-      decodedId.startsWith('LOR')
-    ) {
-      game = "lorcana";
-    }
-    // 3. MAGIC: Match your getGameFromSetId logic (checks length === 3)
-    // IMPORTANT: This stays AFTER Lorcana so 'TFC' or 'FBL' aren't stolen by MTG
-    else if (decodedId.includes('MTG') || decodedId.length === 3) {
-      game = "mtg";
-    }
-    
-    setGameContext(game);
-
-    // 2. Fetch data
+    // Fetch data using the unified function
     const result = await fetchSetDetails(setId);
     
     if (result.success && result.set) {
       setSetInfo(result.set);
       setAssets(result.assets || []);
+      
+      // Determine context from the result rather than the ID string
+      // This ensures 'me3' is treated as pokemon
+      const series = result.set.series?.toLowerCase() || "";
+      if (series.includes("lorcana")) setGameContext("lorcana");
+      else if (series.includes("one piece")) setGameContext("onepiece");
+      else if (result.set.isMtg) setGameContext("mtg"); // Assuming your API flag
+      else setGameContext("pokemon");
+      
     } else {
       setSetInfo(null);
     }
@@ -161,12 +148,14 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
           </div>
 
           <div className="flex-1 space-y-4 w-full">
-            <div className="flex items-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
+<div className="flex items-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
   <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
-  {gameContext === "pokemon" ? `${setInfo.series} Era` : 
-   gameContext === "lorcana" ? "Disney Lorcana" : 
-   gameContext === "mtg" ? "Magic: The Gathering" : 
-   "One Piece TCG"}
+  {/* If it's pokemon, show the specific Era (Mega Evolution, etc). Otherwise show the Game Name */}
+  {gameContext === "pokemon" 
+    ? `${setInfo.series || 'Pokémon'} Era` 
+    : gameContext === "lorcana" ? "Disney Lorcana" 
+    : gameContext === "mtg" ? "Magic: The Gathering" 
+    : "One Piece TCG"}
 </div>
             <h1 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               {setInfo.name} <span className="text-[#00BA88]">Cards</span>
@@ -218,17 +207,21 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-          {filteredAssets.map((asset) => (
-            <AssetCard 
-              key={asset.id} 
-              asset={{ 
-                ...asset, 
-                game: gameContext // CRITICAL: This ensures detail links have ?game=...
-              }} 
-            />
-          ))}
-        </div>
+       {/* Replace the grid section with this */}
+{filteredAssets.length > 0 ? (
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+    {filteredAssets.map((asset) => (
+      <AssetCard 
+        key={asset.id} 
+        asset={{ ...asset, game: gameContext }} 
+      />
+    ))}
+  </div>
+) : (
+  <div className="py-20 text-center">
+    <p className="text-slate-400 font-medium">No cards matching "{searchQuery}" found in this set.</p>
+  </div>
+)}
       </main>
     </div>
   );

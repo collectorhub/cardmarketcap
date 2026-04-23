@@ -3,14 +3,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Search, X, Flame, Sparkles, Zap, Wand2, 
-  Star, Anchor, Trophy
+  Star, Anchor, Trophy, LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchCMCCards, fetchTrendingCards } from "@/lib/queries/market";
+import { fetchCMCCards, fetchTrendingCards, fetchExpansions } from "@/lib/queries/market";
 import { fetchUniversalSearch } from "@/lib/queries/search";
 import { SearchResult } from '@/types/search';
+import { RandomSetScroller } from '@/components/search/RandomSetScroller';
 
 const CATEGORIES = [
   { id: "pokemon", name: "Pokémon", icon: Zap },
@@ -40,6 +41,7 @@ export default function CardSearch() {
   const [isFocused, setIsFocused] = useState(false);
   const [trendingAssets, setTrendingAssets] = useState<any[]>([]);
   const [popularAssets, setPopularAssets] = useState<any[]>([]);
+  const [quickSetLinks, setQuickSetLinks] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -57,24 +59,26 @@ export default function CardSearch() {
     }));
   };
 
-  // Logic to load initial data based on selected category (game)
   const loadInitialData = useCallback(async (category: string | null) => {
     setIsLoading(true);
     try {
       const gameParam = category || "pokemon";
-      // Using your market.ts functions which now accept 'game'
-      const [trending, popular] = await Promise.all([
-        fetchTrendingCards(), // Currently doesn't take game in your market.ts, but could be added
-        fetchCMCCards(1, "", "top", "all", "psa 10", gameParam)
+      const [trending, popular, setsResponse] = await Promise.all([
+        fetchTrendingCards(),
+        fetchCMCCards(1, "", "top", "all", "psa 10", gameParam),
+        fetchExpansions(gameParam, "", 1)
       ]);
       
-      // Local filter for trending if category is set (since API might not filter it yet)
       const filteredTrending = category 
         ? trending.filter((t: any) => t.game?.toLowerCase() === category.toLowerCase() || category === "pokemon")
         : trending;
 
       setTrendingAssets(normalizeData(filteredTrending));
       setPopularAssets(normalizeData(popular.data));
+      
+      if (setsResponse.success) {
+        setQuickSetLinks(setsResponse.data.slice(0, 12));
+      }
     } catch (error) {
       console.error("Failed to fetch initial data", error);
     } finally {
@@ -123,7 +127,6 @@ export default function CardSearch() {
   const displayAssets = isFiltering ? searchResults : trendingAssets;
   const showSkeletons = isLoading || (isFiltering && isSearching);
   
-  // Dynamic header logic
   const currentCategoryName = CATEGORIES.find(c => c.id === selectedCategory)?.name;
   const sectionTitle = isFiltering 
     ? `${currentCategoryName || 'Universal'} Results` 
@@ -134,7 +137,7 @@ export default function CardSearch() {
   return (
     <div className="space-y-1 md:space-y-20 animate-in fade-in duration-1000 pt-23 md:pt-15 pb-20">
       
-      <section className="flex flex-col items-center text-center space-y-8 md:space-y-10">
+      <section className="flex flex-col items-center text-center space-y-8 md:space-y-12">
         <div className="space-y-4">
           <div className="flex items-center justify-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-[0.2em]">
             <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
@@ -188,6 +191,14 @@ export default function CardSearch() {
             )}
           </div>
         </div>
+
+        {/* Client Request: Random Scroller & Quick List (Hidden when searching) */}
+        {!isFiltering && (
+  <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-hidden">
+    {/* Removed max-w-6xl to allow the scroller to reach the edges of the screen */}
+    <RandomSetScroller />
+  </div>
+)}
 
         {/* Filter Buttons */}
         <div className="hidden md:flex flex-wrap justify-center gap-3">

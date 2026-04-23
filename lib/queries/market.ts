@@ -177,12 +177,12 @@ export async function fetchExpansions(
       game: game,
       search: search,
       page: page.toString(),
-      limit: "1000" // Fetch everything to allow instant local filtering
+      limit: "2000" // Fetch everything to allow instant local filtering
     });
 
     const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
       signal: controller.signal,
-      next: { revalidate: 3600 } 
+      next: { revalidate: 60 } 
     });
 
     clearTimeout(id);
@@ -222,7 +222,7 @@ function getGameFromSetId(setId: string): string {
     return 'onepiece';
   }
 
-  // 2. LORCANA: Detects all known Lorcana codes from your API
+  // 2. LORCANA: Detects all known Lorcana codes
   const lorcanaCodes = [
     'TFC', 'ROTF', 'ITI', 'UR', 'Q1', 'D100', 'C1', 'D23C24', 
     'P2', 'SS', 'AZS', 'ARI', 'ROJ', 'FBL', 'P3', 'C2', 'WITW', 'WNTR'
@@ -231,13 +231,13 @@ function getGameFromSetId(setId: string): string {
     return 'lorcana';
   }
 
-  // 3. MAGIC: If it contains 'MTG' or is specifically 3 chars (common for MTG sets)
-  // We check this AFTER Lorcana so 3-letter Lorcana sets like 'TFC' don't get stolen by MTG
-  if (id.includes('MTG') || id.length === 3) {
+  // 3. MAGIC: Only return 'mtg' if it explicitly contains the tag
+  // Removed "id.length === 3" to prevent 'me3' or 'sv1' from being caught
+  if (id.includes('MTG')) {
     return 'mtg';
   }
 
-  // 4. POKEMON: Default
+  // 4. POKEMON: Default fallback
   return 'pokemon';
 }
 
@@ -246,29 +246,29 @@ export async function fetchSetDetails(setId: string) {
     const decodedId = decodeURIComponent(setId);
     const game = getGameFromSetId(decodedId);
     
-    // Fetch expansions for the detected game
-    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php?game=${game}`);
+    // 1. Fetch expansion metadata
+    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php?game=${game}`, {
+      next: { revalidate: 60 }
+    });
     const expResult = await expResponse.json();
     
-    // Find the set in the data array
-    // PHP already maps expansion_id/expansion_key to "id" for you
     const targetSet = expResult.data?.find((s: any) => 
       s.id.toLowerCase() === decodedId.toLowerCase()
     );
 
     if (!targetSet) {
-      console.warn(`Set ${decodedId} not found in ${game} expansions.`);
+      console.warn(`Set ${decodedId} not found.`);
       return { success: false, set: null, assets: [] };
     }
 
-    // Use the exact ID from the API to fetch cards
-    const activeId = targetSet.id;
+    // 2. Fetch cards for this expansion
     const cardsResponse = await fetch(
-      `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(activeId)}&limit=500`
+      `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(targetSet.id)}&limit=500`,
+      { next: { revalidate: 60 } }
     );
     let cardsResult = await cardsResponse.json();
 
-    // Fallback: If expansion_id search yields 0 cards, try searching by Set Name
+    // Fallback: Try searching by Set Name if ID search returns empty
     if (!cardsResult.data || cardsResult.data.length === 0) {
       const nameResponse = await fetch(
         `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`
@@ -276,25 +276,42 @@ export async function fetchSetDetails(setId: string) {
       cardsResult = await nameResponse.json();
     }
 
-    // Build the set info object using the PHP-mapped keys
     const setInfo = {
       id: targetSet.id,
       name: targetSet.name,
-      series: targetSet.series, // PHP already handles 'Disney Lorcana' vs 'One Piece CG'
+      series: targetSet.series || (game === 'pokemon' ? 'Pokémon' : game),
       releaseDate: targetSet.releaseDate,
       totalCards: targetSet.totalCards || cardsResult.data?.length || 0,
-      logoUrl: targetSet.logoUrl,
+      logoUrl: targetSet.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
       marketCap: targetSet.floorPrice || "$0.00"
     };
 
-    // Format cards for the UI
-    const formattedAssets = (cardsResult.data || []).map((card: any) => ({
-      ...card,
-      // Priority: use largeImage if available, fallback to imageUrl
-      imageUrl: card.largeImage || card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
-      price: card.price || "$0.00",
-      rarity: card.rarity || "Standard"
-    }));
+   const formattedAssets = (cardsResult.data || []).map((card: any) => {
+  const imageCandidates = [
+    card.largeImage,
+    card.imageUrl,
+    card.image_url,
+    card.image,
+  ];
+
+  const validImage = imageCandidates.find(
+    (url) =>
+      typeof url === "string" &&
+      url.trim() !== "" &&
+      url.startsWith("http")
+  );
+
+  return {
+    ...card,
+    id: String(card.id),
+    imageUrl:
+      validImage ||
+      "https://pokecollectorhub.com/assets/placeholder.png",
+    price: card.price || "$0.00",
+    rarity: card.rarity || card.type || "Standard",
+    number: card.number || "000",
+  };
+});
 
     return {
       success: true,
