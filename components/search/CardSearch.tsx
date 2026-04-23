@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Search, X, Flame, Sparkles, Zap, Wand2, 
-  Star, Anchor, Trophy, LayoutGrid
+  Star, Anchor, Trophy, LayoutGrid, Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
@@ -93,7 +93,8 @@ export default function CardSearch() {
   }, [selectedCategory, query.length, loadInitialData]);
 
   const performSearch = useCallback(async (searchQuery: string, categoryId: string | null) => {
-    if (searchQuery.length < 2) {
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.length < 2) {
       setSearchResults([]);
       setIsSearching(false);
       return;
@@ -101,7 +102,8 @@ export default function CardSearch() {
 
     setIsSearching(true);
     try {
-      const results = await fetchUniversalSearch(searchQuery, categoryId, 100);
+      // The PHP backend now handles splitting "Charizard Skyridge" or looking up "4/144"
+      const results = await fetchUniversalSearch(trimmedQuery, categoryId, 100);
       setSearchResults(results);
     } catch (err) {
       console.error("Search failed:", err);
@@ -113,7 +115,7 @@ export default function CardSearch() {
   useEffect(() => {
     const timer = setTimeout(() => {
       performSearch(query, selectedCategory);
-    }, 300); 
+    }, 400); // Slightly increased debounce for more complex backend queries
     return () => clearTimeout(timer);
   }, [query, selectedCategory, performSearch]);
 
@@ -123,7 +125,7 @@ export default function CardSearch() {
     setSelectedCategory(newCategoryId);
   };
 
-  const isFiltering = query.length >= 2;
+  const isFiltering = query.trim().length >= 2;
   const displayAssets = isFiltering ? searchResults : trendingAssets;
   const showSkeletons = isLoading || (isFiltering && isSearching);
   
@@ -190,17 +192,20 @@ export default function CardSearch() {
               </button>
             )}
           </div>
+          
+          {/* Pro Tip Hint for the New Feature */}
+          {/* <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
+             <Info size={12} className="text-[#00BA88]" />
+             <span>Try searching <span className="text-slate-600 dark:text-slate-200 font-bold italic">"Charizard Skyridge"</span> or a card number like <span className="text-slate-600 dark:text-slate-200 font-bold italic">"4/144"</span></span>
+          </div> */}
         </div>
 
-        {/* Client Request: Random Scroller & Quick List (Hidden when searching) */}
         {!isFiltering && (
-  <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-hidden">
-    {/* Removed max-w-6xl to allow the scroller to reach the edges of the screen */}
-    <RandomSetScroller />
-  </div>
-)}
+          <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-hidden">
+            <RandomSetScroller />
+          </div>
+        )}
 
-        {/* Filter Buttons */}
         <div className="hidden md:flex flex-wrap justify-center gap-3">
           {CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat.id;
