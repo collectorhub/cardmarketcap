@@ -57,54 +57,52 @@ export default function Navbar() {
   }
 
   const MobileTab = ({ href, icon: Icon, label, onClick, badge }: any) => {
-  // Use startsWith so sub-pages (like /sets/me3) keep the parent tab active
-  const isActive = href === "/" 
-    ? pathname === "/" 
-    : pathname.startsWith(href)
+    const isActive = href === "/" 
+      ? pathname === "/" 
+      : pathname.startsWith(href)
 
-  const content = (
-    <div className="flex flex-col items-center justify-center gap-1 w-full h-full relative">
-      {/* Top Active Indicator Line */}
-      {isActive && (
-        <motion.div 
-          layoutId="mobile-nav-indicator"
-          className="absolute top-0 h-1 w-12 bg-[#00BA88] rounded-b-full"
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        />
-      )}
+    const content = (
+      <div className="flex flex-col items-center justify-center gap-1 w-full h-full relative">
+        {isActive && (
+          <motion.div 
+            layoutId="mobile-nav-indicator"
+            className="absolute top-0 h-1 w-12 bg-[#00BA88] rounded-b-full"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
 
-      <Icon className={cn(
-        "h-5 w-5 transition-colors", 
-        isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
-      )} />
-      
-      <span className={cn(
-        "text-[10px] font-bold transition-colors", 
-        isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
-      )}>
-        {label}
-      </span>
+        <Icon className={cn(
+          "h-5 w-5 transition-colors", 
+          isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
+        )} />
+        
+        <span className={cn(
+          "text-[10px] font-bold transition-colors", 
+          isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
+        )}>
+          {label}
+        </span>
 
-      {badge && (
-        <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
-      )}
-    </div>
-  )
+        {badge && (
+          <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
+        )}
+      </div>
+    )
 
-  if (onClick) {
+    if (onClick) {
+      return (
+        <button onClick={onClick} className="flex-1 h-full active:scale-90 transition-transform cursor-pointer">
+          {content}
+        </button>
+      )
+    }
+
     return (
-      <button onClick={onClick} className="flex-1 h-full active:scale-90 transition-transform cursor-pointer">
+      <Link href={href} className="flex-1 h-full active:scale-90 transition-transform">
         {content}
-      </button>
+      </Link>
     )
   }
-
-  return (
-    <Link href={href} className="flex-1 h-full active:scale-90 transition-transform">
-      {content}
-    </Link>
-  )
-}
 
   return (
     <>
@@ -129,59 +127,53 @@ export default function Navbar() {
         <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
           
           <div className="flex items-center gap-8">
-            {/* LOGO - Hidden on /overview because the sidebar has it */}
-            {pathname !== "/overview" && (
-              <Link href="/" className="flex items-center gap-2 group">
-                <div className="relative h-10 w-10 flex-shrink-0">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Logo" 
-                    fill 
-                    className="object-contain transition-transform duration-500 group-hover:scale-110" 
-                  />
-                </div>
-                <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
-                  CardMarket<span className="text-[#00BA88]">Cap</span>
-                </span>
-              </Link>
-            )}
-{/* DESKTOP NAV - Multi-link Style */}
-<nav className={cn(
-  "flex items-center gap-8", // Increased gap for clarity
-  pathname !== "/overview" && "border-l border-slate-200 dark:border-slate-800 pl-8 ml-4"
-)}>
-  {[
-    { href: "/overview", label: "Market Overview" },
-    { href: "/sets", label: "Card Sets" },
-    { href: "/card-search", label: "Card Search" },
-  ].map((link) => {
-    // Check if current path starts with the link href (to keep it active on sub-pages)
-    const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-    
-    return (
-      <Link 
-        key={link.href}
-        href={link.href} 
-        className={cn(
-          "text-sm font-bold transition-all whitespace-nowrap relative py-1",
-          isActive 
-            ? "text-[#00BA88]" 
-            : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
-        )}
-      >
-        {link.label}
-        {/* Optional: Subtle active dot/line under the active link */}
-        {isActive && (
-          <motion.div 
-            layoutId="nav-active"
-            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#00BA88] rounded-full"
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          />
-        )}
-      </Link>
-    );
-  })}
-</nav>
+            {/* LOGO - Now always visible */}
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="relative h-10 w-10 flex-shrink-0">
+                <Image 
+                  src="/logo.png" 
+                  alt="Logo" 
+                  fill 
+                  className="object-contain transition-transform duration-500 group-hover:scale-110" 
+                />
+              </div>
+              <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
+                CardMarket<span className="text-[#00BA88]">Cap</span>
+              </span>
+            </Link>
+
+            {/* DESKTOP NAV */}
+            <nav className="flex items-center gap-8 border-l border-slate-200 dark:border-slate-800 pl-8 ml-4">
+              {[
+                { href: "/overview", label: "Market Overview" },
+                { href: "/sets", label: "Card Sets" },
+                { href: "/card-search", label: "Card Search" },
+              ].map((link) => {
+                const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+                
+                return (
+                  <Link 
+                    key={link.href}
+                    href={link.href} 
+                    className={cn(
+                      "text-sm font-bold transition-all whitespace-nowrap relative py-1",
+                      isActive 
+                        ? "text-[#00BA88]" 
+                        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+                    )}
+                  >
+                    {link.label}
+                    {isActive && (
+                      <motion.div 
+                        layoutId="nav-active"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#00BA88] rounded-full"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           <div className="flex items-center gap-6">

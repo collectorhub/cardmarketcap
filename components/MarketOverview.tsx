@@ -67,7 +67,7 @@ export function MarketOverview({ initialData, sentimentScore = 66, cards = [] }:
   return (
     <div className="space-y-8 md:space-y-12 pb-20">
       {/* HEADER */}
-      <header className="flex flex-col gap-2 pt-6">
+      <header className="flex flex-col gap-2 pt-15 md:pt-6">
         <div className="flex items-center gap-2 text-[#00BA88]">
           <Activity className="h-4 w-4 animate-pulse" />
           <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Market Intelligence</span>

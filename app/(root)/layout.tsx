@@ -7,12 +7,18 @@ export default function RootGroupLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-950">
-      <Sidebar />
-      <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden bg-[#F8FAFC] dark:bg-slate-950">
-        <Navbar />
-        <main className="w-full mx-auto min-h-screen p-4 md:p-8 max-w-[1600px]">
-          {children}
+    <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-950">
+      {/* Navbar now sits at the very top, spanning 100% width */}
+      <Navbar />
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar starts below the Navbar */}
+        <Sidebar />
+        
+        <main className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[#F8FAFC] dark:bg-slate-950 p-4 md:p-8">
+          <div className="mx-auto min-h-screen max-w-[1600px]">
+            {children}
+          </div>
         </main>
       </div>
     </div>

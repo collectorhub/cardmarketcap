@@ -6,23 +6,13 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Activity, 
-  BarChart3, 
-  Zap, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  ChevronDown,
-  X,
-  Layers,
-  UserRoundPlus,
-  LogIn,
-  PackageSearch
+  Activity, BarChart3, Zap, Settings, HelpCircle, 
+  LogOut, ChevronDown, X, Layers, UserRoundPlus, 
+  LogIn, PackageSearch 
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from '@/context/MobileMenuContext';
 
-// --- NAVIGATION CONFIGURATIONS ---
 const desktopNavigation = [
   {
     title: "Markets",
@@ -66,7 +56,6 @@ export default function Sidebar() {
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Handle Hydration and Resize
   useEffect(() => {
     setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -75,145 +64,118 @@ export default function Sidebar() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Prevent SSR flicker by returning null or a static placeholder until mounted
   if (!mounted) return null;
 
   return (
     <>
       <AnimatePresence>
         {isMobile && isOpen && (
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeMenu}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40"
+          <motion.div 
+            key="overlay" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            onClick={closeMenu} 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60]" 
           />
         )}
       </AnimatePresence>
 
       <motion.aside
-        initial={false} // Prevents animation on first load
-        animate={{
-          // On mobile, use isOpen. On desktop, it's always visible (0)
-          x: isMobile ? (isOpen ? 0 : "100%") : 0 
-        }}
+        initial={false}
+        animate={{ x: isMobile ? (isOpen ? 0 : "100%") : 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={cn(
-          "fixed right-0 top-0 z-50 h-screen w-72 lg:w-64 flex flex-col font-sans",
+          "fixed right-0 top-0 z-[70] h-full w-72 lg:w-64 flex flex-col font-sans",
           "border-l border-slate-200/50 dark:border-slate-800",
           "bg-[#F9FAFB] dark:bg-slate-950",
-          "lg:static lg:translate-x-0"
+          "lg:static lg:translate-x-0 lg:border-l-0 lg:border-r"
         )}
       >
-        {/* HEADER */}
-        <div className="px-6 py-10 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative h-8 w-8 flex-shrink-0">
-              <Image src="/logo.png" alt="Logo" fill className="object-contain" />
-            </div>
-            <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
-              CardMarket<span className="text-[#00BA88]">Cap</span>
-            </span>
-          </Link>
-          {isMobile && (
+        {/* HEADER - Only visible on Mobile Slider */}
+        {isMobile ? (
+          <div className="px-6 py-10 flex items-center justify-between">
+            <Link href="/" onClick={closeMenu} className="flex items-center gap-2 group">
+              <div className="relative h-8 w-8 flex-shrink-0">
+                <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+              </div>
+              <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
+                CardMarket<span className="text-[#00BA88]">Cap</span>
+              </span>
+            </Link>
             <button onClick={closeMenu} className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white">
               <X className="h-6 w-6" />
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* Small spacer for desktop to maintain alignment since Navbar is above it */
+          <div className="h-4" />
+        )}
 
-        {/* NAV CONTENT */}
         <nav className="flex-1 px-3 space-y-7 overflow-y-auto custom-scrollbar">
           {isMobile ? (
-/* MOBILE VIEW: Uses your defined mobileNavigation list */
-<div className="space-y-2">
-  {mobileNavigation.map((item) => {
-    // Check if the current path matches or starts with the link href
-    const isActive = item.href === "/" 
-      ? pathname === "/" 
-      : pathname.startsWith(item.href);
-
-    return (
-      <Link
-        key={item.name}
-        href={item.href}
-        onClick={closeMenu}
-        className={cn(
-          "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-          // Removed the hardcoded green background for isButton
-          isActive 
-            ? "text-white" 
-            : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
-        )}
-      >
-        {/* The green highlight now applies to ALL items (including Sign Up) ONLY when active */}
-        {isActive && (
-          <motion.div 
-            layoutId="mobileSidebarHighlight" 
-            className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          />
-        )}
-
-        <item.icon className={cn(
-          "h-5 w-5 transition-colors", 
-          isActive ? "text-white" : "group-hover:text-[#00BA88]"
-        )} />
-        
-        <span className={cn(
-          "text-sm transition-colors", 
-          isActive ? "font-bold" : "font-medium group-hover:text-[#00BA88]"
-        )}>
-          {item.name}
-        </span>
-      </Link>
-    );
-  })}
-</div>
+            <div className="space-y-2">
+              {mobileNavigation.map((item) => {
+                const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                return (
+                  <Link 
+                    key={item.name} 
+                    href={item.href} 
+                    onClick={closeMenu} 
+                    className={cn(
+                      "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all", 
+                      isActive ? "text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div 
+                        layoutId="mobileSidebarHighlight" 
+                        className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10" 
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }} 
+                      />
+                    )}
+                    <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-white" : "group-hover:text-[#00BA88]")} />
+                    <span className={cn("text-sm transition-colors", isActive ? "font-bold" : "font-medium group-hover:text-[#00BA88]")}>
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           ) : (
-            /* DESKTOP VIEW: Uses the Accordion/Indices list */
             desktopNavigation.map((group) => {
               const isIndices = group.title === "Indices";
               return (
                 <div key={group.title} className="space-y-1.5">
                   <button 
-                    onClick={() => isIndices && setIsIndicesOpen(!isIndicesOpen)}
+                    onClick={() => isIndices && setIsIndicesOpen(!isIndicesOpen)} 
                     className="flex w-full items-center justify-between px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 font-heading"
                   >
                     {group.title}
-                    {group.collapsible && (
-                      <ChevronDown className={cn("h-3 w-3 transition-transform", isIndicesOpen ? "" : "-rotate-90")} />
-                    )}
+                    {group.collapsible && <ChevronDown className={cn("h-3 w-3 transition-transform", isIndicesOpen ? "" : "-rotate-90")} />}
                   </button>
-
                   <AnimatePresence initial={false}>
                     {(!group.collapsible || isIndicesOpen) && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: "auto", opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }} 
                         className="space-y-[2px]"
                       >
                         {group.items.map((item) => {
                           const active = pathname === item.href;
                           return (
-                            <Link
-                              key={item.name}
-                              href={item.href}
+                            <Link 
+                              key={item.name} 
+                              href={item.href} 
                               className={cn(
-                                "group relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
-                                active ? "text-white" : "text-slate-500 hover:bg-slate-200/30"
+                                "group relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all", 
+                                active ? "text-white" : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30"
                               )}
                             >
-                              {active && (
-                                <motion.div layoutId="activeNavHighlight" className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10" />
-                              )}
+                              {active && <motion.div layoutId="activeNavHighlight" className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10" />}
                               <group.icon className="h-4 w-4" />
-                              <span className={cn("text-sm", active ? "font-bold" : "font-medium")}>
-                                {item.name}
-                              </span>
+                              <span className={cn("text-sm", active ? "font-bold" : "font-medium")}>{item.name}</span>
                             </Link>
                           );
                         })}
@@ -236,7 +198,6 @@ export default function Sidebar() {
               <Settings className="h-4 w-4" /> Settings
             </Link>
           </div>
-
           <div className="flex items-center justify-between px-3 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-bold">JD</div>

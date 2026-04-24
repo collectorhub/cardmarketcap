@@ -10,20 +10,21 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isLandingPage = pathname === "/";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-950">
-      {/* Hide Sidebar only on the root landing page */}
-      {!isLandingPage && <Sidebar />}
+    <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-950">
+      {/* 1. Navbar stays at the very top, full width */}
+      <Navbar />
 
-      <div className={cn(
-        "relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden transition-all duration-300",
-        isLandingPage ? "bg-white dark:bg-slate-950" : "bg-[#F8FAFC] dark:bg-slate-950"
-      )}>
-        <Navbar />
+      <div className="flex flex-1 overflow-hidden">
+        {/* 2. Sidebar and Main content live in this flex container below Navbar */}
+        {!isLandingPage && <Sidebar />}
+
         <main className={cn(
-          "w-full mx-auto min-h-screen",
-          isLandingPage ? "p-0" : "p-4 md:p-8 max-w-[1600px]"
+          "relative flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
+          isLandingPage ? "bg-white dark:bg-slate-950 p-0" : "bg-[#F8FAFC] dark:bg-slate-950 p-4 md:p-8"
         )}>
-          {children}
+          <div className={cn("mx-auto min-h-screen", !isLandingPage && "max-w-[1600px]")}>
+            {children}
+          </div>
         </main>
       </div>
     </div>
