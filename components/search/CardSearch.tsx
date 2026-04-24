@@ -3,7 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Search, X, Flame, Sparkles, Zap, Wand2, 
-  Star, Anchor, Trophy, LayoutGrid, Info
+  Star, Anchor, Trophy, LayoutGrid, Info,
+  SparklesIcon,
+  FlameIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
@@ -126,7 +128,7 @@ export default function CardSearch() {
   };
 
   const isFiltering = query.trim().length >= 2;
-  const displayAssets = isFiltering ? searchResults : trendingAssets;
+  const displayAssets = isFiltering ? searchResults : [];
   const showSkeletons = isLoading || (isFiltering && isSearching);
   
   const currentCategoryName = CATEGORIES.find(c => c.id === selectedCategory)?.name;
@@ -153,52 +155,53 @@ export default function CardSearch() {
           </p>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full max-w-3xl px-4 group">
-          <div className={cn(
-            "absolute -inset-0.5 bg-gradient-to-r from-[#00BA88] to-emerald-500 rounded-2xl opacity-0 blur-md transition-all duration-500",
-            isFocused && "opacity-15"
-          )} />
-          
-          <div className={cn(
-            "relative flex items-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border transition-all duration-300 rounded-2xl overflow-hidden",
-            isFocused ? "border-[#00BA88]/40 shadow-lg" : "border-slate-200 dark:border-white/5"
-          )}>
-            <div className={cn(
-              "flex items-center w-full px-5 transition-all duration-500",
-              !isFocused && !query ? "justify-center" : "justify-start"
-            )}>
-              <Search size={20} className={cn("shrink-0", isFocused ? "text-[#00BA88]" : "text-slate-400")} />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name, set, or card number..."
-                className={cn(
-                  "bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-sm md:text-base font-bold py-3 outline-none",
-                  !isFocused && !query ? "w-auto px-3 text-center" : "w-full px-4 text-left"
-                )}
-              />
-            </div>
-            {(isFocused || query) && (
-              <button 
-                onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} 
-                className="absolute right-4 p-1.5 text-slate-400 hover:text-[#00BA88]"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-          
-          {/* Pro Tip Hint for the New Feature */}
-          {/* <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
-             <Info size={12} className="text-[#00BA88]" />
-             <span>Try searching <span className="text-slate-600 dark:text-slate-200 font-bold italic">"Charizard Skyridge"</span> or a card number like <span className="text-slate-600 dark:text-slate-200 font-bold italic">"4/144"</span></span>
-          </div> */}
-        </div>
+        {/* Search Input - Hyper Focused */}
+<div className="relative w-full max-w-4xl px-4 group">
+  {/* Glow: Always visible in dark mode, transition on focus in light mode */}
+  <div className={cn(
+    "absolute -inset-2 bg-[#00BA88]/10 rounded-[2rem] blur-xl transition-all duration-500",
+    "dark:opacity-100", 
+    isFocused ? "opacity-100" : "opacity-0"
+  )} />
+  
+  <div className={cn(
+    "relative flex items-center bg-white dark:bg-slate-950 border-2 transition-all duration-300 rounded-2xl overflow-hidden p-1.5",
+    /* Border: Always green in dark mode, only green on focus in light mode */
+    isFocused ? "border-[#00BA88] shadow-2xl shadow-[#00BA88]/20" : "border-[#00BA88]/50"
+  )}>
+    <div className="flex items-center w-full px-4">
+      {/* Icon: Always green in dark mode */}
+      <SparklesIcon size={22} className={cn("shrink-0", (isFocused || "dark") ? "text-[#00BA88]" : "text-slate-400")} />
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder='Try: "Gouging Fire Ex"'
+        className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-base md:text-lg font-bold py-2 px-3 outline-none"
+      />
+    </div>
+
+    <div className="flex items-center gap-2">
+      {query && (
+        <button 
+          onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} 
+          className="p-2 text-slate-400 hover:text-slate-600"
+        >
+          <X size={20} />
+        </button>
+      )}
+      
+      {/* The Little Green Button */}
+      <button className="bg-[#00BA88] hover:bg-[#00a377] text-white p-3 md:px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-[#00BA88]/20">
+        <Search size={18} strokeWidth={3} />
+        <span className="hidden md:block font-black text-xs uppercase tracking-wider">Search</span>
+      </button>
+    </div>
+  </div>
+</div>
 
         {!isFiltering && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-hidden">
@@ -236,52 +239,43 @@ export default function CardSearch() {
       </section>
 
       {/* --- RESULTS SECTION --- */}
-      <section className="space-y-6 md:space-y-8 px-4 md:px-0">
-        <div className="space-y-1">
-          <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-            <Flame className="h-5 w-5 text-orange-500" />
-            {sectionTitle}
-          </h3>
-          <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
-            {showSkeletons ? "Searching index..." : isFiltering ? `Displaying top matches` : `Most active ${currentCategoryName || ''} assets in the last 24 hours`}
-          </p>
-        </div>
+{isFiltering && (
+  <section className="space-y-6 md:space-y-8 px-4 md:px-0 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-1">
+      <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+        <LayoutGrid className="h-5 w-5 text-[#00BA88]" />
+        {sectionTitle}
+      </h3>
+      <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
+        {isSearching ? "Searching index..." : "Displaying top matches"}
+      </p>
+    </div>
 
-        {showSkeletons ? (
-          <LoadingGrid />
-        ) : displayAssets.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-            {displayAssets.map((asset, idx) => (
-              <AssetCard 
-                key={`${asset.asset_id || asset.id}-${idx}`} 
-                asset={{ 
-                  ...asset, 
-                  imageUrl: getAssetImage(asset),
-                  href: asset.canonical_path || asset.url || asset.href || `/card/${asset.id}`
-                }} 
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="py-20 text-center space-y-4 bg-white dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
-            <Search className="mx-auto text-slate-300" size={48} />
-            <p className="text-slate-500 font-bold">No assets found matching your criteria.</p>
-            <button 
-              onClick={() => {setQuery(""); setSelectedCategory(null);}} 
-              className="text-[#00BA88] text-sm font-black uppercase tracking-widest"
-            >
-              Reset Search
-            </button>
-          </div>
-        )}
-      </section>
+    {isSearching ? (
+      <LoadingGrid />
+    ) : displayAssets.length > 0 ? (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+        {displayAssets.map((asset, idx) => (
+          <AssetCard 
+            key={`${asset.asset_id || asset.id}-${idx}`} 
+            asset={asset} 
+          />
+        ))}
+      </div>
+    ) : (
+      <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl">
+        <p className="text-slate-500 font-bold">No results found.</p>
+      </div>
+    )}
+  </section>
+)}
 
       {/* --- POPULAR SECTION --- */}
       {!isFiltering && (
         <section className="space-y-6 md:space-y-8 px-4 md:px-0">
           <div className="space-y-1">
             <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-[#00BA88]" />
+              <FlameIcon className="h-5 w-5 text-red-700" />
               Popular {currentCategoryName || 'Cards'}
             </h3>
             <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">

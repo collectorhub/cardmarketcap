@@ -45,7 +45,7 @@ export function AssetCard({ asset }: AssetCardProps) {
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-white/5 p-4 md:p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-[#00BA88]/10 hover:-translate-y-2">
         
         {/* Image Container with Hover Effect */}
-        <div className="relative aspect-[3/4] mb-6 flex items-center justify-center p-2">
+        <div className="relative aspect-[3/4] mb-6 flex items-center justify-center">
           <img 
             src={asset.imageUrl} 
             alt={asset.name}
@@ -56,7 +56,7 @@ export function AssetCard({ asset }: AssetCardProps) {
 
         <div className="space-y-3">
           <div className="min-w-0">
-            <h4 className="text-[13px] md:text-[15px] font-black text-slate-900 dark:text-white truncate uppercase tracking-tight">
+            <h4 className="text-[13px] md:text-[15px] font-black text-slate-900 dark:text-white truncate tracking-tight">
               {asset.name}
             </h4>
             <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
