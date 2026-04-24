@@ -1,15 +1,75 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation' // NEW: For redirection
 import { motion } from 'framer-motion'
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
-import { FaGithub } from 'react-icons/fa' 
 import { FcGoogle } from 'react-icons/fc' 
+import { FaFacebook, FaApple } from 'react-icons/fa' 
+import { FaXTwitter } from 'react-icons/fa6' 
 import { Button } from "@/components/ui/button"
 
 export default function SignupPage() {
+  const router = useRouter(); // Initialize router
+  
+  const initialFormState = {
+    email: '',
+    password: '',
+    username: '',
+    marketing_accepted: true,
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !emailRegex.test(formData.email)) newErrors.email = "Valid email is required.";
+    if (formData.password.length < 8) newErrors.password = "Min 8 characters required.";
+    if (!formData.username || formData.username.includes(" ")) newErrors.username = "Username cannot have spaces.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://pokecollectorhub.com/api/signup.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // --- NEW: SAVE SESSION DATA ---
+        localStorage.setItem('user_token', result.token);
+        localStorage.setItem('user_data', JSON.stringify(result.user));
+
+        // Optional: Dispatch a custom event so the Navbar updates immediately
+        window.dispatchEvent(new Event('storage'));
+
+        // REDIRECT TO HOME
+        router.push('/'); 
+      } else {
+        alert("Error: " + result.message);
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert("Failed to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col md:flex-row font-sans selection:bg-[#00BA88]/20">
       
@@ -20,7 +80,6 @@ export default function SignupPage() {
         transition={{ duration: 0.5 }}
         className="relative w-full md:w-1/2 bg-[#040d21] p-10 md:p-20 flex flex-col justify-between min-h-[550px] md:h-screen md:sticky md:top-0 overflow-hidden"
       >
-        {/* Background Layers */}
         <div className="absolute inset-0 z-0">
           <Image 
             src="/auth-bg.jpg" 
@@ -31,7 +90,6 @@ export default function SignupPage() {
             onError={(e) => (e.currentTarget.style.display = 'none')} 
           />
           
-          {/* Character Banner - FULL WIDTH AT BOTTOM WITH SOFT TRANSITION */}
           <div className="absolute bottom-0 left-0 w-full h-[380px] md:h-[480px] pointer-events-none">
             <Image 
               src="/signup-banner.jpeg" 
@@ -40,16 +98,13 @@ export default function SignupPage() {
               className="object-cover object-bottom"
               priority
             />
-            {/* The "Perfect Edge" Fade: Blurs the top edge of the character image into the navy background */}
             <div className="absolute inset-0 bg-gradient-to-t from-transparent via-[#040d21]/10 to-[#040d21] top-[-2px]" />
-            {/* Side vignettes to keep focus center-left */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#040d21]/40 via-transparent to-[#040d21]/40" />
           </div>
 
           <div className="absolute bottom-0 left-0 w-full h-[20%] bg-gradient-to-t from-[#040d21] to-transparent pointer-events-none z-10" />
         </div>
 
-        {/* Content Layer */}
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 mb-10">
             <div className="relative h-10 w-10">
@@ -87,33 +142,44 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div className="space-y-3 mb-8">
+          <div className="grid grid-cols-2 gap-3 mb-8">
             <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
               <FcGoogle className="mr-3 h-5 w-5" />
-              Continue with Google
+              Google
             </Button>
             <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaGithub className="mr-3 h-5 w-5 dark:text-white" />
-              Continue with GitHub
+              <FaApple className="mr-3 h-5 w-5 dark:text-white" />
+              Apple
+            </Button>
+            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FaFacebook className="mr-3 h-5 w-5 text-[#1877F2]" />
+              Facebook
+            </Button>
+            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FaXTwitter className="mr-3 h-4 w-4 dark:text-white" />
+              X (Twitter)
             </Button>
           </div>
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-800" /></div>
             <div className="relative flex justify-center text-[12px] font-medium text-slate-400">
-              <span className="bg-white dark:bg-slate-950 px-4 italic">or</span>
+              <span className="bg-white dark:bg-slate-950 px-4 italic">or email signup</span>
             </div>
           </div>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="space-y-2">
               <label className="text-[14px] font-semibold text-slate-900 dark:text-slate-200 block">Email *</label>
               <input 
                 type="email" 
                 placeholder="Email"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className={`w-full h-11 bg-transparent dark:bg-slate-900 border ${errors.email ? 'border-red-500' : 'border-[#d0d7de]'} dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400`}
                 required
               />
+              {errors.email && <p className="text-red-500 text-[12px] font-medium">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -121,9 +187,12 @@ export default function SignupPage() {
               <input 
                 type="password" 
                 placeholder="Password"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className={`w-full h-11 bg-transparent dark:bg-slate-900 border ${errors.password ? 'border-red-500' : 'border-[#d0d7de]'} dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400`}
                 required
               />
+              {errors.password && <p className="text-red-500 text-[12px] font-medium">{errors.password}</p>}
               <p className="text-[12px] text-slate-500 leading-normal px-0.5">
                 Password should be at least 15 characters OR at least 8 characters including a number and a lowercase letter.
               </p>
@@ -134,11 +203,14 @@ export default function SignupPage() {
               <input 
                 type="text" 
                 placeholder="Username"
-                className="w-full h-11 bg-transparent dark:bg-slate-900 border border-[#d0d7de] dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className={`w-full h-11 bg-transparent dark:bg-slate-900 border ${errors.username ? 'border-red-500' : 'border-[#d0d7de]'} dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400`}
                 required
               />
+              {errors.username && <p className="text-red-500 text-[12px] font-medium">{errors.username}</p>}
               <p className="text-[12px] text-slate-500 leading-normal px-0.5">
-                Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen.
+                Username may only contain alphanumeric characters or single hyphens.
               </p>
             </div>
 
@@ -148,6 +220,8 @@ export default function SignupPage() {
                 <input 
                   type="checkbox" 
                   id="marketing-emails"
+                  checked={formData.marketing_accepted}
+                  onChange={(e) => setFormData({ ...formData, marketing_accepted: e.target.checked })}
                   className="mt-1 h-4 w-4 rounded border-[#d0d7de] text-[#00BA88] focus:ring-[#00BA88] cursor-pointer"
                 />
                 <div className="space-y-1">
@@ -158,8 +232,12 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <Button className="w-full h-12 bg-[#00BA88] dark:bg-slate-100 dark:text-slate-900 hover:bg-[#048f6a] dark:hover:bg-white text-white font-bold rounded-md shadow-md mt-6 active:scale-[0.98] transition-all group text-[14px] cursor-pointer">
-              Create account 
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="w-full h-12 bg-[#00BA88] dark:bg-slate-100 dark:text-slate-900 hover:bg-[#048f6a] dark:hover:bg-white text-white font-bold rounded-md shadow-md mt-6 active:scale-[0.98] transition-all group text-[14px] cursor-pointer"
+            >
+              {loading ? 'Creating...' : 'Create account'} 
               <span className="ml-2 group-hover:translate-x-1 transition-transform inline-block">›</span>
             </Button>
           </form>

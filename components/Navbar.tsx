@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react'
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,7 +9,10 @@ import {
   Search, Bell, Moon, Sun, Menu, Command, 
   Briefcase, ArrowRight, Home, LogIn, X, ArrowLeft,
   UserRoundPlus,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  User,
+  CreditCard
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
@@ -24,23 +27,56 @@ import { cn } from "@/lib/utils"
 
 export default function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const isLandingPage = pathname === "/"
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const { toggleMenu } = useMobileMenu()
+
+  // --- AUTH STATE ---
+  const [user, setUser] = useState<{ username: string; role: string } | null>(null)
 
   // --- SEARCH STATES ---
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    
+    const checkUser = () => {
+      const storedUser = localStorage.getItem('user_data')
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (e) {
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
+    }
+
+    checkUser()
+
+    // Sync state across components/tabs
+    window.addEventListener('storage', checkUser)
+    return () => window.removeEventListener('storage', checkUser)
+  }, [])
 
   useEffect(() => {
     if (isSearching && searchInputRef.current) {
       searchInputRef.current.focus()
     }
   }, [isSearching])
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_token')
+    localStorage.removeItem('user_data')
+    setUser(null)
+    window.dispatchEvent(new Event('storage'))
+    router.push('/sign-in')
+  }
 
   const toggleTheme = () => {
     if (!resolvedTheme) return
@@ -50,11 +86,12 @@ export default function Navbar() {
   const handleSearchSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (searchQuery.trim()) {
-      console.log("Search query submitted:", searchQuery)
       setIsSearching(false)
       setSearchQuery("")
     }
   }
+
+  const getInitials = (name: string) => name.slice(0, 2).toUpperCase()
 
   const MobileTab = ({ href, icon: Icon, label, onClick, badge }: any) => {
     const isActive = href === "/" 
@@ -70,19 +107,16 @@ export default function Navbar() {
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           />
         )}
-
         <Icon className={cn(
           "h-5 w-5 transition-colors", 
           isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
         )} />
-        
         <span className={cn(
           "text-[10px] font-bold transition-colors", 
           isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
         )}>
           {label}
         </span>
-
         {badge && (
           <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
         )}
@@ -96,7 +130,6 @@ export default function Navbar() {
         </button>
       )
     }
-
     return (
       <Link href={href} className="flex-1 h-full active:scale-90 transition-transform">
         {content}
@@ -127,7 +160,6 @@ export default function Navbar() {
         <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
           
           <div className="flex items-center gap-8">
-            {/* LOGO - Now always visible */}
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative h-10 w-10 flex-shrink-0">
                 <Image 
@@ -142,7 +174,6 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* DESKTOP NAV */}
             <nav className="flex items-center gap-8 border-l border-slate-200 dark:border-slate-800 pl-8 ml-4">
               {[
                 { href: "/overview", label: "Market Overview" },
@@ -150,16 +181,13 @@ export default function Navbar() {
                 { href: "/card-search", label: "Card Search" },
               ].map((link) => {
                 const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-                
                 return (
                   <Link 
                     key={link.href}
                     href={link.href} 
                     className={cn(
                       "text-sm font-bold transition-all whitespace-nowrap relative py-1",
-                      isActive 
-                        ? "text-[#00BA88]" 
-                        : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
+                      isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400 hover:text-[#00BA88]"
                     )}
                   >
                     {link.label}
@@ -191,26 +219,29 @@ export default function Navbar() {
               </div>
             </div>
 
-            <div className={cn("flex items-center gap-2 px-4", !isLandingPage && "border-x border-slate-100 dark:border-slate-800")}>
-              <Button variant="ghost" size="icon" className="text-slate-500 rounded-xl h-9 w-9" asChild>
-                <Link href="/sign-up"><Briefcase className="h-5 w-5" /></Link>
-              </Button>
-              
-              {!isLandingPage && (
-                <Button variant="ghost" size="icon" className="relative text-slate-500 rounded-xl h-9 w-9">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
-                </Button>
-              )}
-
+            <div className="flex items-center gap-2 px-4 border-l border-slate-100 dark:border-slate-800">
               <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-slate-500 rounded-xl h-9 w-9">
                 {mounted && (resolvedTheme === 'dark' ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5" />)}
               </Button>
+              
+              {/* Show Portfolio/Briefcase and Alerts when logged in */}
+              {user && (
+                <>
+                  <Button variant="ghost" size="icon" className="text-slate-500 rounded-xl h-9 w-9" asChild>
+                    <Link href="/portfolio"><Briefcase className="h-5 w-5" /></Link>
+                  </Button>
+                  <Button variant="ghost" size="icon" className="relative text-slate-500 rounded-xl h-9 w-9">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
+                  </Button>
+                </>
+              )}
             </div>
 
-            {isLandingPage ? (
+            {/* --- AUTHENTICATION UI --- */}
+            {!user ? (
               <div className="flex items-center gap-4">
-                <Link href="/sign-in" className="text-sm font-bold text-slate-600 dark:text-slate-300">Sign In</Link>
+                <Link href="/sign-in" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#00BA88] transition-colors">Sign In</Link>
                 <Button className="bg-[#00BA88] hover:bg-[#00a377] text-white font-bold rounded-xl px-6 py-3 shadow-lg shadow-emerald-500/20 active:scale-95" asChild>
                   <Link href="/sign-up" className="flex items-center">Sign up <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
@@ -219,18 +250,29 @@ export default function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 pl-1 outline-none group">
-                    <div className="h-10 w-10 rounded-full bg-[#00BA88] border-2 border-white dark:border-slate-800 shadow-md flex items-center justify-center text-white font-bold text-xs">JD</div>
+                    <div className="h-10 w-10 rounded-full bg-[#00BA88] border-2 border-white dark:border-slate-800 shadow-md flex items-center justify-center text-white font-bold text-xs transition-transform group-hover:scale-105">
+                      {getInitials(user.username)}
+                    </div>
                     <div className="hidden lg:block text-left">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#00BA88] transition-colors">John Doe</p>
-                      <p className="text-[10px] font-bold text-[#00BA88] uppercase tracking-wider">Pro Account</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#00BA88] transition-colors truncate max-w-[100px]">{user.username}</p>
+                      <p className="text-[10px] font-bold text-[#00BA88] uppercase tracking-wider">{user.role || 'Pro Account'}</p>
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 mt-2 rounded-2xl dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                  <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer">Profile</DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer">Subscription</DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-56 mt-2 p-1.5 rounded-2xl dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl">
+                  <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer gap-2 focus:bg-slate-100 dark:focus:bg-slate-800">
+                    <User className="h-4 w-4 text-slate-500" /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer gap-2 focus:bg-slate-100 dark:focus:bg-slate-800">
+                    <CreditCard className="h-4 w-4 text-slate-500" /> Subscription
+                  </DropdownMenuItem>
                   <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2" />
-                  <DropdownMenuItem className="rounded-xl px-3 py-2 text-red-600 font-bold cursor-pointer">Sign Out</DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    className="rounded-xl px-3 py-2.5 text-red-600 font-bold cursor-pointer gap-2 focus:bg-red-50 dark:focus:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -257,7 +299,7 @@ export default function Navbar() {
                 icon={Search} 
                 label="Search" 
               />
-              {isLandingPage ? (
+              {!user ? (
                 <>
                   <MobileTab href="/sign-in" icon={LogIn} label="Sign In" />
                   <MobileTab onClick={toggleMenu} icon={Menu} label="Menu" />
@@ -290,7 +332,6 @@ export default function Navbar() {
                   size={18} 
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#00BA88] transition-colors" 
                 />
-                
                 <input 
                   ref={searchInputRef}
                   type="text"
@@ -299,31 +340,14 @@ export default function Navbar() {
                   placeholder="Search cards, sets..."
                   className="w-full h-full bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl pl-10 pr-12 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 transition-all outline-none"
                 />
-
-                <AnimatePresence>
-                  {searchQuery && (
-                    <motion.div 
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.5, opacity: 0 }}
-                      className="absolute right-1 top-1 bottom-1 flex items-center px-1"
-                    >
-                      <button 
-                        type="submit"
-                        className="h-8 w-8 bg-[#00BA88] text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 active:scale-90 transition-transform"
-                      >
-                        <ArrowRight size={16} strokeWidth={3} />
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {!searchQuery && (
-                  <button 
-                    type="button"
-                    onClick={() => setIsSearching(false)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600"
-                  >
+                {searchQuery ? (
+                  <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-1 top-1 bottom-1 flex items-center px-1">
+                    <button type="submit" className="h-8 w-8 bg-[#00BA88] text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                      <ArrowRight size={16} strokeWidth={3} />
+                    </button>
+                  </motion.div>
+                ) : (
+                  <button type="button" onClick={() => setIsSearching(false)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600">
                     <X size={16} />
                   </button>
                 )}
