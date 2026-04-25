@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from '@/context/MobileMenuContext';
+import Cookies from 'js-cookie'
 
 const desktopNavigation = [
   {
@@ -76,21 +77,22 @@ export default function Sidebar() {
   }, []);
 
   const handleLogout = () => {
-    // 1. Clear Storage
-    localStorage.removeItem('user_token');
-    localStorage.removeItem('user_data');
-    
-    // 2. Clear local state
-    setUser(null);
-    
-    // 3. Notify other components (like Navbar)
-    window.dispatchEvent(new Event('storage'));
-    
-    // 4. Redirect to home or sign-in
-    router.push('/sign-in');
-    
-    if (isMobile) closeMenu();
-  };
+  // 1. Clear Storage
+  localStorage.removeItem('user_token');
+  localStorage.removeItem('user_data');
+  
+  // 2. Clear Cookie for Middleware
+  Cookies.remove('user_token', { path: '/' }); 
+  
+  // 3. Clear local state
+  setUser(null);
+  
+  // 4. Notify and Redirect
+  window.dispatchEvent(new Event('storage'));
+  router.push('/sign-in');
+  
+  if (isMobile) closeMenu();
+};
 
   if (!mounted) return null;
 

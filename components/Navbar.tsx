@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useMobileMenu } from "@/context/MobileMenuContext"
 import { cn } from "@/lib/utils"
+import Cookies from 'js-cookie'
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -71,12 +72,20 @@ export default function Navbar() {
   }, [isSearching])
 
   const handleLogout = () => {
-    localStorage.removeItem('user_token')
-    localStorage.removeItem('user_data')
-    setUser(null)
-    window.dispatchEvent(new Event('storage'))
-    router.push('/sign-in')
-  }
+  // 1. Clear LocalStorage for UI state
+  localStorage.removeItem('user_token')
+  localStorage.removeItem('user_data')
+  
+  // 2. Clear the Cookie that Middleware checks
+  Cookies.remove('user_token', { path: '/' }) 
+  
+  // 3. Reset local state
+  setUser(null)
+  
+  // 4. Sync and Redirect
+  window.dispatchEvent(new Event('storage'))
+  router.push('/sign-in')
+}
 
   const toggleTheme = () => {
     if (!resolvedTheme) return
