@@ -154,7 +154,7 @@ export default function Navbar() {
           <div className="relative h-11 w-11">
             <Image src="/logo.png" alt="Logo" fill className="object-contain" />
           </div>
-          <span className="text-xl font-black tracking-tighter dark:text-white">
+          <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
             CardMarket<span className="text-[#00BA88]">Cap</span>
           </span>
         </Link>
