@@ -147,7 +147,7 @@ export default function Sidebar() {
         )}
 
         <nav className="flex-1 px-3 space-y-7 overflow-y-auto custom-scrollbar">
-          {/* Navigation content remains the same */}
+          {/* Navigation content remains the same. */}
           {isMobile ? (
             <div className="space-y-2">
               {mobileNavigation.map((item) => {
