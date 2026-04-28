@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
                      pathname.startsWith('/sign-up') || 
                      pathname.startsWith('/forgot-password');
 
-  const isProtectedPage = pathname.startsWith('/overview') || 
+  const isProtectedPage = pathname.startsWith('/overviewsss') || 
                           pathname.startsWith('/portfolio') || 
                           pathname.startsWith('/settings');
 

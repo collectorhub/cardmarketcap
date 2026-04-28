@@ -10,6 +10,8 @@ import { FaFacebook, FaApple } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6' 
 import { Button } from "@/components/ui/button"
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function SignupPage() {
   const router = useRouter(); // Initialize router
   
@@ -41,7 +43,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://pokecollectorhub.com/api/signup.php', {
+      const response = await fetch(`${API_BASE}/signup.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

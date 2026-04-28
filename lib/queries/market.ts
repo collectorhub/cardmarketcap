@@ -1,6 +1,9 @@
+import { fetchPopData } from "./pop";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 export async function fetchMarketStats() {
   try {
-    const response = await fetch('https://pokecollectorhub.com/api/market_stats.php', {
+    const response = await fetch(`${API_BASE}/market_stats.php`, {
       next: { revalidate: 300 } // Cache for 5 minutes to protect the server
     });
 
@@ -18,7 +21,7 @@ export async function fetchTrendingCards() {
   const id = setTimeout(() => controller.abort(), 8000); // 8 second timeout limit
 
   try {
-    const response = await fetch('https://pokecollectorhub.com/api/top_trending_cards.php', {
+    const response = await fetch(`${API_BASE}/top_trending_cards.php`, {
       signal: controller.signal,
       next: { revalidate: 300 }
     });
@@ -58,7 +61,7 @@ export async function fetchCMCCards(
   game = "pokemon" // Added game parameter
 ) {
   try {
-    const baseUrl = `https://pokecollectorhub.com/api/cmc_cards.php`;
+    const baseUrl = `${API_BASE}/cmc_cards.php`;
     const queryParams = new URLSearchParams({
       game: game, // Pass the game to PHP
       page: page.toString(),
@@ -104,59 +107,66 @@ export async function fetchCMCCards(
 
 export async function fetchCardById(id: string, game: string = "pokemon") {
   try {
-    // 1. Primary Fetch: Include the 'game' parameter so the API knows which database to search
+    // 1. Fetch Population Data in parallel with the main card request for speed
+    const popDataPromise = fetchPopData(id);
+
+    // 2. Primary Fetch: Include the 'game' parameter
     const cmcResponse = await fetch(
-      `https://pokecollectorhub.com/api/cmc_cards.php?search=${id}&game=${game}`, 
+      `${API_BASE}/cmc_cards.php?search=${id}&game=${game}`, 
       {
         next: { revalidate: 60 } 
       }
     );
 
+    let cardResult: any = null;
+
     if (cmcResponse.ok) {
-      const cmcResult = await cmcResponse.json();
+      const cmcJson = await cmcResponse.json();
       
-      // Ensure the API returned success and has data
-      if (cmcResult.success && cmcResult.data?.length > 0) {
-        // Match the specific card ID from the returned array
-        const found = cmcResult.data.find((c: any) => String(c.id) === id);
+      if (cmcJson.success && cmcJson.data?.length > 0) {
+        const found = cmcJson.data.find((c: any) => String(c.id) === id);
         
         if (found) {
-           return {
-             ...found,
-             // Fallback to "Standard" if rarity/type is missing
-             rarity: found.rarity || found.type || "Standard", 
-             setLogo: found.setLogo,
-             setSymbol: found.setSymbol,
-             // Clean the price string into a number for the UI
-             priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
-             image: found.imageUrl
-           };
+          const population = await popDataPromise;
+          cardResult = {
+            ...found,
+            rarity: found.rarity || found.type || "Standard", 
+            setLogo: found.setLogo,
+            setSymbol: found.setSymbol,
+            priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
+            image: found.imageUrl,
+            population: population || {} // Attach the pop data here
+          };
         }
       }
     }
 
-    // 2. Fallback to Trending: Used if the primary API call fails or doesn't find the card
-    const trendingCards = await fetchTrendingCards();
-    const trendingMatch = trendingCards.find(c => String(c.id) === id);
+    // 3. Fallback to Trending if primary fetch failed
+    if (!cardResult) {
+      const trendingCards = await fetchTrendingCards();
+      const trendingMatch = trendingCards.find(c => String(c.id) === id);
 
-    if (trendingMatch) {
-      return {
-        id: trendingMatch.id,
-        name: trendingMatch.name,
-        imageUrl: trendingMatch.image,
-        image: trendingMatch.image, 
-        priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
-        price: trendingMatch.price,
-        set: trendingMatch.set,
-        set_name: trendingMatch.set,
-        rarity: "Trending",
-        grade: trendingMatch.grade || "Raw",
-        setLogo: null,
-        setSymbol: null
-      };
+      if (trendingMatch) {
+        const population = await popDataPromise;
+        cardResult = {
+          id: trendingMatch.id,
+          name: trendingMatch.name,
+          imageUrl: trendingMatch.image,
+          image: trendingMatch.image, 
+          priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
+          price: trendingMatch.price,
+          set: trendingMatch.set,
+          set_name: trendingMatch.set,
+          rarity: "Trending",
+          grade: trendingMatch.grade || "Raw",
+          setLogo: null,
+          setSymbol: null,
+          population: population || {} // Also attach here
+        };
+      }
     }
     
-    return null;
+    return cardResult;
   } catch (error) {
     console.error("Error in unified fetchCardById:", error);
     return null;
@@ -172,7 +182,7 @@ export async function fetchExpansions(
   const id = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const baseUrl = 'https://pokecollectorhub.com/api/cmc_expansions.php';
+    const baseUrl = `${API_BASE}/cmc_expansions.php`;
     const queryParams = new URLSearchParams({
       game: game,
       search: search,
@@ -247,7 +257,7 @@ export async function fetchSetDetails(setId: string) {
     const game = getGameFromSetId(decodedId);
     
     // 1. Fetch expansion metadata
-    const expResponse = await fetch(`https://pokecollectorhub.com/api/cmc_expansions.php?game=${game}`, {
+    const expResponse = await fetch(`${API_BASE}/cmc_expansions.php?game=${game}`, {
       next: { revalidate: 60 }
     });
     const expResult = await expResponse.json();
@@ -263,7 +273,7 @@ export async function fetchSetDetails(setId: string) {
 
     // 2. Fetch cards for this expansion
     const cardsResponse = await fetch(
-      `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(targetSet.id)}&limit=500`,
+      `${API_BASE}/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(targetSet.id)}&limit=500`,
       { next: { revalidate: 60 } }
     );
     let cardsResult = await cardsResponse.json();
@@ -271,7 +281,7 @@ export async function fetchSetDetails(setId: string) {
     // Fallback: Try searching by Set Name if ID search returns empty
     if (!cardsResult.data || cardsResult.data.length === 0) {
       const nameResponse = await fetch(
-        `https://pokecollectorhub.com/api/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`
+        `${API_BASE}/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`
       );
       cardsResult = await nameResponse.json();
     }
@@ -332,8 +342,8 @@ export async function fetchExpansionDetails(setId: string) {
 
   try {
     // Note: Adjust the URL if your PHP API uses a different endpoint for single sets
-    // e.g., 'https://pokecollectorhub.com/api/set-details.php?id='
-    const response = await fetch(`https://pokecollectorhub.com/api/sets.php?id=${setId}`, {
+    // e.g., '${API_BASE}/set-details.php?id='
+    const response = await fetch(`${API_BASE}/sets.php?id=${setId}`, {
       signal: controller.signal,
       next: { revalidate: 3600 } 
     });

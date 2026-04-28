@@ -1,3 +1,5 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export async function fetchUniversalSearch(q: string, game: string | null = null, limit = 20) {
   try {
     // 1. Clean the query: trim whitespace to prevent empty tokens in PHP
@@ -16,7 +18,7 @@ export async function fetchUniversalSearch(q: string, game: string | null = null
 
     // 2. Fetch from your updated PHP script
     const response = await fetch(
-      `https://pokecollectorhub.com/api/cmc_universal_search.php?${params.toString()}`, 
+      `${API_BASE}/cmc_universal_search.php?${params.toString()}`, 
       {
         next: { revalidate: 60 } // Cache results for 1 minute
       }

@@ -11,6 +11,8 @@ import { FaXTwitter } from 'react-icons/fa6'
 import { Button } from "@/components/ui/button"
 import Cookies from 'js-cookie' // 1. Import js-cookie
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function SignInPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
@@ -23,7 +25,7 @@ export default function SignInPage() {
     setError('');
 
     try {
-      const response = await fetch('https://pokecollectorhub.com/api/signin.php', {
+      const response = await fetch(`${API_BASE}/signin.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
