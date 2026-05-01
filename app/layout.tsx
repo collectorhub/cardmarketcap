@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${sora.variable} ${jetbrains.variable}`} suppressHydrationWarning>
-      <body className="font-sans antialiased overflow-x-hidden">
+      <body className="antialiased overflow-x-hidden [font-family:var(--font-inter)]">
         <ThemeProvider 
           attribute="class" 
           defaultTheme="system" 

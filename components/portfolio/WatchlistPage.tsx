@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import WatchlistStats from './WatchlistStats';
 import WatchlistTable from './WatchlistTable';
 import { WatchlistHero } from './WatchlistHero';
 import AllocationCard from '../AllocationCard';
 import { GrowthSummaryCard } from './GrowthSummaryCard'; // Import your new component
+import { WatchlistStats } from './WatchlistStats';
 
 export default function WatchlistPage({ data }: { data: any }) {
   const { watchlist } = data;

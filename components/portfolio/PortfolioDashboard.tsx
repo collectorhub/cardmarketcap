@@ -28,6 +28,17 @@ const ALLOCATION = [
   { name: 'PSA 7 & Below', value: 5.2, color: '#ef4444' },
 ];
 
+const chartData = [
+  { x: 0, y: 120, label: 'May 12' },
+  { x: 80, y: 115, label: 'May 13' },
+  { x: 160, y: 90, label: 'May 14' },
+  { x: 240, y: 100, label: 'May 15' },
+  { x: 320, y: 80, label: 'May 16' },
+  { x: 400, y: 40, label: 'May 18' },
+];
+
+const yLabels = ["$60K", "$45K", "$30K", "$15K", "$0"];
+
 const RowActions = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -279,143 +290,143 @@ const timeframes = ['7D', '30D', '90D', '1Y', 'All'];
           </div>
 
           {/* 2. YOUR TOP CARDS TABLE */}
-<div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
-  <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
-    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-      Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
-    </h3>
-  </div>
-  
-  {/* WRAPPER FOR MOBILE SCROLLING */}
-  {/* overflow-x-auto enables horizontal scroll */}
-  {/* custom-scrollbar classes ensure visibility */}
-  <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
-    {/* min-w-[800px] ensures the table doesn't squash on small screens, triggering the scroll */}
-    <table className="w-full text-left border-collapse table-fixed min-w-[900px] lg:min-w-full">
-      <thead>
-        <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-          <th className="px-4 py-4 w-[22%]">Card</th>
-          <th className="px-4 py-4 w-[16%]">Set</th>
-          <th className="px-2 py-4 w-[8%] text-center">Grade</th>
-          <th className="px-4 py-4 w-[13%]">Last Sale</th>
-          <th className="px-4 py-4 w-[13%]">Market Value</th>
-          <th className="px-4 py-4 w-[10%]">Change</th>
-          <th className="px-4 py-4 w-[12%]">Allocation</th>
-          <th className="px-4 py-4 w-[6%]"></th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-        {[
-          { n: 'Charizard #4', s: 'Base Set Unlimited', g: 'PSA 10', ls: '$1,050,000', lsd: 'May 10, 2025', v: '$1,000,000', vp: '+18.7%', c: '2.05%', color: '#10b981', path: "M0,20 Q10,18 20,15 T40,22 T60,8 T80,15 T100,2" },
-          { n: 'Blastoise #2', s: 'Base Set Unlimited', g: 'PSA 10', ls: '$520,000', lsd: 'May 8, 2025', v: '$480,000', vp: '+9.4%', c: '0.98%', color: '#10b981', path: "M0,22 Q15,20 30,10 T60,18 T100,5" },
-          { n: 'Venusaur #15', s: 'Base Set Unlimited', g: 'PSA 9', ls: '$85,000', lsd: 'May 7, 2025', v: '$78,500', vp: '+6.1%', c: '0.16%', color: '#10b981', path: "M0,25 Q20,22 40,25 T70,15 T100,12" },
-          { n: 'Lugia #9', s: 'Neo Genesis', g: 'PSA 10', ls: '$310,000', lsd: 'May 4, 2025', v: '$295,000', vp: '-8.2%', c: '0.61%', color: '#ef4444', path: "M0,5 Q20,8 40,5 T70,20 T100,25" },
-          { n: 'Rayquaza #107', s: 'EX Deoxys Gold Star', g: 'PSA 10', ls: '$115,000', lsd: 'May 1, 2025', v: '$108,000', vp: '+12.4%', c: '1.12%', color: '#10b981', path: "M0,25 Q10,10 25,18 T50,5 T75,12 T100,0" },
-        ].map((card, i) => (
-          <tr key={i} className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all">
-            <td className="px-4 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-11 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shrink-0" />
-                <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">{card.n}</p>
-              </div>
-            </td>
-            {/* ... rest of your td elements stay exactly the same ... */}
-            <td className="px-4 py-4">
-               <p className="text-[11px] text-slate-400 font-bold uppercase truncate">{card.s}</p>
-            </td>
-            <td className="px-2 py-4 text-center">
-               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                 {card.g}
-               </span>
-            </td>
-            <td className="px-4 py-4">
-               <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">{card.ls}</p>
-               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{card.lsd}</p>
-            </td>
-            <td className="px-4 py-4">
-               <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">{card.v}</p>
-               <p className={cn("text-[9px] font-bold flex items-center gap-0.5", card.vp.includes('+') ? "text-emerald-500" : "text-red-500")}>
-                 {card.vp.includes('+') ? '↗' : '↘'} {card.vp.replace('+', '')}
-               </p>
-            </td>
-            <td className="px-4 py-4">
-               <p className="text-[13px] font-black text-slate-800 dark:text-slate-200">{card.c}</p>
-            </td>
-             <td className="px-4 py-4">
-          {/* INCREASED CONTAINER HEIGHT to h-10 for better trend visibility */}
-          <div className="h-10 w-full max-w-[120px] flex items-center">
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-              <defs>
-                {/* ENHANCED GRADIANT with slightly higher top opacity */}
-                <linearGradient id={`gradient-${i}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={card.color} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={card.color} stopOpacity="0" />
-                </linearGradient>
-              </defs>
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
+            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
+              </h3>
+            </div>
+            
+            {/* WRAPPER FOR MOBILE SCROLLING */}
+            {/* overflow-x-auto enables horizontal scroll */}
+            {/* custom-scrollbar classes ensure visibility */}
+            <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent scrollbar-hide">
+              {/* min-w-[800px] ensures the table doesn't squash on small screens, triggering the scroll */}
+              <table className="w-full text-left border-collapse table-fixed min-w-[900px] lg:min-w-full">
+                <thead>
+                  <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                    <th className="px-4 py-4 w-[22%]">Card</th>
+                    <th className="px-4 py-4 w-[16%]">Set</th>
+                    <th className="px-2 py-4 w-[8%] text-center">Grade</th>
+                    <th className="px-4 py-4 w-[13%]">Last Sale</th>
+                    <th className="px-4 py-4 w-[13%]">Market Value</th>
+                    <th className="px-4 py-4 w-[10%]">Change</th>
+                    <th className="px-4 py-4 w-[12%]">Allocation</th>
+                    <th className="px-4 py-4 w-[6%]"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                  {[
+                    { n: 'Charizard #4', s: 'Base Set Unlimited', g: 'PSA 10', ls: '$1,050,000', lsd: 'May 10, 2025', v: '$1,000,000', vp: '+18.7%', c: '2.05%', color: '#10b981', path: "M0,20 Q10,18 20,15 T40,22 T60,8 T80,15 T100,2" },
+                    { n: 'Blastoise #2', s: 'Base Set Unlimited', g: 'PSA 10', ls: '$520,000', lsd: 'May 8, 2025', v: '$480,000', vp: '+9.4%', c: '0.98%', color: '#10b981', path: "M0,22 Q15,20 30,10 T60,18 T100,5" },
+                    { n: 'Venusaur #15', s: 'Base Set Unlimited', g: 'PSA 9', ls: '$85,000', lsd: 'May 7, 2025', v: '$78,500', vp: '+6.1%', c: '0.16%', color: '#10b981', path: "M0,25 Q20,22 40,25 T70,15 T100,12" },
+                    { n: 'Lugia #9', s: 'Neo Genesis', g: 'PSA 10', ls: '$310,000', lsd: 'May 4, 2025', v: '$295,000', vp: '-8.2%', c: '0.61%', color: '#ef4444', path: "M0,5 Q20,8 40,5 T70,20 T100,25" },
+                    { n: 'Rayquaza #107', s: 'EX Deoxys Gold Star', g: 'PSA 10', ls: '$115,000', lsd: 'May 1, 2025', v: '$108,000', vp: '+12.4%', c: '1.12%', color: '#10b981', path: "M0,25 Q10,10 25,18 T50,5 T75,12 T100,0" },
+                  ].map((card, i) => (
+                    <tr key={i} className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-11 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shrink-0" />
+                          <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">{card.n}</p>
+                        </div>
+                      </td>
+                      {/* ... rest of your td elements stay exactly the same ... */}
+                      <td className="px-4 py-4">
+                        <p className="text-[11px] text-slate-400 font-bold uppercase truncate">{card.s}</p>
+                      </td>
+                      <td className="px-2 py-4 text-center">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                          {card.g}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">{card.ls}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{card.lsd}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">{card.v}</p>
+                        <p className={cn("text-[9px] font-bold flex items-center gap-0.5", card.vp.includes('+') ? "text-emerald-500" : "text-red-500")}>
+                          {card.vp.includes('+') ? '↗' : '↘'} {card.vp.replace('+', '')}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-800 dark:text-slate-200">{card.c}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                    {/* INCREASED CONTAINER HEIGHT to h-10 for better trend visibility */}
+                    <div className="h-10 w-full max-w-[120px] flex items-center">
+                      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                        <defs>
+                          {/* ENHANCED GRADIANT with slightly higher top opacity */}
+                          <linearGradient id={`gradient-${i}`} x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor={card.color} stopOpacity="0.3" />
+                            <stop offset="100%" stopColor={card.color} stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
 
-              {/* 1. Enhanced Smooth Area Fill */}
-              <motion.path
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1, delay: 0.5 }}
-                /* Adjusted closing point to L 100,40 and L 0,40 for new height */
-                d={`${card.path} L 100,40 L 0,40 Z`}
-                fill={`url(#gradient-${i})`}
-              />
+                        {/* 1. Enhanced Smooth Area Fill */}
+                        <motion.path
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          /* Adjusted closing point to L 100,40 and L 0,40 for new height */
+                          d={`${card.path} L 100,40 L 0,40 Z`}
+                          fill={`url(#gradient-${i})`}
+                        />
 
-              {/* 2. Defined Dotted Path Style */}
-              <motion.path
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.5, ease: "easeInOut" }}
-                d={card.path}
-                fill="none"
-                stroke={card.color}
-                /* Tightened spacing and increased width for definition */
-                strokeWidth="3" 
-                strokeDasharray="1 5" /* 1px dot, 5px gap */
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                /* Increased shadow depth for "floating" effect */
-                className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
-              />
+                        {/* 2. Defined Dotted Path Style */}
+                        <motion.path
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 1.5, ease: "easeInOut" }}
+                          d={card.path}
+                          fill="none"
+                          stroke={card.color}
+                          /* Tightened spacing and increased width for definition */
+                          strokeWidth="3" 
+                          strokeDasharray="1 5" /* 1px dot, 5px gap */
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          /* Increased shadow depth for "floating" effect */
+                          className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
+                        />
 
-              {/* 3. The Live Glow Marker (Concentric Pulse Circles) */}
-              {/* 3a. Static Inner Core Dot */}
-              <circle
-                cx="100"
-                /* Re-mapping the path terminal Y to 40px height */
-                cy={card.path.split('T').pop()?.split(',')[1] || 15}
-                r="2.5"
-                fill={card.color}
-              />
-              {/* 3b. Large Outer Pulse Glow */}
-              <circle
-                cx="100"
-                cy={card.path.split('T').pop()?.split(',')[1] || 15}
-                r="6"
-                fill={card.color}
-                className="animate-pulse opacity-20 blur-sm"
-              />
-            </svg>
+                        {/* 3. The Live Glow Marker (Concentric Pulse Circles) */}
+                        {/* 3a. Static Inner Core Dot */}
+                        <circle
+                          cx="100"
+                          /* Re-mapping the path terminal Y to 40px height */
+                          cy={card.path.split('T').pop()?.split(',')[1] || 15}
+                          r="2.5"
+                          fill={card.color}
+                        />
+                        {/* 3b. Large Outer Pulse Glow */}
+                        <circle
+                          cx="100"
+                          cy={card.path.split('T').pop()?.split(',')[1] || 15}
+                          r="6"
+                          fill={card.color}
+                          className="animate-pulse opacity-20 blur-sm"
+                        />
+                      </svg>
+                    </div>
+                  </td>
+                      <td className="px-4 py-4 text-right">
+                        <RowActions />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800">
+              <button className="group/btn text-[13px] font-bold text-emerald-500 hover:text-emerald-600 flex items-center justify-center gap-2 w-full transition-all tracking-wide">
+                View All Cards in Portfolio 
+                <ArrowUpRight size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+              </button>
+            </div>
           </div>
-        </td>
-            <td className="px-4 py-4 text-right">
-              <RowActions />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-
-  <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800">
-    <button className="group/btn text-[13px] font-bold text-emerald-500 hover:text-emerald-600 flex items-center justify-center gap-2 w-full transition-all tracking-wide">
-      View All Cards in Portfolio 
-      <ArrowUpRight size={14} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-    </button>
-  </div>
-</div>
         </div>
 
         {/* RIGHT COLUMN: Allocation & Insights */}
@@ -423,12 +434,12 @@ const timeframes = ['7D', '30D', '90D', '1Y', 'All'];
           
           {/* PORTFOLIO ALLOCATION CARD */}
           <AllocationCard 
-  title="Portfolio Allocation"
-  data={ALLOCATION}
-  centerValue={data.stats.totalCards}
-  centerLabel="Total Cards"
-  onFooterClick={() => console.log("Navigate to breakdown")}
-/>
+            title="Portfolio Allocation"
+            data={ALLOCATION}
+            centerValue={data.stats.totalCards}
+            centerLabel="Total Cards"
+            onFooterClick={() => console.log("Navigate to breakdown")}
+          />
 
           {/* RECENT ACTIVITY LOG */}
           <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
