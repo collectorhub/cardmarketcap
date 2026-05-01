@@ -302,7 +302,7 @@ export default function Navbar() {
               className="flex items-center w-full h-full"
             >
               <MobileTab href="/" icon={Home} label="Home" />
-              <MobileTab href="/overview" icon={Briefcase} label="Market" />
+              <MobileTab href="/portfolio" icon={Briefcase} label="Portfolio" />
               <MobileTab 
                 onClick={() => setIsSearching(true)} 
                 icon={Search} 

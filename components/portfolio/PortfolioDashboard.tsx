@@ -18,6 +18,7 @@ import {
 import { PieChart as RePie, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { cn } from "@/lib/utils";
 import { CgArrowLongRight } from 'react-icons/cg';
+import AllocationCard from '../AllocationCard';
 
 const ALLOCATION = [
   { name: 'PSA 10', value: 45.2, color: '#7c3aed' },
@@ -421,80 +422,13 @@ const timeframes = ['7D', '30D', '90D', '1Y', 'All'];
         <div className="lg:col-span-4 space-y-6">
           
           {/* PORTFOLIO ALLOCATION CARD */}
-          <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Portfolio Allocation</h3>
-                <Info size={14} className="text-slate-300 dark:text-slate-600 cursor-help" />
-              </div>
-              <MoreHorizontal size={18} className="text-slate-300 cursor-pointer hover:text-slate-600 transition-colors" />
-            </div>
-
-            {/* MAIN CONTENT: Flex container to put chart left and list right */}
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              
-              {/* LEFT SIDE: The Chart */}
-              <div className="h-52 w-full md:w-1/2 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RePie>
-                    <Pie
-                      data={ALLOCATION}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      cornerRadius={6} // Added rounded corners like the UI reference
-                      dataKey="value"
-                      stroke="none"
-                      isAnimationActive={true}
-                    >
-                      {ALLOCATION.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color}
-                          className="hover:opacity-80 transition-opacity outline-none"
-                        />
-                      ))}
-                    </Pie>
-                  </RePie>
-                </ResponsiveContainer>
-                
-                {/* Center Overlay - Centered within the chart half */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                    {data.stats.totalCards}
-                  </span>
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-[-2px]">
-                    Total Cards
-                  </span>
-                </div>
-              </div>
-
-              {/* RIGHT SIDE: Allocation List */}
-              <div className="w-full md:w-1/2 space-y-1">
-                {ALLOCATION.map((item) => (
-                  <div key={item.name} className="flex justify-between items-center p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: item.color }} />
-                      <span className="text-[12px] font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
-                        {item.name}
-                      </span>
-                    </div>
-                    <span className="text-[12px] font-black text-slate-900 dark:text-white">
-                      {item.value}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer Button */}
-            <button className="w-full mt-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 text-emerald-500 text-[11px] font-black uppercase tracking-widest hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5 transition-all group/btn">
-              View Full Breakdown
-              <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-            </button>
-          </div>
+          <AllocationCard 
+  title="Portfolio Allocation"
+  data={ALLOCATION}
+  centerValue={data.stats.totalCards}
+  centerLabel="Total Cards"
+  onFooterClick={() => console.log("Navigate to breakdown")}
+/>
 
           {/* RECENT ACTIVITY LOG */}
           <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
