@@ -1,3 +1,5 @@
+"use server"
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function fetchUniversalSearch(q: string, game: string | null = null, limit = 20) {

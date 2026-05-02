@@ -1,14 +1,15 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Layers, Bell, ShoppingBag, History, 
-  BarChart3, AlertCircle, Settings, Info, TrendingUp 
+  Layers, Bell, Info, TrendingUp,
+  Plus, Download 
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import AddCardModal from './AddCardModal';
 
 const NAV_ITEMS = [
   { label: 'Portfolio', href: '/portfolio', icon: Layers },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
 ];
 
 export default function PortfolioHeader({ data }: { data: any }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const pathname = usePathname();
   const isWatchlist = pathname === '/portfolio/watchlist';
 
@@ -25,20 +27,18 @@ export default function PortfolioHeader({ data }: { data: any }) {
     ? "Track cards you're watching. Get alerts on price changes and market moves."
     : `Your collection value increased by +$4,230 in the last 24h.`;
   
-  // Dynamic Stats based on route
-  const mainStatLabel = isWatchlist ? "Total Watchlist Value" : "Total Portfolio Value";
-  const mainStatValue = isWatchlist ? data.watchlist?.totalValue ?? 32415.20 : data.stats.totalValue;
-  const mainStatGrowth = isWatchlist ? data.watchlist?.growth7D ?? 9.72 : data.stats.growth7D;
-  
-  const secondaryStat1Label = isWatchlist ? "Watching" : "Cards";
-  const secondaryStat1Value = isWatchlist ? data.watchlist?.totalCards ?? 42 : data.stats.totalCards;
-  
-  const secondaryStat2Label = isWatchlist ? "Alerts Active" : "Sets";
-  const secondaryStat2Value = isWatchlist ? data.watchlist?.alertsActive ?? 8 : data.stats.totalSets;
+  // Stats (Used for Portfolio view)
+  const mainStatLabel = "Total Portfolio Value";
+  const mainStatValue = data.stats.totalValue;
+  const mainStatGrowth = data.stats.growth7D;
+  const secondaryStat1Label = "Cards";
+  const secondaryStat1Value = data.stats.totalCards;
+  const secondaryStat2Label = "Sets";
+  const secondaryStat2Value = data.stats.totalSets;
 
   return (
     <header className="w-full pt-20 md:pt-8 pb-0">
-      {/* 1. HEADER STATS SECTION */}
+      {/* 1. TOP SECTION (Title + Stats OR Actions) */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
         
         {/* Left Content: Text */}
@@ -64,45 +64,55 @@ export default function PortfolioHeader({ data }: { data: any }) {
           </p>
         </div>
 
-        {/* Right Content: Stat Card */}
-        <div className="w-full lg:w-auto bg-white dark:bg-slate-900 px-4 md:px-6 py-4 rounded-[16px] border border-slate-100 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-          
-          {/* Main Stat Group (Value) */}
-          <div className="flex flex-col items-center sm:items-start gap-1 w-full sm:w-auto">
-            <div className="flex items-center gap-1">
-              <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{mainStatLabel}</p>
-              <Info size={11} className="text-slate-300 dark:text-slate-600 cursor-help" />
+        {/* Right Content: Conditional Rendering */}
+        {isWatchlist ? (
+          /* ACTION BUTTONS (Visible only on Watchlist) */
+          <div className="flex items-center gap-2 md:gap-3">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-[#00BA88] text-white rounded-xl text-[12px] font-black hover:bg-[#00a377] transition-all shadow-md shadow-emerald-500/20">
+              <Plus size={16} strokeWidth={3} />
+              <span>Add Card</span>
+            </button>
+            
+            <button className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-[12px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+              <Download size={16} />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          </div>
+        ) : (
+          /* STAT CARD (Visible only on Portfolio) */
+          <div className="w-full lg:w-auto bg-white dark:bg-slate-900 px-4 md:px-6 py-4 rounded-[16px] border border-slate-100 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+            <div className="flex flex-col items-center sm:items-start gap-1 w-full sm:w-auto">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{mainStatLabel}</p>
+                <Info size={11} className="text-slate-300 dark:text-slate-600 cursor-help" />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none tracking-tight">
+                  ${mainStatValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-500 border border-emerald-100 dark:border-emerald-500/20">
+                  <TrendingUp size={10} strokeWidth={3} />
+                  <span className="text-[10px] font-bold">{mainStatGrowth}%</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none tracking-tight">
-                ${mainStatValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-500 border border-emerald-100 dark:border-emerald-500/20">
-                <TrendingUp size={10} strokeWidth={3} />
-                <span className="text-[10px] font-bold">{mainStatGrowth}%</span>
+
+            <div className="h-[1px] w-full sm:h-8 sm:w-[1px] bg-slate-100 dark:bg-slate-800" />
+
+            <div className="flex justify-around w-full sm:w-auto gap-8">
+              <div className="flex flex-col gap-1 text-center sm:text-left">
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{secondaryStat1Label}</p>
+                <p className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat1Value}</p>
+              </div>
+              <div className="flex flex-col gap-1 text-center sm:text-left">
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{secondaryStat2Label}</p>
+                <p className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat2Value}</p>
               </div>
             </div>
           </div>
-
-          <div className="h-[1px] w-full sm:h-8 sm:w-[1px] bg-slate-100 dark:bg-slate-800" />
-
-          {/* Secondary Stats Grid */}
-          <div className="flex justify-around w-full sm:w-auto gap-8">
-            <div className="flex flex-col gap-1 text-center sm:text-left">
-              <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{secondaryStat1Label}</p>
-              <p className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">
-                {secondaryStat1Value}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1 text-center sm:text-left">
-              <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">{secondaryStat2Label}</p>
-              <p className="text-[20px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">
-                {secondaryStat2Value}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* 2. SUB-NAVIGATION */}
@@ -145,6 +155,14 @@ export default function PortfolioHeader({ data }: { data: any }) {
           })}
         </nav>
       </div>
+
+      {isModalOpen && (
+         <AddCardModal 
+           userId={data.user.id} 
+           onClose={() => setIsModalOpen(false)} 
+           onRefresh={() => window.location.reload()} // Simplest way to show new data
+         />
+       )}
     </header>
   );
 }
