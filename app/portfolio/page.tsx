@@ -1,28 +1,48 @@
-"use client";
-
-import React from 'react';
+// app/portfolio/page.tsx
 import PortfolioDashboard from '@/components/portfolio/PortfolioDashboard';
+import { getWatchlist } from "@/lib/queries/portfolio";
 
-const PORTFOLIO_DATA = {
-  user: { name: "Dave", status: "Pro Collector" },
-  stats: {
-    totalValue: 48725.60,
-    growth7D: 12.48,
-    totalCards: 126,
-    totalSets: 18
-  },
-  topAssets: [
-    { n: 'Charizard #4', s: 'Base Set Unlimited', g: 'PSA 10', v: '$1,000,000' },
-    { n: 'Blastoise #2', s: 'Base Set Unlimited', g: 'PSA 10', v: '$480,000' },
-    { n: 'Venusaur #15', s: 'Base Set Unlimited', g: 'PSA 9', v: '$78,500' },
-  ]
-};
+export default async function PortfolioPage() {
+  const response = await getWatchlist(12);
 
-export default function PortfolioPage() {
+  if (!response.success) {
+    return (
+      <div className="p-20 text-center">
+        <h1 className="text-xl font-bold text-red-500">Error Loading Portfolio</h1>
+        <p className="text-slate-500">{response.message}</p>
+      </div>
+    );
+  }
+
+  const apiData = response.data;
+
+  const data = {
+    stats: {
+      totalValue: apiData.totalValue || 0,
+      totalCards: apiData.totalCards || 0,
+      totalSets: apiData.setCount || 0,
+    },
+    performance: {
+      change7D: apiData.growth7D_Value || 0,
+      change7DPct: apiData.growth7D || 0,
+    },
+    cards: (apiData.cards || []).map((card: any) => ({
+      name: card.name,
+      setName: card.set || 'N/A',
+      grade: card.grade || 'Raw',
+      value: card.value || 0,
+      change: card.change7D || 0,
+      image: card.imageUrl,
+    })),
+    allocation: apiData.allocation || [],
+    
+    // ADD THIS: Check if backend has activity, otherwise use an empty array
+    recentActivity: apiData.recentActivity || [] 
+  };
+
   return (
-    // Removed hardcoded bg-white and text-slate-900 to inherit from Layout
     <div className="w-full">
-      <PortfolioDashboard data={PORTFOLIO_DATA} />
+      <PortfolioDashboard data={data} />
     </div>
   );
 }

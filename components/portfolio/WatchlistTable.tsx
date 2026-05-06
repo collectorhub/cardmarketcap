@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   MoreVertical, TrendingUp, TrendingDown, Bell, 
-  Eye, Trash2, ArrowUpRight 
+  Eye, Trash2, ArrowUpRight, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
@@ -39,19 +40,8 @@ const Sparkline = ({ trend, color, path, index }: { trend: 'up' | 'down', color:
         strokeLinecap="round" 
         className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
       />
-      <circle
-        cx="100"
-        cy={path.split('T').pop()?.split(',')[1] || 15}
-        r="2.5"
-        fill={color}
-      />
-      <circle
-        cx="100"
-        cy={path.split('T').pop()?.split(',')[1] || 15}
-        r="6"
-        fill={color}
-        className="animate-pulse opacity-20 blur-sm"
-      />
+      <circle cx="100" cy={path.split('T').pop()?.split(',')[1] || 15} r="2.5" fill={color} />
+      <circle cx="100" cy={path.split('T').pop()?.split(',')[1] || 15} r="6" fill={color} className="animate-pulse opacity-20 blur-sm" />
     </svg>
   </div>
 );
@@ -121,9 +111,33 @@ const RowActions = () => {
   );
 };
 
-export default function WatchlistTable({ cards }: { cards: any[] }) {
+export default function WatchlistTable({ 
+  cards = [], 
+  totalPages = 1, 
+  currentPage = 1,
+  totalRecords = 0
+}: { 
+  cards: any[], 
+  totalPages?: number, 
+  currentPage?: number,
+  totalRecords?: number 
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Stop loading when new cards arrive
+  useEffect(() => { setIsLoading(false); }, [cards, currentPage]);
+
+  const updateParams = (key: string, val: string | number) => {
+    setIsLoading(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, val.toString().toLowerCase());
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
   const filters = [
-    { label: 'All Cards', count: 42 },
+    { label: 'All Cards', count: totalRecords },
     { label: 'PSA 10', count: 18 },
     { label: 'PSA 9', count: 10 },
     { label: 'Raw', count: 8 },
@@ -132,60 +146,51 @@ export default function WatchlistTable({ cards }: { cards: any[] }) {
   return (
     <div className="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
       
-     {/* FILTER HEADER - Swaps to a simple title on mobile, show filters on Desktop */}
-<div className="px-4 md:px-6 py-4 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-  
-  {/* 1. MOBILE TITLE: Only visible on screens smaller than 'lg' */}
-  <div className="lg:hidden">
-    <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
-      Watchlist Assets
-    </h3>
-    {/* <p className="text-[10px] font-bold text-slate-500">Managing {filters[0].count} cards</p> */}
-  </div>
+      {/* FILTER HEADER */}
+      <div className="px-4 md:px-6 py-4 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+        <div className="lg:hidden">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
+            Watchlist Assets
+          </h3>
+        </div>
 
-  {/* 2. DESKTOP FILTERS: Hidden on mobile, flex on 'lg' and up */}
-  <div className="hidden lg:flex flex-wrap items-center gap-2">
-    {filters.map((f) => (
-      <button 
-        key={f.label} 
-        className={cn(
-          "px-5 py-2.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border", 
-          f.label === 'All Cards' 
-            ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20" 
-            : "bg-slate-50/50 dark:bg-slate-950 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-        )}
-      >
-        {f.label} <span className="opacity-50 ml-1">({f.count})</span>
-      </button>
-    ))}
-  </div>
+        <div className="hidden lg:flex flex-wrap items-center gap-2">
+          {filters.map((f) => (
+            <button 
+              key={f.label} 
+              className={cn(
+                "px-5 py-2.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border", 
+                f.label === 'All Cards' 
+                  ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20" 
+                  : "bg-slate-50/50 dark:bg-slate-950 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              {f.label} <span className="opacity-50 ml-1">({f.count})</span>
+            </button>
+          ))}
+        </div>
 
-  {/* 3. DROPDOWNS: Hidden on mobile, shown on 'lg' */}
-  <div className="hidden lg:flex items-center gap-2">
-    {['All Sets', 'All Grades', 'Sort: Market Value'].map((label) => (
-      <button 
-        key={label} 
-        className="flex items-center gap-8 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 transition-colors whitespace-nowrap"
-      >
-        {label} 
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0">
-          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-    ))}
-  </div>
+        <div className="hidden lg:flex items-center gap-2">
+          {['All Sets', 'All Grades', 'Sort: Market Value'].map((label) => (
+            <button 
+              key={label} 
+              className="flex items-center gap-8 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 transition-colors whitespace-nowrap"
+            >
+              {label} 
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
 
-  {/* 4. OPTIONAL: Mobile 'Filter' icon button so users can still access them if needed */}
-  {/* <button className="lg:hidden p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-600 dark:text-slate-300">
-      <path d="M4 6h16M4 12h10M4 18h16" strokeLinecap="round"/>
-    </svg>
-  </button> */}
-</div>
-
-      {/* MAIN TABLE SECTION - Scrollable with fixed-column logic for mobile */}
-      <div className="w-full overflow-x-auto scrollbar-hide">
-        <table className="w-full text-left border-collapse min-w-[1000px] lg:min-w-full table-fixed md:table-auto">
+      {/* MAIN TABLE SECTION */}
+      <div className="w-full overflow-x-auto scrollbar-hide relative">
+        <table className={cn(
+          "w-full text-left border-collapse min-w-[1000px] lg:min-w-full table-fixed md:table-auto transition-opacity duration-200",
+          isLoading && "opacity-40 pointer-events-none"
+        )}>
           <thead>
             <tr className="text-[9px] md:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
               <th className="px-4 md:px-6 py-4 w-[200px] md:w-[250px]">Card</th>
@@ -204,10 +209,12 @@ export default function WatchlistTable({ cards }: { cards: any[] }) {
               const isUp = card.change7D > 0;
               const path = isUp ? "M0,30 Q20,25 40,30 T70,10 T100,5" : "M0,5 Q20,10 40,25 T70,35 T100,38";
               return (
-                <tr key={i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all cursor-pointer">
+                <tr key={card.id || i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all cursor-pointer">
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-11 md:w-9 md:h-12 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shrink-0" />
+                      <div className="w-8 h-11 md:w-9 md:h-12 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
+                        <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+                      </div>
                       <div className="min-w-0">
                         <p className="text-xs md:text-sm font-black text-slate-900 dark:text-white truncate">{card.name}</p>
                         <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mt-1"># {card.cardNumber || '4'}</p>
@@ -253,12 +260,51 @@ export default function WatchlistTable({ cards }: { cards: any[] }) {
         </table>
       </div>
       
-      {/* FOOTER ACTION */}
-      <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex justify-center">
-        <button className="text-[11px] md:text-[12px] font-bold text-emerald-500 flex items-center gap-2 hover:text-emerald-600 transition-colors">
-          Load More Cards <ArrowUpRight size={14} className="rotate-45" />
-        </button>
-      </div>
+      {/* PAGINATION FOOTER */}
+      {cards.length > 0 && (
+        <div className="p-4 md:p-6 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-400">
+            Page {currentPage} / {totalPages}
+          </p>
+          
+          <div className="flex items-center gap-2 md:gap-3">
+            <button 
+              disabled={currentPage === 1 || isLoading}
+              onClick={() => updateParams('page', currentPage - 1)}
+              className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            
+            <div className="hidden md:flex gap-1.5">
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                if (pageNum > totalPages) return null;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => updateParams('page', pageNum)}
+                    className={cn(
+                      "h-9 w-9 rounded-lg text-xs font-black transition-all cursor-pointer",
+                      currentPage === pageNum ? "bg-[#00BA88] text-white" : "text-slate-400 hover:text-slate-900"
+                    )}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button 
+              disabled={currentPage === totalPages || isLoading}
+              onClick={() => updateParams('page', currentPage + 1)}
+              className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

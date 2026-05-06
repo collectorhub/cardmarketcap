@@ -1,16 +1,21 @@
 // components/portfolio/WatchlistStats.tsx
 import { cn } from '@/lib/utils';
-import { Wallet, Layers, Bell, LineChart, TrendingUp } from 'lucide-react';
+import { Wallet, Layers, Bell, LineChart, TrendingUp, TrendingDown } from 'lucide-react';
 
 export const WatchlistStats = ({ data }: { data: any }) => {
-  // Configuration for the 4 specific cards
+  // Extract real values from your PHP response with fallbacks
+  const totalValue = data?.totalValue || 0;
+  const growth7D = data?.growth7D || 0;
+  const isPositive = growth7D >= 0;
+
   const stats = [
     {
       label: "Watchlist Value",
-      value: `$${data?.totalValue?.toLocaleString() ?? '0.00'}`,
-      trend: "9.72% (7D)",
+      value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      trend: `${growth7D}% (7D)`,
       icon: Wallet,
       colors: "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10",
+      trendColor: isPositive ? "text-emerald-500" : "text-red-500"
     },
     {
       label: "Total Cards",
@@ -28,10 +33,11 @@ export const WatchlistStats = ({ data }: { data: any }) => {
     },
     {
       label: "Avg. Daily Change",
-      value: `$${data?.avgDailyChange ?? '0.00'}`,
-      trend: "0.98%",
+      value: `$${(data?.avgDailyChange || 0).toFixed(2)}`,
+      trend: "0.00%", // Logic for this can be added to your PHP later
       icon: LineChart,
       colors: "text-blue-600 bg-blue-50 dark:bg-blue-500/10",
+      trendColor: "text-slate-400"
     },
   ];
 
@@ -40,7 +46,6 @@ export const WatchlistStats = ({ data }: { data: any }) => {
       {stats.map((stat, idx) => (
         <div 
           key={idx}
-          // Tweak 1: Shadow updated to match WatchlistHero exactly
           className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-100 dark:border-slate-800 flex items-center gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300"
         >
           <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0", stat.colors)}>
@@ -51,15 +56,14 @@ export const WatchlistStats = ({ data }: { data: any }) => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
               {stat.label}
             </p>
-            {/* Tweak 2: Font changed to font-black and tracking-tight to match Hero */}
             <h4 className="text-[22px] font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">
               {stat.value}
             </h4>
             
             <div className="flex items-center gap-1.5 mt-1.5">
               {stat.trend ? (
-                <p className="text-[11px] font-bold text-emerald-500 flex items-center gap-0.5">
-                  <TrendingUp size={12} strokeWidth={3} />
+                <p className={cn("text-[11px] font-bold flex items-center gap-0.5", stat.trendColor)}>
+                  {isPositive ? <TrendingUp size={12} strokeWidth={3} /> : <TrendingDown size={12} strokeWidth={3} />}
                   {stat.trend}
                 </p>
               ) : (

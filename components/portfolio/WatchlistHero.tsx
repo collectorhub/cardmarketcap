@@ -1,29 +1,68 @@
 import React, { useState } from 'react';
-import { Info, TrendingUp } from 'lucide-react';
+import { Info, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export const WatchlistHero = ({ data }: { data: any }) => {
   const [activeTab, setActiveTab] = useState('7D');
 
-  const points = [
-    { x: 0, y: 65, label: 'May 12' },
-    { x: 133, y: 65, label: 'May 13' },
-    { x: 266, y: 50, label: 'May 14' },
-    { x: 400, y: 50, label: 'May 15' },
-    { x: 533, y: 40, label: 'May 16' },
-    { x: 666, y: 25, label: 'May 17' },
-    { x: 800, y: 15, label: 'May 18' },
-  ];
+  // 1. DATA CALCULATIONS
+  const currentTotal = data?.totalValue || 0;
+  const growthPercent = data?.growth7D || 0;
+  const isPositive = growthPercent >= 0;
+  
+  // Calculate the starting value (7 days ago) based on the growth %
+  // Formula: Current / (1 + (Percent / 100))
+  const startValue = currentTotal / (1 + (growthPercent / 100));
+  
+  // 2. GENERATE DYNAMIC POINTS & X-AXIS LABELS
+  const pointsCount = 7;
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const today = new Date();
 
-  const lastPoint = points[points.length - 1];
-  const pathData = `M${points.map(p => `${p.x},${p.y}`).join(' L')}`;
+  const generatedPoints = Array.from({ length: pointsCount }).map((_, i) => {
+    // Calculate Date Label for X-Axis
+    const date = new Date();
+    date.setDate(today.getDate() - (6 - i));
+    const label = `${date.getMonth() + 1}/${date.getDate()}`;
+
+    // Calculate Y Coordinate (the "path")
+    // We simulate a slight "random" wobble so it's not a perfectly straight line
+    const stepWeight = i / (pointsCount - 1);
+    const simulatedValue = startValue + (currentTotal - startValue) * stepWeight;
+    
+    // Add a small pseudo-random variance (2% wobble) for visual realism
+    const wobble = i === 0 || i === 6 ? 1 : 0.98 + Math.random() * 0.04;
+    const finalValue = simulatedValue * wobble;
+
+    // Map the dollar value to the SVG coordinate system (0-100)
+    // 0 is top ($$$), 100 is bottom ($0)
+    const chartCeiling = Math.max(40000, Math.ceil(currentTotal / 10000) * 10000);
+    const yCoord = 100 - (finalValue / chartCeiling) * 100;
+
+    return { 
+      x: (i * (800 / (pointsCount - 1))), 
+      y: yCoord, 
+      label: label 
+    };
+  });
+
+  const lastPoint = generatedPoints[generatedPoints.length - 1];
+  const pathData = `M${generatedPoints.map(p => `${p.x},${p.y}`).join(' L')}`;
   const fillData = `${pathData} V100 H0 Z`;
 
+  // 3. GENERATE DYNAMIC Y-AXIS LABELS
+  const chartCeiling = Math.max(40000, Math.ceil(currentTotal / 10000) * 10000);
+  const yAxisLabels = [
+    `$${(chartCeiling / 1000)}K`,
+    `$${((chartCeiling * 0.75) / 1000)}K`,
+    `$${((chartCeiling * 0.5) / 1000)}K`,
+    `$${((chartCeiling * 0.25) / 1000)}K`,
+    "$0"
+  ];
+
   return (
-    /* 1. Added h-full and flex-col to ensure it fills the grid span */
     <div className="bg-white dark:bg-slate-900 rounded-[20px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] h-full flex flex-col justify-between group/card">
-      
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
@@ -33,10 +72,14 @@ export const WatchlistHero = ({ data }: { data: any }) => {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-               ${data?.totalValue?.toLocaleString() || '32,415.20'}
+              ${currentTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
-            <div className="flex items-center gap-1 text-xs font-bold text-emerald-500">
-              <TrendingUp size={14} /> {data?.growth7D || '9.72'}% (7D)
+            <div className={cn(
+              "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full",
+              isPositive ? "text-emerald-500 bg-emerald-500/10" : "text-red-500 bg-red-500/10"
+            )}>
+              {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />} 
+              {Math.abs(growthPercent)}% (7D)
             </div>
           </div>
         </div>
@@ -51,7 +94,7 @@ export const WatchlistHero = ({ data }: { data: any }) => {
                 "flex-1 md:flex-none px-4 py-2 text-[10px] font-bold rounded-lg transition-all uppercase",
                 activeTab === t 
                   ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" 
-                  : "text-slate-400 hover:text-slate-600"
+                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               )}
             >
               {t}
@@ -60,26 +103,22 @@ export const WatchlistHero = ({ data }: { data: any }) => {
         </div>
       </div>
 
-      {/* CHART AREA - 2. Removed fixed h-48 and used flex-1 to occupy remaining space */}
+      {/* CHART AREA */}
       <div className="flex flex-row gap-4 md:gap-6 flex-1 min-h-[180px]">
-        
-        {/* LEFT Y-AXIS LABELS */}
-        <div className="flex flex-col justify-between py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-right min-w-[35px] md:min-w-[40px] shrink-0 pr-2">
-          <span>$40K</span>
-          <span>$30K</span>
-          <span>$20K</span>
-          <span>$10K</span>
-          <span>$0</span>
+        {/* DYNAMIC Y-AXIS */}
+        <div className="flex flex-col justify-between py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-right min-w-[35px] md:min-w-[40px] shrink-0 pr-2 border-r border-slate-50 dark:border-slate-800/50">
+          {yAxisLabels.map((label, idx) => (
+            <span key={idx}>{label}</span>
+          ))}
         </div>
 
-        <div className="flex-1 flex flex-col justify-between relative">
+        <div className="flex-1 flex flex-col justify-between relative pt-2">
           <div className="flex-1 relative">
-            {/* 3. Changed preserveAspectRatio to none and ensured h-full to stretch path */}
             <svg viewBox="0 0 800 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.15" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                  <stop offset="0%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity="0.15" />
+                  <stop offset="100%" stopColor={isPositive ? "#10b981" : "#ef4444"} stopOpacity="0" />
                 </linearGradient>
               </defs>
 
@@ -91,27 +130,28 @@ export const WatchlistHero = ({ data }: { data: any }) => {
                 transition={{ duration: 1.5, ease: "easeInOut" }}
                 d={pathData} 
                 fill="none" 
-                stroke="#10b981" 
+                stroke={isPositive ? "#10b981" : "#ef4444"} 
                 strokeWidth="2.5" 
-                strokeDasharray="1 12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
 
+              {/* Glowing endpoint */}
               <motion.g 
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1.2, duration: 0.5 }}
               >
-                <circle cx={lastPoint.x} cy={lastPoint.y} r="8" fill="#10b981" fillOpacity="0.15" className="animate-pulse" />
-                <circle cx={lastPoint.x} cy={lastPoint.y} r="4" fill="#10b981" />
+                <circle cx={lastPoint.x} cy={lastPoint.y} r="8" fill={isPositive ? "#10b981" : "#ef4444"} fillOpacity="0.15" className="animate-pulse" />
+                <circle cx={lastPoint.x} cy={lastPoint.y} r="4" fill={isPositive ? "#10b981" : "#ef4444"} />
                 <circle cx={lastPoint.x} cy={lastPoint.y} r="2" fill="white" />
               </motion.g>
             </svg>
           </div>
           
+          {/* DYNAMIC X-AXIS LABELS */}
           <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight">
-            {points.map((p, i) => (
+            {generatedPoints.map((p, i) => (
               <span key={i} className={cn(i % 2 !== 0 ? "hidden sm:inline" : "")}>
                 {p.label}
               </span>

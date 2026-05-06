@@ -4,47 +4,55 @@ import React from 'react';
 import WatchlistTable from './WatchlistTable';
 import { WatchlistHero } from './WatchlistHero';
 import AllocationCard from '../AllocationCard';
-import { GrowthSummaryCard } from './GrowthSummaryCard'; // Import your new component
+import GrowthSummaryCard from './GrowthSummaryCard';
 import { WatchlistStats } from './WatchlistStats';
 
 export default function WatchlistPage({ data }: { data: any }) {
-  const { watchlist } = data;
-  const { meta } = watchlist;
+  // Destructure with fallbacks to prevent "undefined" errors if DB is empty
+  const { watchlist = {} } = data;
+  const { 
+    cards = [], 
+    allocation = [], 
+    totalCards = 0, 
+    totalValue = 0,
+    meta = {} 
+  } = watchlist;
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Performance & Distribution Section */}
-      {/* Using a standard 12-column grid for perfect alignment */}
+    <div className="space-y-6 pb-20 animate-in fade-in duration-500">
+      
+      {/* 1. Performance & Distribution Section */}
       <section className="grid grid-cols-1 lg:grid-cols-14 gap-6 items-stretch">
         
-        {/* 1. Main Chart (Largest) - 6/12 columns (50% width) */}
+        {/* Main Chart (Visualizing Total Value) */}
         <div className="lg:col-span-6">
           <WatchlistHero data={watchlist} />
         </div>
 
-        {/* 2. Donut Chart (Medium) - 3/12 columns (25% width) */}
+        {/* Donut Chart (Grade Distribution from PHP) */}
         <div className="lg:col-span-5">
           <AllocationCard 
             title="Cards by Grade"
-            data={watchlist.allocation}
-            centerValue={watchlist.totalCards}
+            // The PHP generates this based on real portfolio counts
+            data={allocation} 
+            centerValue={totalCards}
             centerLabel="Total Cards"
-            footerLabel="MANAGE DISTRIBUTION"
+            footerLabel="VIEW ALL GRADES"
           />
         </div>
 
-        {/* 3. Growth Summary (Smallest) - 3/12 columns (25% width) */}
+        {/* Growth Summary (Meta Data) */}
         <div className="lg:col-span-3">
           <GrowthSummaryCard meta={meta} />
         </div>
       </section>
 
-      {/* Stats Quick Grid (Value, Total Cards, Alerts, Avg Change) */}
+      {/* 2. Stats Quick Grid (Live counts for Value, Sets, and Cards) */}
       <WatchlistStats data={watchlist} />
 
-      {/* Main Data Table */}
+      {/* 3. Main Data Table (The actual card list from cmc_assets join) */}
       <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
-        <WatchlistTable cards={watchlist.cards} />
+        <WatchlistTable cards={cards} />
       </section>
     </div>
   );

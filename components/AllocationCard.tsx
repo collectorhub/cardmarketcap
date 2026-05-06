@@ -2,6 +2,21 @@ import React from 'react';
 import { PieChart as RePie, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Info, MoreHorizontal, ChevronRight } from 'lucide-react';
 
+interface AllocationItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface AllocationCardProps {
+  data?: AllocationItem[];
+  title?: string;
+  centerLabel?: string;
+  centerValue?: number | string;
+  footerLabel?: string;
+  onFooterClick?: () => void;
+}
+
 /**
  * @param {Array} data - [{ name: string, value: number, color: string }]
  * @param {string} title - Card heading (e.g., "Portfolio Allocation")
@@ -17,7 +32,7 @@ const AllocationCard = ({
   centerValue = 0,
   footerLabel = "View Full Breakdown",
   onFooterClick = () => {},
-}) => {
+}: AllocationCardProps) => {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
       {/* HEADER */}
@@ -71,27 +86,28 @@ const AllocationCard = ({
         </div>
 
         {/* RIGHT SIDE: Allocation List */}
-        <div className="w-full md:w-1/2 space-y-1">
-          {data.map((item) => (
-            <div 
-              key={item.name} 
-              className="flex justify-between items-center p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-2.5 h-2.5 rounded-full shadow-sm" 
-                  style={{ backgroundColor: item.color }} 
-                />
-                <span className="text-[12px] font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
-                  {item.name}
-                </span>
-              </div>
-              <span className="text-[12px] font-black text-slate-900 dark:text-white">
-                {item.value}%
-              </span>
-            </div>
-          ))}
-        </div>
+<div className="w-full md:w-1/2 space-y-1">
+  {data.map((item) => (
+    <div 
+      key={item.name} 
+      className="flex justify-between items-center p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors group"
+    >
+      <div className="flex items-center gap-3">
+        <div 
+          className="w-2.5 h-2.5 rounded-full shadow-sm" 
+          style={{ backgroundColor: item.color }} 
+        />
+        <span className="text-[12px] font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
+          {item.name}
+        </span>
+      </div>
+      <span className="text-[12px] font-black text-slate-900 dark:text-white">
+        {/* Use parseFloat and toFixed to handle the long decimals from your API */}
+        {Number(item.value).toFixed(1)}%
+      </span>
+    </div>
+  ))}
+</div>
       </div>
 
       {/* FOOTER BUTTON */}

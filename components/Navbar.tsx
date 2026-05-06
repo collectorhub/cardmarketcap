@@ -236,10 +236,10 @@ export default function Navbar() {
               {/* Show Portfolio/Briefcase and Alerts when logged in */}
               {user && (
                 <>
-                  <Button variant="ghost" size="icon" className="text-slate-500 rounded-xl h-9 w-9" asChild>
+                  <Button variant="ghost" size="icon" className="text-slate-500 dark:hover:text-slate-100 rounded-xl h-9 w-9" asChild>
                     <Link href="/portfolio"><Briefcase className="h-5 w-5" /></Link>
                   </Button>
-                  <Button variant="ghost" size="icon" className="relative text-slate-500 rounded-xl h-9 w-9">
+                  <Button variant="ghost" size="icon" className="relative text-slate-500 dark:hover:text-slate-100 rounded-xl h-9 w-9">
                     <Bell className="h-5 w-5" />
                     <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
                   </Button>
