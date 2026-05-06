@@ -1,18 +1,18 @@
 import { notFound } from "next/navigation";
 import CardDetails from "@/components/CardDetails";
 import { fetchCardById } from "@/lib/queries/market";
+import { fetchPsaPopById } from "@/lib/queries/psa"; 
 
-export default async function Page({ 
-  params,
-  searchParams 
-}: { 
-  params: Promise<{ slug?: string[] }>,
-  searchParams: Promise<{ game?: string }> 
+export default async function Page(props: { 
+  params: Promise<{ slug?: string[] }>;
+  searchParams: Promise<{ game?: string }>;
 }) {
-  const resolvedParams = await params;
-  const resolvedSearch = await searchParams; // Get the game parameter (?game=lorcana)
-  const slug = resolvedParams.slug;
-  const game = resolvedSearch.game || "pokemon"; // Default to pokemon if missing
+  // Await the promises provided by Next.js 15
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+
+  const slug = params.slug;
+  const game = searchParams.game || "pokemon";
 
   if (!slug || slug.length === 0) {
     notFound();
@@ -21,12 +21,21 @@ export default async function Page({
   // Extract the ID (last part of the slug)
   const id = slug[slug.length - 1];
 
-  // Pass both ID and GAME to the fetch function
-  const cardData = await fetchCardById(id, game);
+  // Parallel fetch for market data and PSA population
+  const [cardData, psaPop] = await Promise.all([
+    fetchCardById(id, game),
+    fetchPsaPopById(id)
+  ]);
 
   if (!cardData) {
     notFound();
   }
 
-  return <CardDetails card={cardData} />;
+  // Merge population data into the card object
+  const cardWithPop = {
+    ...cardData,
+    population: psaPop || {} 
+  };
+
+  return <CardDetails card={cardWithPop} />;
 }

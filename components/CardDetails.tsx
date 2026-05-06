@@ -238,15 +238,24 @@ export default function CardDetails({ card }: { card: any }) {
                 <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-sora">PSA Population Data</h3>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Audit</span>
               </div>
+              {/* Find this section in your JSX */}
               <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 md:gap-4">
-                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => (
-                  <div key={grade} className="bg-slate-50/50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-4 text-center hover:border-[#00BA88]/30 transition-colors">
-                    <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-1">Grade {grade}</p>
-                    <p className="text-lg md:text-xl font-black tabular-nums">
-                      {(popData[`psa${grade}`] || 0).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
+                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
+                  // Dynamically access the key (psa10, psa9, etc)
+                  const gradeKey = `psa${grade}`;
+                  const count = popData[gradeKey] ?? 0; // Fallback to 0
+
+                  return (
+                    <div key={grade} className="bg-slate-50/50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-4 text-center hover:border-[#00BA88]/30 transition-colors">
+                      <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-1">
+                        Grade {grade}
+                      </p>
+                      <p className="text-lg md:text-xl font-black tabular-nums">
+                        {Number(count).toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

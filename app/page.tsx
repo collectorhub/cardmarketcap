@@ -7,6 +7,7 @@ import { MarketTicker } from "@/components/MarketTicker";
 import { fetchCMCCards, fetchMarketStats } from "@/lib/queries/market" 
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
+import { fetchPsaPopById } from "@/lib/queries/psa";
 
 export default async function Page({
   searchParams,
@@ -27,20 +28,41 @@ export default async function Page({
   const category = params.category || "all";
   const grade = params.grade || "psa 10";
 
-  // 1. Fetch search results AND a separate "Global" request with no search query
+  // 1. Fetch all data
   const [cardResponse, globalResponse, statsResponse] = await Promise.all([
     fetchCMCCards(currentPage, search, sort, category, grade),
-    fetchCMCCards(1, "", "top", category, grade), // This gets the true total
+    fetchCMCCards(1, "", "top", category, grade),
     fetchMarketStats()
   ]);
 
-  const { data, metadata } = cardResponse;
-  const apiStats = statsResponse?.stats || [];
+  // 2. Extract the raw card list and metadata
+  const rawCards = cardResponse?.data || [];
+  const metadata = cardResponse?.metadata;
 
-  // 2. Use the metadata from the GLOBAL response for the big numbers
+  // 3. Transform the raw cards into the version WITH PSA data
+  const dataWithPsa = await Promise.all(
+    rawCards.map(async (card: any) => {
+      const psaData = await fetchPsaPopById(card.id);
+      
+      // DEBUG LOG - Check your Terminal
+    if (card.id === "some-id-you-know-exists") {
+       console.log(`Card ID: ${card.id} | API Response:`, psaData);
+    }
+      // If grade is "all", default to showing PSA 10 counts in the table
+      let searchGrade = grade?.toLowerCase().replace(/\s+/g, "") || "psa10";
+      if (searchGrade === "all") searchGrade = "psa10"; 
+      
+      return {
+        ...card,
+        // Use the actual key from the PHP (psa1, psa2 ... psa10)
+        gradeCount: psaData ? (psaData[searchGrade] || 0) : 0,
+        popTotal: psaData?.total || 0
+      };
+    })
+  );
+
+  const apiStats = statsResponse?.stats || [];
   const globalTotalCount = globalResponse.metadata?.total_records || 0;
-  
-  // 3. Keep the search-specific total for the table pagination only
   const filteredTotalCount = metadata?.total_records || 0;
 
   const psa10Value = apiStats.find((s: any) => s.label === "PSA 10 Index")?.value || "2,396";
@@ -119,8 +141,8 @@ export default async function Page({
 
         <section id="market-table" className="animate-in fade-in slide-in-from-bottom-4 duration-1000 mb-16">
           <MarketTable 
-            initialCards={data} 
-            totalRecords={filteredTotalCount} // Table still needs filtered count for pagination
+            initialCards={dataWithPsa} // This now contains the mapped population data
+            totalRecords={filteredTotalCount}
             totalPages={metadata?.total_pages || 0}
             currentPage={currentPage}
           />

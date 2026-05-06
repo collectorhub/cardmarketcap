@@ -289,8 +289,12 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
         </td>
 
         <td className="p-4 md:p-6 text-right">
-          <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">{card.gradeCount}</div>
-          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">Total: {card.popTotal}</div>
+          <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">
+            {Number(card.gradeCount || 0).toLocaleString()}
+          </div>
+          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">
+            Total: {Number(card.popTotal || 0).toLocaleString()}
+          </div>
         </td>
 
         <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-400 whitespace-nowrap">
