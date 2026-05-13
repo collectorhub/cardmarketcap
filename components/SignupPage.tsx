@@ -1,20 +1,23 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { FcGoogle } from 'react-icons/fc' 
 import { FaFacebook, FaApple } from 'react-icons/fa' 
 import { FaXTwitter } from 'react-icons/fa6' 
 import { Button } from "@/components/ui/button"
+import Cookies from 'js-cookie'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const externalError = searchParams.get('error');
   
   const initialFormState = {
     email: '',
@@ -27,6 +30,16 @@ export default function SignupPage() {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+  if (externalError) {
+    // We map the OAuth error to the email field since that's usually the conflict
+    setErrors((prev) => ({
+      ...prev,
+      email: decodeURIComponent(externalError)
+    }));
+  }
+}, [externalError]);
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
@@ -73,11 +86,16 @@ export default function SignupPage() {
 
     case 'apple':
       rootUrl = "https://appleid.apple.com/auth/authorize";
+      
+      // Use the Forwarding URL from your ngrok terminal
+      const ngrokUrl = "https://lardlike-undeparting-shae.ngrok-free.app"; 
+      const appleCallback = `${ngrokUrl}/api/auth/callback/apple`;
+      
       options = {
-        client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!,
-        redirect_uri: callbackUrl,
+        client_id: "io.cardmarketcap.web",
+        redirect_uri: appleCallback,
         response_type: "code",
-        response_mode: "form_post", // Required for Apple email scope
+        response_mode: "form_post", 
         state: provider,
         scope: "name email",
       };
@@ -121,6 +139,12 @@ export default function SignupPage() {
       if (result.success) {
         localStorage.setItem('user_token', result.token);
         localStorage.setItem('user_data', JSON.stringify(result.user));
+        Cookies.set('user_token', result.token, { 
+          expires: 7,    // Keeps user logged in for 7 days
+          path: '/',     // Makes cookie available on all pages
+          secure: true,  // Recommended for production
+          sameSite: 'strict' 
+        });
         window.dispatchEvent(new Event('storage'));
         router.push('/'); 
       } else {

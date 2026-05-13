@@ -1,151 +1,49 @@
 import { NextResponse } from 'next/server';
 
-type RouteContext = {
-  params: {
-    provider: string;
-  };
-};
-
-// ======================================================
-// GET HANDLER (Google, Facebook, Twitter)
-// ======================================================
-
 export async function GET(
   request: Request,
-  { params }: RouteContext
+  { params }: { params: Promise<{ provider: string }> }
 ) {
-  const { provider } = params;
-
-  const { searchParams } = new URL(request.url);
-
-  const code = searchParams.get('code');
+  // 1. Properly unwrap the Promise for Next.js 15+
+  const resolvedParams = await params;
+  const provider = resolvedParams.provider;
+  
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
 
   if (!code) {
-    return NextResponse.redirect(
-      new URL('/sign-in?error=no_code', request.url)
-    );
+    return NextResponse.redirect(new URL('/sign-in?error=no_code', request.url));
   }
+
+  // 2. Generate the exact redirect_uri to send to PHP
+  // This will automatically be localhost:3000 in dev, or your real domain in prod
+  const redirect_uri = `${requestUrl.origin}/api/auth/callback/${provider}`;
 
   try {
-
-    // IMPORTANT:
-    // Build EXACT redirect_uri used during OAuth login
-    const redirect_uri =
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/${provider}`;
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth_handler.php`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code,
-          provider,
-          redirect_uri,
-        }),
-      }
-    );
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth_handler.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // 3. SEND ALL 3 REQUIRED FIELDS TO PHP
+      body: JSON.stringify({ code, provider, redirect_uri }),
+    });
 
     const result = await response.json();
+    console.log("OAuth Result:", result); // Keep this to see what PHP says
 
-    console.log('OAuth Result:', result);
-
-    if (result.success) {
-
+   if (result.success) {
       const responseUrl = new URL('/auth/success', request.url);
-
       responseUrl.searchParams.set('token', result.token);
-
-      responseUrl.searchParams.set(
-        'user',
-        encodeURIComponent(JSON.stringify(result.user))
-      );
-
+      responseUrl.searchParams.set('user', JSON.stringify(result.user));
       return NextResponse.redirect(responseUrl);
+    } else {
+      // REDIRECT TO SIGNUP with the specific message from PHP
+      const signupUrl = new URL('/sign-up', request.url);
+      signupUrl.searchParams.set('error', result.message || 'auth_failed');
+      return NextResponse.redirect(signupUrl);
     }
-
-    console.error('OAuth Failed:', result);
-
   } catch (error) {
-
-    console.error('Auth Error:', error);
-
+    console.error("Auth Fetch Error:", error);
   }
 
-  return NextResponse.redirect(
-    new URL('/sign-in?error=auth_failed', request.url)
-  );
-}
-
-// ======================================================
-// POST HANDLER (Apple)
-// ======================================================
-
-export async function POST(
-  request: Request,
-  { params }: RouteContext
-) {
-  const { provider } = params;
-
-  const formData = await request.formData();
-
-  const code = formData.get('code');
-
-  if (!code) {
-    return NextResponse.redirect(
-      new URL('/sign-in?error=no_code', request.url)
-    );
-  }
-
-  try {
-
-    const redirect_uri =
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/${provider}`;
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth_handler.php`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code.toString(),
-          provider,
-          redirect_uri,
-        }),
-      }
-    );
-
-    const result = await response.json();
-
-    console.log('Apple OAuth Result:', result);
-
-    if (result.success) {
-
-      const responseUrl = new URL('/auth/success', request.url);
-
-      responseUrl.searchParams.set('token', result.token);
-
-      responseUrl.searchParams.set(
-        'user',
-        encodeURIComponent(JSON.stringify(result.user))
-      );
-
-      return NextResponse.redirect(responseUrl);
-    }
-
-    console.error('Apple OAuth Failed:', result);
-
-  } catch (error) {
-
-    console.error('Apple POST Error:', error);
-
-  }
-
-  return NextResponse.redirect(
-    new URL('/sign-in?error=auth_failed', request.url)
-  );
+  return NextResponse.redirect(new URL('/sign-in?error=auth_failed', request.url));
 }
