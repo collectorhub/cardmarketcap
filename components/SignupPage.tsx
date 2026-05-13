@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation' // NEW: For redirection
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { FcGoogle } from 'react-icons/fc' 
 import { FaFacebook, FaApple } from 'react-icons/fa' 
@@ -11,14 +11,16 @@ import { FaXTwitter } from 'react-icons/fa6'
 import { Button } from "@/components/ui/button"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export default function SignupPage() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   
   const initialFormState = {
     email: '',
     password: '',
     username: '',
+    full_name: '', 
     marketing_accepted: true,
   };
 
@@ -29,12 +31,77 @@ export default function SignupPage() {
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.full_name.trim()) newErrors.full_name = "Full name is required.";
     if (!formData.email || !emailRegex.test(formData.email)) newErrors.email = "Valid email is required.";
     if (formData.password.length < 8) newErrors.password = "Min 8 characters required.";
     if (!formData.username || formData.username.includes(" ")) newErrors.username = "Username cannot have spaces.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const handleSocialLogin = (provider: string) => {
+  // IMPORTANT: This must match the URLs you added to Google/X/FB dashboards exactly.
+  const callbackUrl = `${window.location.origin}/api/auth/callback/${provider}`;
+  
+  let rootUrl = "";
+  let options: Record<string, string> = {};
+
+  switch (provider) {
+    case 'google':
+      rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+      options = {
+        redirect_uri: callbackUrl,
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        access_type: "offline",
+        response_type: "code",
+        prompt: "consent",
+        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+        state: provider,
+      };
+      break;
+
+    case 'facebook':
+      rootUrl = "https://www.facebook.com/v18.0/dialog/oauth";
+      options = {
+        client_id: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
+        redirect_uri: callbackUrl,
+        state: provider,
+        scope: "email,public_profile",
+        response_type: "code",
+      };
+      break;
+
+    case 'apple':
+      rootUrl = "https://appleid.apple.com/auth/authorize";
+      options = {
+        client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!,
+        redirect_uri: callbackUrl,
+        response_type: "code",
+        response_mode: "form_post", // Required for Apple email scope
+        state: provider,
+        scope: "name email",
+      };
+      break;
+
+    case 'twitter':
+      rootUrl = "https://twitter.com/i/oauth2/authorize";
+      options = {
+        response_type: "code",
+        client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
+        redirect_uri: callbackUrl,
+        scope: "users.read tweet.read email.read", // Added email.read for X
+        state: provider,
+        code_challenge: "challenge", 
+        code_challenge_method: "plain",
+      };
+      break;
+  }
+
+  if (rootUrl) {
+    const qs = new URLSearchParams(options).toString();
+    window.location.href = `${rootUrl}?${qs}`;
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,20 +113,15 @@ export default function SignupPage() {
       const response = await fetch(`${API_BASE}/signup.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, is_oauth: false }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        // --- NEW: SAVE SESSION DATA ---
         localStorage.setItem('user_token', result.token);
         localStorage.setItem('user_data', JSON.stringify(result.user));
-
-        // Optional: Dispatch a custom event so the Navbar updates immediately
         window.dispatchEvent(new Event('storage'));
-
-        // REDIRECT TO HOME
         router.push('/'); 
       } else {
         alert("Error: " + result.message);
@@ -103,7 +165,6 @@ export default function SignupPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-transparent via-[#040d21]/10 to-[#040d21] top-[-2px]" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#040d21]/40 via-transparent to-[#040d21]/40" />
           </div>
-
           <div className="absolute bottom-0 left-0 w-full h-[20%] bg-gradient-to-t from-[#040d21] to-transparent pointer-events-none z-10" />
         </div>
 
@@ -145,21 +206,17 @@ export default function SignupPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FcGoogle className="mr-3 h-5 w-5" />
-              Google
+            <Button onClick={() => handleSocialLogin('google')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FcGoogle className="mr-3 h-5 w-5" /> Google
             </Button>
-            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaApple className="mr-3 h-5 w-5 dark:text-white" />
-              Apple
+            <Button onClick={() => handleSocialLogin('apple')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FaApple className="mr-3 h-5 w-5 dark:text-white" /> Apple
             </Button>
-            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaFacebook className="mr-3 h-5 w-5 text-[#1877F2]" />
-              Facebook
+            <Button onClick={() => handleSocialLogin('facebook')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FaFacebook className="mr-3 h-5 w-5 text-[#1877F2]" /> Facebook
             </Button>
-            <Button variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaXTwitter className="mr-3 h-4 w-4 dark:text-white" />
-              X (Twitter)
+            <Button onClick={() => handleSocialLogin('twitter')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
+              <FaXTwitter className="mr-3 h-4 w-4 dark:text-white" /> X (Twitter)
             </Button>
           </div>
 
@@ -171,6 +228,19 @@ export default function SignupPage() {
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+            <div className="space-y-2">
+              <label className="text-[14px] font-semibold text-slate-900 dark:text-slate-200 block">Full Name *</label>
+              <input 
+                type="text" 
+                placeholder="John Doe"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className={`w-full h-11 bg-transparent dark:bg-slate-900 border ${errors.full_name ? 'border-red-500' : 'border-[#d0d7de]'} dark:border-slate-700 rounded-md px-3 text-[14px] focus:ring-2 focus:ring-[#00BA88]/20 focus:border-[#00BA88] outline-none transition-all dark:text-white placeholder:text-slate-400`}
+                required
+              />
+              {errors.full_name && <p className="text-red-500 text-[12px] font-medium">{errors.full_name}</p>}
+            </div>
+
             <div className="space-y-2">
               <label className="text-[14px] font-semibold text-slate-900 dark:text-slate-200 block">Email *</label>
               <input 
