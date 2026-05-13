@@ -1,11 +1,12 @@
 // app/(auth)/auth/success/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Cookies from 'js-cookie'; // Add this import
+import Cookies from 'js-cookie';
 
-export default function AuthSuccessPage() {
+// 1. Move the logic to a inner component
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -14,15 +15,9 @@ export default function AuthSuccessPage() {
     const user = searchParams.get("user");
 
     if (token && user) {
-      // 1. Set LocalStorage (for the Navbar/UI state)
       localStorage.setItem("user_token", token);
       localStorage.setItem("user_data", decodeURIComponent(user));
-
-      // 2. Set Cookie (for the Middleware/Protected Routes)
-      // Set 'expires' to 7 days or match your PHP token expiry
       Cookies.set('user_token', token, { expires: 7, path: '/' });
-
-      // 3. Sync and Redirect
       window.dispatchEvent(new Event("storage"));
       router.replace("/");
     } else {
@@ -34,5 +29,14 @@ export default function AuthSuccessPage() {
     <div className="min-h-screen flex items-center justify-center">
       Completing sign-in...
     </div>
+  );
+}
+
+// 2. Wrap it in Suspense for the main export
+export default function AuthSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }

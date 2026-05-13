@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -14,7 +14,7 @@ import Cookies from 'js-cookie'
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
-export default function SignupPage() {
+function SignupPageFunc() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const externalError = searchParams.get('error');
@@ -352,4 +352,12 @@ export default function SignupPage() {
       </div>
     </div>
   )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupPageFunc />
+    </Suspense>
+  );
 }
