@@ -77,7 +77,9 @@ export default function SignupPage() {
       rootUrl = "https://www.facebook.com/v18.0/dialog/oauth";
       options = {
         client_id: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
-        redirect_uri: callbackUrl,
+        // If you can't update FB dashboard, this MUST stay as the production URL 
+        // or whatever is currently whitelisted there.
+        redirect_uri: callbackUrl, 
         state: provider,
         scope: "email,public_profile",
         response_type: "code",
@@ -87,9 +89,9 @@ export default function SignupPage() {
     case 'apple':
       rootUrl = "https://appleid.apple.com/auth/authorize";
       
-      // Use the Forwarding URL from your ngrok terminal
-      const ngrokUrl = "https://lardlike-undeparting-shae.ngrok-free.app"; 
-      const appleCallback = `${ngrokUrl}/api/auth/callback/apple`;
+      // Use the current origin dynamically instead of a hardcoded ngrok link
+      const currentOrigin = window.location.origin;
+      const appleCallback = `${currentOrigin}/api/auth/callback/apple`;
       
       options = {
         client_id: "io.cardmarketcap.web",
@@ -107,10 +109,11 @@ export default function SignupPage() {
         response_type: "code",
         client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
         redirect_uri: callbackUrl,
-        scope: "users.read tweet.read email.read", // Added email.read for X
+        scope: "users.read tweet.read email.read",
         state: provider,
+        // Try changing 'plain' to 'S256' if you implement a proper SHA256 generator
         code_challenge: "challenge", 
-        code_challenge_method: "plain",
+        code_challenge_method: "plain", 
       };
       break;
   }
