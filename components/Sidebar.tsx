@@ -227,14 +227,14 @@ export default function Sidebar() {
         <div className="mt-auto p-4 border-t border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
           
           {/* Support & Settings always visible */}
-          <div className="flex flex-col gap-1 mb-4 px-2">
+          {/* <div className="flex flex-col gap-1 mb-4 px-2">
             <Link href="/help" className="flex items-center gap-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
               <HelpCircle className="h-4 w-4" /> Support
             </Link>
             <Link href="/settings" className="flex items-center gap-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
               <Settings className="h-4 w-4" /> Settings
             </Link>
-          </div>
+          </div> */}
           
           {/* Only show the profile card if a user is logged in */}
           {user ? (

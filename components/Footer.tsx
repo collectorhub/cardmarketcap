@@ -66,7 +66,7 @@ export function Footer() {
                   className="object-contain transition-transform duration-500 group-hover:scale-110"
                 />
               </div>
-              <span className="text-lg font-black tracking-tighter text-slate-900 dark:text-white uppercase">
+              <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white font-heading">
                 CardMarket<span className="text-[#00BA88]">Cap</span>
               </span>
             </Link>

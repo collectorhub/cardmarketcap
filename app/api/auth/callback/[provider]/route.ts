@@ -1,49 +1,85 @@
-import { NextResponse } from 'next/server';
+// app/api/auth/callback/[provider]/route.ts
 
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+// HANDLE GET (Google, Discord, X)
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ provider: string }> }
 ) {
-  // 1. Properly unwrap the Promise for Next.js 15+
-  const resolvedParams = await params;
-  const provider = resolvedParams.provider;
-  
+  const { provider } = await params;
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
 
+  return handleOAuthLogic(code, provider, requestUrl.origin);
+}
+
+// HANDLE POST (Strictly for Apple)
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ provider: string }> }
+) {
+  const { provider } = await params;
+  
+  // Apple sends data as form-urlencoded in a POST body
+  const formData = await request.formData();
+  const code = formData.get('code') as string;
+  const user = formData.get('user') as string; // Apple sends name/email here ONCE
+
+  const requestUrl = new URL(request.url);
+  
+  // We pass the 'user' data to PHP as well so it can create the account
+  return handleOAuthLogic(code, provider, requestUrl.origin, user);
+}
+
+// SHARED LOGIC
+async function handleOAuthLogic(code: string | null, provider: string, origin: string, appleUser?: string) {
   if (!code) {
-    return NextResponse.redirect(new URL('/sign-in?error=no_code', request.url));
+    return NextResponse.redirect(new URL('/sign-in?error=no_code', origin));
   }
 
-  // 2. Generate the exact redirect_uri to send to PHP
-  // This will automatically be localhost:3000 in dev, or your real domain in prod
-  const redirect_uri = `${requestUrl.origin}/api/auth/callback/${provider}`;
+  const redirect_uri = `${origin}/api/auth/callback/${provider}`;
+  
+  // Access the cookie store to get the PKCE verifier for Twitter
+  const cookieStore = await cookies();
+  const twitterVerifier = cookieStore.get('twitter_code_verifier')?.value;
 
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth_handler.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // 3. SEND ALL 3 REQUIRED FIELDS TO PHP
-      body: JSON.stringify({ code, provider, redirect_uri }),
+      body: JSON.stringify({ 
+        code, 
+        provider, 
+        redirect_uri,
+        code_verifier: provider === 'twitter' ? twitterVerifier : undefined, // Send verifier if provider is X
+        apple_user: appleUser 
+      }),
     });
 
-    const result = await response.json();
-    console.log("OAuth Result:", result); // Keep this to see what PHP says
+    // Check if the response is valid JSON
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error("Malformed JSON from PHP:", text);
+      return NextResponse.redirect(new URL('/sign-in?error=internal_server_error', origin));
+    }
 
-   if (result.success) {
-      const responseUrl = new URL('/auth/success', request.url);
+    if (result.success) {
+      const responseUrl = new URL('/auth/success', origin);
       responseUrl.searchParams.set('token', result.token);
       responseUrl.searchParams.set('user', JSON.stringify(result.user));
       return NextResponse.redirect(responseUrl);
     } else {
-      // REDIRECT TO SIGNUP with the specific message from PHP
-      const signupUrl = new URL('/sign-up', request.url);
+      const signupUrl = new URL('/sign-up', origin);
       signupUrl.searchParams.set('error', result.message || 'auth_failed');
       return NextResponse.redirect(signupUrl);
     }
   } catch (error) {
     console.error("Auth Fetch Error:", error);
+    return NextResponse.redirect(new URL('/sign-in?error=server_error', origin));
   }
-
-  return NextResponse.redirect(new URL('/sign-in?error=auth_failed', request.url));
 }

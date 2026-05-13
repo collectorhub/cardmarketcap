@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { FcGoogle } from 'react-icons/fc' 
-import { FaFacebook, FaApple } from 'react-icons/fa' 
+import { FaFacebook, FaApple, FaDiscord } from 'react-icons/fa' 
 import { FaXTwitter } from 'react-icons/fa6' 
 import { Button } from "@/components/ui/button"
 import Cookies from 'js-cookie'
@@ -52,77 +52,77 @@ function SignupPageFunc() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSocialLogin = (provider: string) => {
-  // IMPORTANT: This must match the URLs you added to Google/X/FB dashboards exactly.
-  const callbackUrl = `${window.location.origin}/api/auth/callback/${provider}`;
-  
-  let rootUrl = "";
-  let options: Record<string, string> = {};
+  const handleSocialLogin = async (provider: string) => {
+    // window.location.origin dynamically handles localhost, vercel, or cardmarketcap.io
+    const callbackUrl = `${window.location.origin}/api/auth/callback/${provider}`;
+    
+    let rootUrl = "";
+    let options: Record<string, string> = {};
 
-  switch (provider) {
-    case 'google':
-      rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-      options = {
-        redirect_uri: callbackUrl,
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-        access_type: "offline",
-        response_type: "code",
-        prompt: "consent",
-        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
-        state: provider,
-      };
-      break;
+    switch (provider) {
+      case 'google':
+        rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+        options = {
+          redirect_uri: callbackUrl,
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+          access_type: "offline",
+          response_type: "code",
+          prompt: "consent",
+          scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+          state: provider,
+        };
+        break;
 
-    case 'facebook':
-      rootUrl = "https://www.facebook.com/v18.0/dialog/oauth";
-      options = {
-        client_id: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
-        // If you can't update FB dashboard, this MUST stay as the production URL 
-        // or whatever is currently whitelisted there.
-        redirect_uri: callbackUrl, 
-        state: provider,
-        scope: "email,public_profile",
-        response_type: "code",
-      };
-      break;
+      case 'discord':
+        rootUrl = "https://discord.com/api/oauth2/authorize";
+        options = {
+          client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!, // Add this to your .env
+          redirect_uri: callbackUrl,
+          response_type: "code",
+          scope: "identify email",
+          state: provider,
+        };
+        break;
 
-    case 'apple':
-      rootUrl = "https://appleid.apple.com/auth/authorize";
-      
-      // Use the current origin dynamically instead of a hardcoded ngrok link
-      const currentOrigin = window.location.origin;
-      const appleCallback = `${currentOrigin}/api/auth/callback/apple`;
-      
-      options = {
-        client_id: "io.cardmarketcap.web",
-        redirect_uri: appleCallback,
-        response_type: "code",
-        response_mode: "form_post", 
-        state: provider,
-        scope: "name email",
-      };
-      break;
+      case 'twitter':
+        rootUrl = "https://twitter.com/i/oauth2/authorize";
 
-    case 'twitter':
-      rootUrl = "https://twitter.com/i/oauth2/authorize";
-      options = {
-        response_type: "code",
-        client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
-        redirect_uri: callbackUrl,
-        scope: "users.read tweet.read email.read",
-        state: provider,
-        // Try changing 'plain' to 'S256' if you implement a proper SHA256 generator
-        code_challenge: "challenge", 
-        code_challenge_method: "plain", 
-      };
-      break;
-  }
+        // Generate a proper PKCE code_verifier (43-128 chars, URL-safe)
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        const verifier = btoa(String.fromCharCode(...array))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
 
-  if (rootUrl) {
-    const qs = new URLSearchParams(options).toString();
-    window.location.href = `${rootUrl}?${qs}`;
-  }
-};
+        // Generate code_challenge = BASE64URL(SHA-256(verifier))
+        const encoder = new TextEncoder();
+        const data = encoder.encode(verifier);
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
+
+        Cookies.set('twitter_code_verifier', verifier, { expires: 1, path: '/' });
+
+        options = {
+          response_type: "code",
+          client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
+          redirect_uri: callbackUrl,
+          scope: "users.read tweet.read",  // ⚠️ remove email.read — not a valid Twitter scope
+          state: provider,
+          code_challenge: challenge,        // hashed challenge, not the verifier
+          code_challenge_method: "S256",
+        };
+        break;
+    }
+
+    if (rootUrl) {
+      const qs = new URLSearchParams(options).toString();
+      window.location.href = `${rootUrl}?${qs}`;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,7 +200,7 @@ function SignupPageFunc() {
             <div className="relative h-10 w-10">
               <Image src="/logo.png" alt="Logo" fill className="object-contain" />
             </div>
-            <span className="text-xl font-bold tracking-tighter text-white">
+            <span className="text-xl font-bold tracking-tighter text-white font-heading">
               CardMarket<span className="text-[#00BA88]">Cap</span>
             </span>
           </Link>
@@ -232,18 +232,38 @@ function SignupPageFunc() {
             </div>
           </div>
 
+          {/* --- Updated Social Buttons Grid --- */}
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <Button onClick={() => handleSocialLogin('google')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FcGoogle className="mr-3 h-5 w-5" /> Google
+            <Button 
+              onClick={() => handleSocialLogin('google')} 
+              variant="outline" 
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+            >
+              <FcGoogle className="mr-2 h-5 w-5" /> Google
             </Button>
-            <Button onClick={() => handleSocialLogin('apple')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaApple className="mr-3 h-5 w-5 dark:text-white" /> Apple
+
+            <Button 
+              onClick={() => handleSocialLogin('apple')} 
+              variant="outline" 
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+            >
+              <FaApple className="mr-2 h-5 w-5" /> Apple
             </Button>
-            <Button onClick={() => handleSocialLogin('facebook')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaFacebook className="mr-3 h-5 w-5 text-[#1877F2]" /> Facebook
+            
+            <Button 
+              onClick={() => handleSocialLogin('twitter')} 
+              variant="outline" 
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+            >
+              <FaXTwitter className="mr-2 h-5 w-5 dark:text-white" /> X (Twitter)
             </Button>
-            <Button onClick={() => handleSocialLogin('twitter')} variant="outline" className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]">
-              <FaXTwitter className="mr-3 h-4 w-4 dark:text-white" /> X (Twitter)
+
+            <Button 
+              onClick={() => handleSocialLogin('discord')} 
+              variant="outline" 
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+            >
+              <FaDiscord className="mr-2 h-5 w-5 dark:text-white" /> Discord
             </Button>
           </div>
 
