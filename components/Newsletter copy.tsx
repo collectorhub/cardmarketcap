@@ -23,6 +23,7 @@ export function Newsletter() {
           viewBox="0 0 400 800" 
           preserveAspectRatio="none"
         >
+          
           <path 
             fill="white" 
             d="M0,200 C100,150 300,250 400,200 L400,800 L0,800 Z" 
