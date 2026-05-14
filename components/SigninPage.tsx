@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { FaApple, FaFacebook } from 'react-icons/fa' 
+import { FaApple, FaDiscord, FaFacebook } from 'react-icons/fa' 
 import { FcGoogle } from 'react-icons/fc' 
 import { FaXTwitter } from 'react-icons/fa6'
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,85 @@ export default function SignInPage() {
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+  const externalError = searchParams.get('error');
+
+  useEffect(() => {
+    if (externalError) {
+      setError(decodeURIComponent(externalError));
+    }
+  }, [externalError]);
+
+  const handleSocialLogin = async (provider: string) => {
+  const callbackUrl = `${window.location.origin}/api/auth/callback/${provider}`;
+  let rootUrl = "";
+  let options: Record<string, string> = {};
+
+  switch (provider) {
+    case 'google':
+      rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+      options = {
+        redirect_uri: callbackUrl,
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        access_type: "offline",
+        response_type: "code",
+        prompt: "consent",
+        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+        state: provider,
+      };
+      break;
+
+    case 'discord':
+      rootUrl = "https://discord.com/api/oauth2/authorize";
+      options = {
+        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+        redirect_uri: callbackUrl,
+        response_type: "code",
+        scope: "identify email",
+        state: provider,
+      };
+      break;
+
+    case 'twitter':
+      rootUrl = "https://twitter.com/i/oauth2/authorize";
+
+      // 1. Generate a random verifier
+      const array = new Uint8Array(32);
+      window.crypto.getRandomValues(array);
+      const verifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      // 2. Generate code_challenge = BASE64URL(SHA-256(verifier))
+      const encoder = new TextEncoder();
+      const data = encoder.encode(verifier);
+      const digest = await window.crypto.subtle.digest('SHA-256', data);
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      // 3. Store the verifier in a cookie so the callback page can read it later
+      Cookies.set('twitter_code_verifier', verifier, { expires: 1, path: '/' });
+
+      options = {
+        response_type: "code",
+        client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
+        redirect_uri: callbackUrl,
+        scope: "users.read tweet.read",
+        state: provider,
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+      };
+      break;
+  }
+
+  if (rootUrl) {
+    const qs = new URLSearchParams(options).toString();
+    window.location.href = `${rootUrl}?${qs}`;
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,32 +228,45 @@ export default function SignInPage() {
               <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Continue with</p>
               
               <div className="flex justify-between items-center gap-3">
-                <button className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                   <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
-                      <FcGoogle className="h-6 w-6" />
-                   </div>
-                   <span className="text-[11px] text-slate-500 font-medium">Google</span>
+                <button 
+                  onClick={() => handleSocialLogin('google')} 
+                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
+                    <FcGoogle className="h-6 w-6" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">Google</span>
                 </button>
 
-                <button className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                   <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
-                      <FaApple className="h-6 w-6 dark:text-white" />
-                   </div>
-                   <span className="text-[11px] text-slate-500 font-medium">Apple</span>
+                {/* Swap Facebook for Discord or add the Discord button */}
+                <button 
+                  onClick={() => handleSocialLogin('discord')} 
+                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
+                    <FaDiscord className="h-6 w-6 text-[#5865F2]" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">Discord</span>
                 </button>
 
-                <button className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                   <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
-                      <FaFacebook className="h-6 w-6 text-[#1877F2]" />
-                   </div>
-                   <span className="text-[11px] text-slate-500 font-medium">Facebook</span>
+                <button 
+                  onClick={() => handleSocialLogin('twitter')} 
+                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
+                    <FaXTwitter className="h-5 w-5 dark:text-white" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">X</span>
                 </button>
 
-                <button className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                   <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
-                      <FaXTwitter className="h-5 w-5 dark:text-white" />
-                   </div>
-                   <span className="text-[11px] text-slate-500 font-medium">X</span>
+                <button 
+                  onClick={() => handleSocialLogin('apple')} 
+                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
+                    <FaApple className="h-5 w-5 dark:text-white" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">Apple</span>
                 </button>
               </div>
             </div>
