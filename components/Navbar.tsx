@@ -12,7 +12,8 @@ import {
   ChevronRight,
   LogOut,
   User,
-  CreditCard
+  CreditCard,
+  Layers
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
@@ -126,9 +127,9 @@ export default function Navbar() {
         )}>
           {label}
         </span>
-        {badge && (
+        {/* {badge && (
           <span className="absolute top-2 right-1/4 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
-        )}
+        )} */}
       </div>
     )
 
@@ -239,10 +240,10 @@ export default function Navbar() {
                   <Button variant="ghost" size="icon" className="text-slate-500 dark:hover:text-slate-100 rounded-xl h-9 w-9" asChild>
                     <Link href="/portfolio"><Briefcase className="h-5 w-5" /></Link>
                   </Button>
-                  <Button variant="ghost" size="icon" className="relative text-slate-500 dark:hover:text-slate-100 rounded-xl h-9 w-9">
+                  {/* <Button variant="ghost" size="icon" className="relative text-slate-500 dark:hover:text-slate-100 rounded-xl h-9 w-9">
                     <Bell className="h-5 w-5" />
                     <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
-                  </Button>
+                  </Button> */}
                 </>
               )}
             </div>
@@ -315,7 +316,7 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <MobileTab onClick={() => {}} icon={Bell} label="Alerts" badge />
+                  <MobileTab onClick={() => {}} icon={Layers} label="Card sets" badge />
                   <MobileTab onClick={toggleMenu} icon={Menu} label="Menu" />
                 </>
               )}

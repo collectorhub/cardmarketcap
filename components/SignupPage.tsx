@@ -237,7 +237,7 @@ function SignupPageFunc() {
             <Button 
               onClick={() => handleSocialLogin('google')} 
               variant="outline" 
-              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px] cursor-pointer"
             >
               <FcGoogle className="mr-2 h-5 w-5" /> Google
             </Button>
@@ -245,7 +245,7 @@ function SignupPageFunc() {
             <Button 
               onClick={() => handleSocialLogin('apple')} 
               variant="outline" 
-              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px] cursor-pointer"
             >
               <FaApple className="mr-2 h-5 w-5" /> Apple
             </Button>
@@ -253,7 +253,7 @@ function SignupPageFunc() {
             <Button 
               onClick={() => handleSocialLogin('twitter')} 
               variant="outline" 
-              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px] cursor-pointer"
             >
               <FaXTwitter className="mr-2 h-5 w-5 dark:text-white" /> X (Twitter)
             </Button>
@@ -261,9 +261,9 @@ function SignupPageFunc() {
             <Button 
               onClick={() => handleSocialLogin('discord')} 
               variant="outline" 
-              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px]"
+              className="w-full rounded-md font-semibold h-12 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all text-[14px] cursor-pointer"
             >
-              <FaDiscord className="mr-2 h-5 w-5 dark:text-white" /> Discord
+              <FaDiscord className="mr-2 h-5 w-5 text-[#5865F2]" /> Discord
             </Button>
           </div>
 

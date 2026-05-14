@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -21,24 +21,17 @@ export default function PortfolioHeader({ data }: { data: any }) {
   const pathname = usePathname();
   const isWatchlist = pathname === '/portfolio/watchlist';
 
-    // 1. Extract the real values from your 'data' prop
-const totalValue = data?.stats?.totalValue || 0;
-const growthPercentage = data?.stats?.growth7D || 0;
+  // --- LOGIC PRESERVATION ---
+  const totalValue = data?.stats?.totalValue || 0;
+  const growthPercentage = data?.stats?.growth7D || 0;
+  const calculatedIncrease = (totalValue * (growthPercentage / 100));
+  const formattedIncrease = calculatedIncrease.toLocaleString(undefined, { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  });
 
-// 2. Calculate the real dollar increase
-// Note: If you want exactly "24h" data, your backend must provide a 24h growth field. 
-// If using the 7D field provided in your screenshot:
-const calculatedIncrease = (totalValue * (growthPercentage / 100));
-
-const formattedIncrease = calculatedIncrease.toLocaleString(undefined, { 
-  minimumFractionDigits: 2, 
-  maximumFractionDigits: 2 
-});
-
-  // --- DYNAMIC DATA CALCULATIONS ---
   const userName = data?.user?.name || "Collector";
   const userId = data?.user?.id || 0;
-  
   const mainStatValue = data?.stats?.totalValue || 0;
   const mainStatGrowth = data?.stats?.growth7D || 0;
   const secondaryStat1Value = data?.stats?.totalCards || 0;
@@ -51,21 +44,21 @@ const formattedIncrease = calculatedIncrease.toLocaleString(undefined, {
 
   const headerTitle = isWatchlist ? "Watchlist" : `Welcome back, ${userName}! 👋`;
   const subTitle = isWatchlist 
-  ? "Track cards you're watching. Get alerts on price changes and market moves."
-  : `Your collection value increased by +$${formattedIncrease} in the last 7 days.`;
+    ? "Track cards you're watching. Get alerts on price changes and market moves."
+    : `Your collection value increased by +$${formattedIncrease} in the last 7 days.`;
 
   return (
-    <header className="w-full pt-20 md:pt-8 pb-0">
+    <header className="w-full pt-20 md:pt-8 pb-0 px-4 md:px-0">
       {/* 1. TOP SECTION (Title + Stats) */}
-      <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-8 mb-8">
         
         {/* Left Content: Title & Subtitle */}
-        <div className="space-y-1 py-2 text-center lg:text-left"> 
+        <div className="space-y-2 py-2 text-center lg:text-left w-full lg:w-auto"> 
           <motion.h1 
             key={isWatchlist ? 'watchlist' : 'portfolio'}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight"
+            className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight"
           >
             {isWatchlist ? (
               headerTitle
@@ -73,7 +66,7 @@ const formattedIncrease = calculatedIncrease.toLocaleString(undefined, {
               <>Welcome back, <span className="text-[#00BA88]">{userName}! 👋</span></>
             )}
           </motion.h1>
-          <p className="text-slate-500 dark:text-slate-400 text-[12px] md:text-[14px] font-medium">
+          <p className="text-slate-500 dark:text-slate-400 text-[13px] md:text-[14px] font-medium max-w-md mx-auto lg:mx-0">
             {isWatchlist ? (
               subTitle
             ) : (
@@ -82,15 +75,15 @@ const formattedIncrease = calculatedIncrease.toLocaleString(undefined, {
           </p>
         </div>
 
-        {/* Right Content: Stat Card (Now shows on both Portfolio & Watchlist) */}
-        <div className="w-full lg:w-auto bg-white dark:bg-slate-900 px-4 md:px-6 py-4 rounded-[16px] border border-slate-100 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-row items-center gap-4 sm:gap-8">
+        {/* Right Content: Stat Card */}
+        <div className="w-full sm:w-auto bg-white dark:bg-slate-900 px-5 py-4 rounded-[20px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-row items-center justify-between sm:justify-start gap-4 sm:gap-10">
           <div className="flex flex-col items-start gap-1">
             <div className="flex items-center gap-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">Total Value</p>
               <Info size={11} className="text-slate-300 dark:text-slate-600 cursor-help" />
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="text-[18px] md:text-[20px] font-black text-slate-900 dark:text-white leading-none tracking-tight">
+              <span className="text-[18px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none tracking-tight">
                 ${mainStatValue.toLocaleString()}
               </span>
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-500 border border-emerald-100 dark:border-emerald-500/20">
@@ -102,85 +95,81 @@ const formattedIncrease = calculatedIncrease.toLocaleString(undefined, {
 
           <div className="h-8 w-[1px] bg-slate-100 dark:bg-slate-800" />
 
-          <div className="flex gap-6">
+          <div className="flex gap-6 sm:gap-8">
             <div className="flex flex-col gap-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">Cards</p>
-              <p className="text-[18px] md:text-[20px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat1Value}</p>
+              <p className="text-[18px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat1Value}</p>
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">Sets</p>
-              <p className="text-[18px] md:text-[20px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat2Value}</p>
+              <p className="text-[18px] md:text-[22px] font-black text-slate-900 dark:text-white leading-none">{secondaryStat2Value}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. NAVIGATION ROW (Tabs Left, Buttons Right) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800">
-        {/* Tabs */}
-        <nav className="flex gap-2 overflow-x-auto no-scrollbar">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            
-            return (
-              <Link 
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "relative pb-3.5 px-3 md:px-4 text-[13px] font-semibold transition-all flex items-center gap-2 group",
-                  isActive 
-                    ? "text-emerald-500" 
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                )}
-              >
-                <Icon 
-                  size={16} 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                  className={cn(
-                    "transition-colors",
-                    isActive ? "text-emerald-500" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
-                  )} 
-                />
-                <span className="whitespace-nowrap">{item.label}</span>
-                
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-500"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+     {/* 2. NAVIGATION ROW */}
+<div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 dark:border-slate-800">
+  
+  {/* Update this <nav> tag */}
+  <nav className="flex justify-center md:justify-start gap-2 md:gap-6 w-full md:w-auto overflow-x-auto no-scrollbar -mb-[1px]">
+    {NAV_ITEMS.map((item) => {
+      const Icon = item.icon;
+      const isActive = pathname === item.href;
+      
+      return (
+        <Link 
+          key={item.label}
+          href={item.href}
+          className={cn(
+            "relative pb-4 px-3 md:px-1 text-[14px] font-bold transition-all flex items-center gap-2 group whitespace-nowrap",
+            isActive 
+              ? "text-emerald-500" 
+              : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+          )}
+        >
+          <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+          <span>{item.label}</span>
+          
+          {isActive && (
+            <motion.div 
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-emerald-500 rounded-t-full"
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
+        </Link>
+      );
+    })}
+  </nav>
 
-        {/* Action Buttons (Right side on Desktop) */}
-        <div className="flex items-center gap-2 md:gap-3 pb-3">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 pb-4 w-full md:w-auto">
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-[#00BA88] text-white rounded-xl text-[12px] font-black hover:bg-[#00a377] transition-all shadow-md shadow-emerald-500/20"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-[#00BA88] text-white rounded-2xl text-[13px] font-black hover:bg-[#00a377] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
           >
-            <Plus size={14} strokeWidth={3} />
+            <Plus size={16} strokeWidth={3} />
             <span>Add Card</span>
           </button>
           
-          <button className="flex items-center gap-2 px-3 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-[12px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-            <Download size={14} />
-            <span className="hidden sm:inline">Export CSV</span>
+          <button className="flex items-center justify-center gap-2 cursor-pointer px-3.5 md:px-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-[0.98]">
+          <Download size={18} />
+            <span className="hidden md:inline text-[13px] font-bold">Export CSV</span>
           </button>
         </div>
       </div>
 
       {/* 3. MODAL OVERLAY */}
-      {isModalOpen && (
-        <AddCardModal 
-          userId={userId} 
-          onClose={() => setIsModalOpen(false)} 
-          onRefresh={() => window.location.reload()}
-        />
-      )}
+      <AnimatePresence>
+        {isModalOpen && (
+          <AddCardModal 
+            userId={userId} 
+            onClose={() => setIsModalOpen(false)} 
+            onRefresh={() => window.location.reload()}
+          />
+        )}
+      </AnimatePresence>
     </header>
   );
 }
