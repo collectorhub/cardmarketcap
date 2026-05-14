@@ -238,6 +238,16 @@ function SignInPageContent() {
                   <span className="text-[11px] text-slate-500 font-medium">Google</span>
                 </button>
 
+                <button 
+                  onClick={() => handleSocialLogin('twitter')} 
+                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
+                    <FaXTwitter className="h-5 w-5 dark:text-white" />
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">X</span>
+                </button>
+
                 {/* Swap Facebook for Discord or add the Discord button */}
                 <button 
                   onClick={() => handleSocialLogin('discord')} 
@@ -247,16 +257,6 @@ function SignInPageContent() {
                     <FaDiscord className="h-6 w-6 text-[#5865F2]" />
                   </div>
                   <span className="text-[11px] text-slate-500 font-medium">Discord</span>
-                </button>
-
-                <button 
-                  onClick={() => handleSocialLogin('twitter')} 
-                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
-                >
-                  <div className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-[#30363d] rounded-lg hover:bg-slate-50 dark:hover:bg-[#161b22] transition-all">
-                    <FaXTwitter className="h-5 w-5 dark:text-white" />
-                  </div>
-                  <span className="text-[11px] text-slate-500 font-medium">X</span>
                 </button>
 
                 <button 
