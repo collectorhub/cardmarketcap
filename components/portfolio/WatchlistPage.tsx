@@ -6,8 +6,8 @@ import { WatchlistHero } from './WatchlistHero';
 import AllocationCard from '../AllocationCard';
 import GrowthSummaryCard from './GrowthSummaryCard';
 import { WatchlistStats } from './WatchlistStats';
-import { Plus, LayoutGrid } from 'lucide-react'; // Added icons
-import AddCardModal from './AddCardModal'; // Import your modal
+import { Plus, LayoutGrid, Layers } from 'lucide-react';
+import AddCardModal from './AddCardModal';
 
 export default function WatchlistPage({ data }: { data: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,24 +25,27 @@ export default function WatchlistPage({ data }: { data: any }) {
   // --- EMPTY STATE VIEW ---
   if (isEmpty) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in zoom-in duration-500">
-        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mb-6">
-          <LayoutGrid className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in zoom-in duration-700">
+        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] flex items-center justify-center mb-8 shadow-sm">
+          <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600" />
         </div>
         
-        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-3">
+        {/* Match Header H1 size */}
+        <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
           Your watchlist is empty
         </h2>
         
-        <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">
+        {/* Match Header Subtitle size */}
+        <p className="text-slate-500 dark:text-slate-400 text-[13px] md:text-[14px] font-medium max-w-sm mb-10 leading-relaxed">
           Start tracking price changes and market moves for your favorite cards. Add your first card to begin.
         </p>
 
+        {/* Match Header Button styling */}
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-8 py-4 bg-[#00BA88] text-white rounded-2xl font-black hover:bg-[#00a377] transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
+          className="flex items-center justify-center gap-2 px-8 py-4 bg-[#00BA88] text-white rounded-2xl text-[13px] font-black hover:bg-[#00a377] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
         >
-          <Plus size={20} strokeWidth={3} />
+          <Plus size={18} strokeWidth={3} />
           <span>Add Your First Card</span>
         </button>
 

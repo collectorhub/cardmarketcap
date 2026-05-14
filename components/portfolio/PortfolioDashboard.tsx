@@ -90,6 +90,8 @@ const RowActions = () => {
 };
 
 export default function PortfolioDashboard({ data }: { data: any }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const { 
     stats = { totalValue: 0, totalCards: 0, totalSets: 0 }, 
     performance = { change7D: 0, change7DPct: 0, allTimeHigh: 0, allTimeLow: 0 }, 
@@ -151,6 +153,47 @@ export default function PortfolioDashboard({ data }: { data: any }) {
 
     return { points, path, fill, yLabels };
   }, [stats.totalValue, performance.change7DPct]);
+
+  // Define the empty condition
+  const isEmpty = cards.length === 0;
+
+  // --- EMPTY STATE UI ---
+  if (isEmpty) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in zoom-in duration-700">
+        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] flex items-center justify-center mb-8 shadow-sm">
+          <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+        </div>
+        
+        <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
+          Your portfolio is empty
+        </h2>
+        
+        <p className="text-slate-500 dark:text-slate-400 text-[13px] md:text-[14px] font-medium max-w-sm mb-10 leading-relaxed">
+          Start building your collection to see performance analytics, market value growth, and grade distribution.
+        </p>
+
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-8 py-4 bg-[#00BA88] text-white rounded-2xl text-[13px] font-black hover:bg-[#00a377] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+        >
+          <Plus size={18} strokeWidth={3} />
+          <span>Add Your First Card</span>
+        </button>
+
+        {/* Modal handled locally for the CTA */}
+        <AnimatePresence>
+          {isModalOpen && (
+            <AddCardModal 
+              userId={data?.user?.id} 
+              onClose={() => setIsModalOpen(false)} 
+              onRefresh={() => window.location.reload()}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">

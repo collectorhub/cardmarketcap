@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -13,7 +13,7 @@ import Cookies from 'js-cookie' // 1. Import js-cookie
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export default function SignInPage() {
+function SignInPageContent() {
   const router = useRouter();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -281,4 +281,16 @@ export default function SignInPage() {
       </div>
     </div>
   )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-full flex items-center justify-center bg-white dark:bg-[#0d1117]">
+        <div className="animate-pulse text-[#00BA88] font-bold">Loading...</div>
+      </div>
+    }>
+      <SignInPageContent />
+    </Suspense>
+  );
 }

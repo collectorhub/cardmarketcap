@@ -61,23 +61,23 @@ export default function PortfolioPage() {
     loadPortfolio();
   }, []);
 
-  // if (loading) {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-  //       <Loader2 className="animate-spin text-[#00BA88]" size={40} />
-  //       <p className="text-slate-500 font-medium animate-pulse">Loading your collection...</p>
-  //     </div>
-  //   );
-  // }
-
-  if (!data) {
+  if (loading) {
     return (
-      <div className="p-20 text-center">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">No collection found</h1>
-        <p className="text-slate-500">Please log in to track your cards.</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="animate-spin text-[#00BA88]" size={40} />
+        <p className="text-slate-500 font-medium animate-pulse">Loading your collection...</p>
       </div>
     );
   }
+
+  // if (!data) {
+  //   return (
+  //     <div className="p-20 text-center">
+  //       <h1 className="text-xl font-bold text-slate-900 dark:text-white">No collection found</h1>
+  //       <p className="text-slate-500">Please log in to track your cards.</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="w-full">
