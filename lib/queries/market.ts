@@ -84,6 +84,9 @@ export async function fetchCMCCards(
       ...card,
       image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
       
+      // ✨ Normalizing routing variations securely:
+      canonicalUrl: card.canonical_path || card.canonicalUrl || card.url || "",
+      
       // EXPLICIT RARITY FETCHING
       rarity: card.rarity || card.type || "Standard", 
       
@@ -105,70 +108,61 @@ export async function fetchCMCCards(
   }
 }
 
-export async function fetchCardById(id: string, game: string = "pokemon") {
+export async function fetchCardByCanonicalUrl(canonicalPath: string, game: string = "pokemon") {
   try {
-    // 1. Fetch Population Data in parallel with the main card request for speed
-    const popDataPromise = fetchPopData(id);
+    let normalizedGame = game.toLowerCase();
+    if (normalizedGame === "magic") normalizedGame = "mtg";
 
-    // 2. Primary Fetch: Include the 'game' parameter
-    const cmcResponse = await fetch(
-      `${API_BASE}/cmc_cards.php?search=${id}&game=${game}`, 
-      {
-        next: { revalidate: 60 } 
-      }
+    // 1. QUERY CMC_ASSETS VIA EXACT PATH 
+    const assetResponse = await fetch(
+      `${API_BASE}/cmc_universal_search.php?q=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&limit=1`,
+      { next: { revalidate: 60 } }
     );
 
-    let cardResult: any = null;
-
-    if (cmcResponse.ok) {
-      const cmcJson = await cmcResponse.json();
-      
-      if (cmcJson.success && cmcJson.data?.length > 0) {
-        const found = cmcJson.data.find((c: any) => String(c.id) === id);
-        
-        if (found) {
-          const population = await popDataPromise;
-          cardResult = {
-            ...found,
-            rarity: found.rarity || found.type || "Standard", 
-            setLogo: found.setLogo,
-            setSymbol: found.setSymbol,
-            priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
-            image: found.imageUrl,
-            population: population || {} // Attach the pop data here
-          };
-        }
-      }
-    }
-
-    // 3. Fallback to Trending if primary fetch failed
-    if (!cardResult) {
-      const trendingCards = await fetchTrendingCards();
-      const trendingMatch = trendingCards.find(c => String(c.id) === id);
-
-      if (trendingMatch) {
-        const population = await popDataPromise;
-        cardResult = {
-          id: trendingMatch.id,
-          name: trendingMatch.name,
-          imageUrl: trendingMatch.image,
-          image: trendingMatch.image, 
-          priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
-          price: trendingMatch.price,
-          set: trendingMatch.set,
-          set_name: trendingMatch.set,
-          rarity: "Trending",
-          grade: trendingMatch.grade || "Raw",
-          setLogo: null,
-          setSymbol: null,
-          population: population || {} // Also attach here
+    if (assetResponse.ok) {
+      const assetJson = await assetResponse.json();
+      if (assetJson.success && assetJson.results?.length > 0) {
+        const assetMatch = assetJson.results[0];
+        return {
+          id: assetMatch.id,
+          source_id: assetMatch.id,
+          name: assetMatch.name,
+          game: assetMatch.game,
+          set_name: assetMatch.set,
+          expansion_name: assetMatch.set,
+          number: assetMatch.number,
+          image: assetMatch.imageUrl,
+          imageUrl: assetMatch.imageUrl,
+          canonical_path: assetMatch.url,
+          rarity: "Standard",
+          priceNum: 0,
+          price: "$0.00"
         };
       }
     }
-    
-    return cardResult;
+
+    // 2. FALLBACK: QUERY CMC_CARDS VIA EXACT PATH
+    const cmcResponse = await fetch(
+      `${API_BASE}/cmc_cards.php?search=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&limit=1`,
+      { next: { revalidate: 60 } }
+    );
+
+    if (cmcResponse.ok) {
+      const cmcJson = await cmcResponse.json();
+      if (cmcJson.success && cmcJson.data?.length > 0) {
+        const frontendMatch = cmcJson.data[0];
+        return {
+          ...frontendMatch,
+          rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
+          priceNum: parseFloat(String(frontendMatch.price || "0").replace(/[$,]/g, '') || "0"),
+          image: frontendMatch.imageUrl || frontendMatch.image_small,
+        };
+      }
+    }
+
+    return null;
   } catch (error) {
-    console.error("Error in unified fetchCardById:", error);
+    console.error("Error fetching card by canonical URL:", error);
     return null;
   }
 }

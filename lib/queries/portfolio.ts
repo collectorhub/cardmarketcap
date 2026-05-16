@@ -41,7 +41,7 @@ export async function addCardToPortfolio(formData: {
 export async function getWatchlist(userId: number) {
   try {
     // We use a query parameter for the GET request
-    const response = await fetch(`${API_BASE}/watchlist.php?userId=${userId}`, {
+    const response = await fetch(`${API_BASE}/portfolio.php?userId=${userId}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       // 'no-store' ensures we always get the latest data from the DB

@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CgArrowLongRight } from 'react-icons/cg';
 import AllocationCard from '../AllocationCard';
+import { useRouter } from 'next/navigation';
 
 const ALLOCATION = [
   { name: 'PSA 10', value: 45.2, color: '#7c3aed' },
@@ -21,9 +22,10 @@ const ALLOCATION = [
   { name: 'PSA 7 & Below', value: 5.2, color: '#ef4444' },
 ];
 
-const RowActions = () => {
+const RowActions = ({ card, gameType }: { card: any; gameType: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,10 +37,17 @@ const RowActions = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const actions = [
-    { label: 'View Details', icon: Eye },
-    { label: 'Remove', icon: Trash2, variant: 'danger' },
-  ];
+  const handleActionClick = (e: React.MouseEvent, actionLabel: string) => {
+    e.stopPropagation(); // Prevents the table row onClick from firing
+    setIsOpen(false);
+
+    if (actionLabel === 'View Details') {
+      router.push(`/card/${card.card_id}?game=${gameType}`);
+    } else if (actionLabel === 'Remove') {
+      // Handle remove logic here (e.g., callback, state update, or API call)
+      console.log(`Remove card: ${card.id}`);
+    }
+  };
 
   return (
     <div className="relative flex justify-end items-center" ref={containerRef}>
@@ -51,10 +60,13 @@ const RowActions = () => {
             className="absolute right-full mr-2 z-[100] w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden"
           >
             <div className="p-1.5">
-              {actions.map((action, idx) => (
+              {[
+                { label: 'View Details', icon: Eye },
+                { label: 'Remove', icon: Trash2, variant: 'danger' },
+              ].map((action, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setIsOpen(false)}
+                  onClick={(e) => handleActionClick(e, action.label)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors",
                     action.variant === 'danger'
@@ -73,14 +85,14 @@ const RowActions = () => {
 
       <button
         onClick={(e) => {
-          e.stopPropagation();
+          e.stopPropagation(); // Prevents clicking the dots from opening the card page directly
           setIsOpen(!isOpen);
         }}
         className={cn(
           "p-1.5 rounded-full transition-all duration-200 relative z-10",
           isOpen 
             ? "bg-slate-100 dark:bg-slate-800 text-emerald-500" 
-            : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600"
+            : "text-slate-400 hover:bg-slate-100 dark:hover:hover:bg-slate-800 hover:text-slate-600"
         )}
       >
         <MoreVertical size={18} />
@@ -91,6 +103,8 @@ const RowActions = () => {
 
 export default function PortfolioDashboard({ data }: { data: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const router = useRouter()
 
   const { 
     stats = { totalValue: 0, totalCards: 0, totalSets: 0 }, 
@@ -328,144 +342,171 @@ export default function PortfolioDashboard({ data }: { data: any }) {
           </div>
 
           {/* 2. YOUR TOP CARDS TABLE */}
-          <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
-            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
-                Page {currentPage} of {totalPages || 1}
-              </span>
-            </div>
-            
-            <div className="w-full overflow-x-auto scrollbar-hide">
-              <table className="w-full text-left border-collapse table-fixed min-w-[900px] lg:min-w-full">
-                <thead>
-                  <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                    <th className="px-4 py-4 w-[22%]">Card</th>
-                    <th className="px-4 py-4 w-[16%]">Set</th>
-                    <th className="px-2 py-4 w-[8%] text-center">Grade</th>
-                    <th className="px-4 py-4 w-[13%]">Last Sale</th>
-                    <th className="px-4 py-4 w-[13%]">Market Value</th>
-                    <th className="px-4 py-4 w-[10%]">Change</th>
-                    <th className="px-4 py-4 w-[12%]">Allocation</th>
-                    <th className="px-4 py-4 w-[6%]"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                  {paginatedCards.map((card: any, i: number) => {
-                    const isPositive = card.change >= 0;
-                    const chartColor = isPositive ? '#10b981' : '#ef4444';
-                    const sparkPath = isPositive 
-                      ? "M0,25 Q20,22 40,25 T70,15 T100,5" 
-                      : "M0,5 Q20,8 40,5 T70,20 T100,25";
-
-                    return (
-                      <tr key={i} className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-8 h-11 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
-                              {card.image ? (
-                                <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">NO IMG</div>
-                              )}
-                            </div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">
-                              {card.name}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <p className="text-[11px] text-slate-400 font-bold uppercase truncate">{card.setName}</p>
-                        </td>
-                        <td className="px-2 py-4 text-center">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                            {card.grade}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
-                            ${(card.value || 0).toLocaleString()}
-                          </p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Market Price</p>
-                        </td>
-                        <td className="px-4 py-4">
-                          <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
-                            ${(card.value || 0).toLocaleString()}
-                          </p>
-                          <p className={cn(
-                            "text-[9px] font-bold flex items-center gap-0.5", 
-                            isPositive ? "text-emerald-500" : "text-red-500"
-                          )}>
-                            {isPositive ? '↗' : '↘'} {Math.abs(card.change)}%
-                          </p>
-                        </td>
-                        <td className="px-4 py-4">
-                          <p className="text-[13px] font-black text-slate-800 dark:text-slate-200">
-                            {((card.value / (stats.totalValue || 1)) * 100).toFixed(2)}%
-                          </p>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="h-10 w-full max-w-[120px] flex items-center">
-                            <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-                              <defs>
-                                <linearGradient id={`gradient-${i}`} x1="0" x2="0" y1="0" y2="1">
-                                  <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
-                                  <stop offset="100%" stopColor={chartColor} stopOpacity="0" />
-                                </linearGradient>
-                              </defs>
-                              <motion.path d={`${sparkPath} L 100,40 L 0,40 Z`} fill={`url(#gradient-${i})`} />
-                              <motion.path d={sparkPath} fill="none" stroke={chartColor} strokeWidth="3" strokeDasharray="1 5" strokeLinecap="round" />
-                            </svg>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <RowActions />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* PAGINATION FOOTER */}
-            <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
-              >
-                <ArrowRight size={14} className="rotate-180" /> Previous
-              </button>
-              
-              <div className="flex gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={cn(
-                      "w-8 h-8 rounded-lg text-[11px] font-black transition-all",
-                      currentPage === page 
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
-                        : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    )}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
-              >
-                Next <ArrowRight size={14} />
-              </button>
-            </div>
+        <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
+          <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
+            </h3>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
+              Page {currentPage} of {totalPages || 1}
+            </span>
           </div>
+          
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <table className="w-full text-left border-collapse table-fixed min-w-[900px] lg:min-w-full">
+              <thead>
+                <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                  <th className="px-4 py-4 w-[22%]">Card</th>
+                  <th className="px-4 py-4 w-[16%]">Set</th>
+                  <th className="px-2 py-4 w-[8%] text-center">Grade</th>
+                  <th className="px-4 py-4 w-[13%]">Last Sale</th>
+                  <th className="px-4 py-4 w-[13%]">Market Value</th>
+                  <th className="px-4 py-4 w-[10%]">Change</th>
+                  <th className="px-4 py-4 w-[12%]">Allocation</th>
+                  <th className="px-4 py-4 w-[6%]"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                {paginatedCards.map((card: any, i: number) => {
+                  const isPositive = card.change >= 0;
+                  const chartColor = isPositive ? '#10b981' : '#ef4444';
+                  const sparkPath = isPositive 
+                    ? "M0,25 Q20,22 40,25 T70,15 T100,5" 
+                    : "M0,5 Q20,8 40,5 T70,20 T100,25";
+
+                  // Extracting raw path variations safely
+                  const rawPath = card.canonical_path || card.url || "";
+
+                  // Aligns the paths cleanly exactly how your client watchlist does it
+                  const handleNavigation = () => {
+                    if (rawPath) {
+                      const dynamicRoute = rawPath.startsWith('/card') ? rawPath : `/card${rawPath}`;
+                      router.push(dynamicRoute);
+                    } else if (card.card_id) {
+                      // Fallback protection if raw path values happen to be missing
+                      let gameType = 'lorcana';
+                      if (card.url?.includes('/pokemon/')) gameType = 'pokemon';
+                      if (card.url?.includes('/mtg/') || card.url?.includes('/magicthegathering/')) gameType = 'magic';
+                      router.push(`/card/${card.card_id}?game=${gameType}`);
+                    }
+                  };
+
+                  return (
+                    <tr 
+                      key={card.id || i} 
+                      onClick={handleNavigation}
+                      className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-8 h-11 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
+                            {card.imageUrl ? (
+                              <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">NO IMG</div>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">
+                            {card.name}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[11px] text-slate-400 font-bold uppercase truncate">{card.set}</p>
+                      </td>
+                      <td className="px-2 py-4 text-center">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                          {card.grade || 'RAW'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
+                          ${(card.value || 0).toLocaleString()}
+                        </p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Market Price</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
+                          ${(card.value || 0).toLocaleString()}
+                        </p>
+                        <p className={cn(
+                          "text-[9px] font-bold flex items-center gap-0.5", 
+                          isPositive ? "text-emerald-500" : "text-red-500"
+                        )}>
+                          {isPositive ? '↗' : '↘'} {Math.abs(card.change || 0)}%
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-[13px] font-black text-slate-800 dark:text-slate-200">
+                          {((card.value / (stats.totalValue || 1)) * 100).toFixed(2)}%
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-10 w-full max-w-[120px] flex items-center">
+                          <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                            <defs>
+                              <linearGradient id={`gradient-${i}`} x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
+                                <stop offset="100%" stopColor={chartColor} stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            <motion.path d={`${sparkPath} L 100,40 L 0,40 Z`} fill={`url(#gradient-${i})`} />
+                            <motion.path d={sparkPath} fill="none" stroke={chartColor} strokeWidth="3" strokeDasharray="1 5" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                      </td>
+                      <td 
+                        className="px-4 py-4 text-right" 
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <RowActions 
+                          onViewDetails={handleNavigation}
+                          onRemove={() => console.log("Remove triggered for asset id:", card.id)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINATION FOOTER */}
+          <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
+            >
+              <ArrowRight size={14} className="rotate-180" /> Previous
+            </button>
+            
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={cn(
+                    "w-8 h-8 rounded-lg text-[11px] font-black transition-all",
+                    currentPage === page 
+                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
+                      : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
+            >
+              Next <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
         </div>
 
         {/* RIGHT COLUMN: Allocation & Insights */}

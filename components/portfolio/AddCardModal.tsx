@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Search, X, Loader2, Check, TrendingUp, Plus,
+  Search, X, Loader2, Check, Plus,
   Zap, Wand2, Star, Anchor, LayoutGrid
 } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { fetchUniversalSearch } from "@/lib/queries/search";
 import { addCardToPortfolio } from '@/lib/queries/portfolio';
+import { addCardToWatchlist } from '@/lib/queries/watchlist'; // Import your new query
 
 const QUICK_FILTERS = [
   { id: "pokemon", name: "Pokémon", icon: Zap },
@@ -17,7 +18,8 @@ const QUICK_FILTERS = [
   { id: "onepiece", name: "One Piece", icon: Anchor },
 ];
 
-export default function AddCardModal({ userId, onClose, onRefresh }: any) {
+// Added 'mode' to props
+export default function AddCardModal({ userId, onClose, onRefresh, mode = 'portfolio' }: any) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [results, setResults] = useState<any[]>([]);
@@ -26,28 +28,36 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
   const [activeUserId, setActiveUserId] = useState(userId);
   const [successId, setSuccessId] = useState<string | null>(null);
 
+  // Dynamic configuration based on mode
+  const isWatchlistMode = mode === 'watchlist';
+  const headingText = isWatchlistMode ? "Watch a card" : "Add a card";
+  const subtext = isWatchlistMode 
+    ? "Track assets to monitor price changes" 
+    : "Search for an asset to add it to your collection";
+
   useEffect(() => {
-    if (!userId) {
+    // If a userId is passed as a prop, use it immediately
+    if (userId) {
+      setActiveUserId(userId);
+    } else {
+      // Only fallback to localStorage if no prop exists
       const stored = localStorage.getItem('user_data');
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          setActiveUserId(parsed.id || parsed.user_id); 
+          setActiveUserId(parsed.id || parsed.user_id);
         } catch (e) { console.error(e); }
       }
     }
-  }, [userId]);
+  }, [userId]); // Add userId to the dependency array
 
   const performSearch = useCallback(async (searchQuery: string, catId: string | null) => {
-    // If no query and no category, don't ping the server
     if (!searchQuery.trim() && !catId) {
       setResults([]);
       return;
     }
-
     setIsSearching(true);
     try {
-      // Logic fix: trimming query to handle the "empty" search when a filter is clicked
       const data = await fetchUniversalSearch(searchQuery.trim(), catId, 20);
       setResults(data || []);
     } catch (err) {
@@ -60,7 +70,6 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Trigger search if we have a query OR a category is active
       if (query.trim().length >= 2 || selectedCategory) {
         performSearch(query, selectedCategory);
       }
@@ -74,7 +83,11 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
     if (!activeUserId || addingId) return;
     
     setAddingId(card.id);
-    const result = await addCardToPortfolio({
+
+    // DYNAMIC ACTION: Call the correct server action based on mode
+    const action = isWatchlistMode ? addCardToWatchlist : addCardToPortfolio;
+    
+    const result = await action({
       user_id: activeUserId,
       card_id: card.id,
       grade: "Raw"
@@ -88,21 +101,15 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
       }, 800);
     } else {
       setAddingId(null);
+      // Optional: Add a toast notification here for result.message if it fails
     }
   };
 
   const selectFilter = (id: string) => {
-  // If clicking the same filter, toggle it off.
-  const newCat = selectedCategory === id ? null : id;
-  setSelectedCategory(newCat);
-  
-  // If we just selected a category, we clear the text query.
-  // This allows the PHP "INITIAL LOAD MODE" (ORDER BY asset_id DESC)
-  // to show the newest cards for that specific game.
-  if (newCat) {
-    setQuery(""); 
-  }
-};
+    const newCat = selectedCategory === id ? null : id;
+    setSelectedCategory(newCat);
+    if (newCat) setQuery(""); 
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -111,13 +118,11 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white dark:bg-[#0B0F1A] w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5 flex flex-col max-h-[85vh]"
       >
-        {/* Header Section */}
         <div className="px-6 pt-8 pb-4 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#0B0F1A] z-10">
           <div className="flex justify-between items-start mb-6 px-2">
             <div>
-              {/* Balanced Caps: Sentence case for heading and guide text */}
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Add a card</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-[11px] font-medium mt-0.5">Search for an asset to add it to your collection</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{headingText}</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-[11px] font-medium mt-0.5">{subtext}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all">
               <X size={18} className="text-slate-400" />
@@ -157,7 +162,6 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
           </div>
         </div>
 
-        {/* Results Container */}
         <div className="flex-grow overflow-y-auto p-6 custom-scrollbar bg-slate-50/20 dark:bg-transparent">
           <div className="grid grid-cols-2 gap-4">
             <AnimatePresence mode="popLayout">
@@ -182,7 +186,6 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
                     </div>
 
                     <div className="space-y-1 px-1">
-                      {/* Kept Black Caps and sizing for card metadata as requested */}
                       <h4 className="text-[13px] font-black uppercase text-slate-900 dark:text-white truncate tracking-tight">
                         {card.name}
                       </h4>
@@ -211,17 +214,17 @@ export default function AddCardModal({ userId, onClose, onRefresh }: any) {
                           {isSuccess ? (
                             <>
                               <Check size={12} strokeWidth={4} className="animate-in zoom-in duration-300" />
-                              <span>Added</span>
+                              <span>{isWatchlistMode ? "Watching" : "Added"}</span>
                             </>
                           ) : isAdding ? (
                             <>
                               <Loader2 size={12} className="animate-spin" />
-                              <span>Adding...</span>
+                              <span>{isWatchlistMode ? "Tracking..." : "Adding..."}</span>
                             </>
                           ) : (
                             <>
                               <Plus size={12} strokeWidth={4} />
-                              <span>Add</span>
+                              <span>{isWatchlistMode ? "Watch" : "Add"}</span>
                             </>
                           )}
                         </button>

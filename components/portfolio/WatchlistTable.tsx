@@ -47,9 +47,9 @@ const Sparkline = ({ trend, color, path, index }: { trend: 'up' | 'down', color:
 );
 
 /**
- * 2. INTEGRATED ROW ACTIONS
+ * 2. INTEGRATED ROW ACTIONS (Updated with direct navigation trigger)
  */
-const RowActions = () => {
+const RowActions = ({ onViewDetails, onRemove }: { onViewDetails: () => void, onRemove?: () => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,8 +62,8 @@ const RowActions = () => {
   }, []);
 
   const actions = [
-    { label: 'View Details', icon: Eye },
-    { label: 'Remove', icon: Trash2, variant: 'danger' },
+    { label: 'View Details', icon: Eye, action: onViewDetails },
+    { label: 'Remove', icon: Trash2, variant: 'danger', action: onRemove },
   ];
 
   return (
@@ -80,9 +80,13 @@ const RowActions = () => {
               {actions.map((action, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setIsOpen(false)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✨ Prevent row click conflicts
+                    setIsOpen(false);
+                    if (action.action) action.action();
+                  }}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors",
+                    "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer",
                     action.variant === 'danger' 
                       ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10" 
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -97,9 +101,12 @@ const RowActions = () => {
         )}
       </AnimatePresence>
       <button
-        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        onClick={(e) => { 
+          e.stopPropagation(); // ✨ Prevent row click-through
+          setIsOpen(!isOpen); 
+        }}
         className={cn(
-          "p-1.5 rounded-full transition-all duration-200", 
+          "p-1.5 rounded-full transition-all duration-200 cursor-pointer", 
           isOpen 
             ? "bg-slate-100 dark:bg-slate-800 text-emerald-500" 
             : "text-slate-300 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -159,7 +166,7 @@ export default function WatchlistTable({
             <button 
               key={f.label} 
               className={cn(
-                "px-5 py-2.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border", 
+                "px-5 py-2.5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border cursor-pointer", 
                 f.label === 'All Cards' 
                   ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20" 
                   : "bg-slate-50/50 dark:bg-slate-950 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -174,7 +181,7 @@ export default function WatchlistTable({
           {['All Sets', 'All Grades', 'Sort: Market Value'].map((label) => (
             <button 
               key={label} 
-              className="flex items-center gap-8 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 transition-colors whitespace-nowrap"
+              className="flex items-center gap-8 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 transition-colors whitespace-nowrap cursor-pointer"
             >
               {label} 
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0">
@@ -206,10 +213,30 @@ export default function WatchlistTable({
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {cards.map((card, i) => {
-              const isUp = card.change7D > 0;
-              const path = isUp ? "M0,30 Q20,25 40,30 T70,10 T100,5" : "M0,5 Q20,10 40,25 T70,35 T100,38";
+              const isUp7D = card.change7D > 0;
+              const isUp30D = card.change30D > 0;
+              
+              // Custom path configurations to make 7D and 30D visually distinct
+              const path7D = isUp7D ? "M0,30 Q20,25 40,30 T70,10 T100,5" : "M0,5 Q20,10 40,25 T70,35 T100,38";
+              const path30D = isUp30D ? "M0,35 Q25,15 50,20 T75,5 T100,2" : "M0,2 Q25,10 50,30 T75,32 T100,38";
+              
+              // Standardize database routing key variants (handles .url or .canonical_path gracefully)
+              const rawPath = card.canonical_path || card.url || "";
+              
+              const handleNavigation = () => {
+                if (rawPath) {
+                  // Ensure canonical paths cleanly align with the NextJS /card dynamic directory catch-all router
+                  const dynamicRoute = rawPath.startsWith('/card') ? rawPath : `/card${rawPath}`;
+                  router.push(dynamicRoute);
+                }
+              };
+              
               return (
-                <tr key={card.id || i} className="group hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all cursor-pointer">
+                <tr 
+                  key={card.watchlist_id || card.id || i} 
+                  onClick={handleNavigation}
+                  className="group hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all cursor-pointer"
+                >
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-11 md:w-9 md:h-12 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
@@ -217,7 +244,7 @@ export default function WatchlistTable({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs md:text-sm font-black text-slate-900 dark:text-white truncate">{card.name}</p>
-                        <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mt-1"># {card.cardNumber || '4'}</p>
+                        <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mt-1"># {card.cardNumber || card.number || '4'}</p>
                       </div>
                     </div>
                   </td>
@@ -228,30 +255,42 @@ export default function WatchlistTable({
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <p className="text-sm md:text-[15px] font-black text-slate-900 dark:text-white">${card.value.toLocaleString()}</p>
-                    <p className={cn("text-[9px] md:text-[10px] font-black flex items-center gap-0.5 mt-0.5", isUp ? "text-emerald-500" : "text-red-500")}>
-                      {isUp ? <TrendingUp size={10} strokeWidth={3} /> : <TrendingDown size={10} strokeWidth={3} />}
+                    <p className="text-sm md:text-[15px] font-black text-slate-900 dark:text-white">${card.value ? card.value.toLocaleString() : '0'}</p>
+                    <p className={cn("text-[9px] md:text-[10px] font-black flex items-center gap-0.5 mt-0.5", isUp7D ? "text-emerald-500" : "text-red-500")}>
+                      {isUp7D ? <TrendingUp size={10} strokeWidth={3} /> : <TrendingDown size={10} strokeWidth={3} />}
                       {card.change7D}%
                     </p>
                   </td>
-                  <td className="px-4 py-4"><Sparkline index={i} trend={isUp ? 'up' : 'down'} color={isUp ? '#10b981' : '#ef4444'} path={path} /></td>
-                  <td className="px-4 py-4"><Sparkline index={i} trend={isUp ? 'up' : 'down'} color={isUp ? '#10b981' : '#ef4444'} path={path} /></td>
+                  
                   <td className="px-4 py-4">
-                    <p className="text-xs md:text-[13px] font-black text-slate-900 dark:text-white leading-tight">${(card.value * 1.05).toLocaleString()}</p>
+                    <Sparkline index={i * 2} trend={isUp7D ? 'up' : 'down'} color={isUp7D ? '#10b981' : '#ef4444'} path={path7D} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Sparkline index={i * 2 + 1} trend={isUp30D ? 'up' : 'down'} color={isUp30D ? '#10b981' : '#ef4444'} path={path30D} />
+                  </td>
+                  
+                  <td className="px-4 py-4">
+                    <p className="text-xs md:text-[13px] font-black text-slate-900 dark:text-white leading-tight">${card.value ? (card.value * 1.05).toLocaleString() : '0'}</p>
                     <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">May 10, 2025</p>
                   </td>
                   <td className="px-4 py-4 text-center">
-                    <button className={cn(
-                      "p-2 rounded-full border transition-all", 
-                      isUp 
-                        ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20" 
-                        : "text-red-400 bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20"
-                    )}>
+                    <button 
+                      onClick={(e) => e.stopPropagation()} // ✨ Prevent row navigation when toggling alerts
+                      className={cn(
+                        "p-2 rounded-full border transition-all cursor-pointer", 
+                        isUp7D 
+                          ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20" 
+                          : "text-red-400 bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20"
+                      )}
+                    >
                       <Bell size={12} strokeWidth={3} />
                     </button>
                   </td>
                   <td className="px-4 md:px-6 py-4 text-right">
-                    <RowActions />
+                    <RowActions 
+                      onViewDetails={handleNavigation} 
+                      onRemove={() => console.log("Remove triggered for item id:", card.id)} 
+                    />
                   </td>
                 </tr>
               );

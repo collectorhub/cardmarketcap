@@ -128,6 +128,19 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
+  const handleNavigation = (card: any) => {
+    const rawPath = card.canonicalUrl || card.canonical_path || card.url || "";
+    
+    if (rawPath) {
+      // If the path from DB already contains '/card', route directly. Otherwise prefix it.
+      const dynamicRoute = rawPath.startsWith('/card') ? rawPath : `/card${rawPath}`;
+      router.push(dynamicRoute);
+    } else if (card.id) {
+      // Fallback if structure keys are missing completely
+      router.push(`/card/${card.id}`);
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateParams('q', searchQuery);
@@ -224,27 +237,17 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-  {isLoading ? (
-    <TableSkeleton />
-  ) : initialCards && initialCards.length > 0 ? (
-    initialCards.map((card: any, idx: number) => (
-      <motion.tr
-    key={card.id || idx}
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    // FIX: Check if canonicalUrl exists, then navigate. 
-    // We remove the hardcoded "/card" because canonicalUrl from your DB 
-    // already starts with language/category (e.g., "/en/pokemon/...")
-    onClick={() => {
-      if (card.canonicalUrl) {
-        router.push(`/card${card.canonicalUrl}`);
-      } else {
-        // Fallback to ID if canonical is missing
-        router.push(`/card/${card.id}`);
-      }
-    }}
-    className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-  >
+            {isLoading ? (
+              <TableSkeleton />
+            ) : initialCards && initialCards.length > 0 ? (
+              initialCards.map((card: any, idx: number) => (
+                <motion.tr
+            key={card.id || idx}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => handleNavigation(card)}
+              className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+            >
         <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
           {(currentPage - 1) * 50 + idx + 1}
         </td>

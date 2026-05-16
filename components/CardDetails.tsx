@@ -21,20 +21,26 @@ export default function CardDetails({ card }: { card: any }) {
   const cardName = card.name || "Unknown Card";
   const cardSet = card.expansion_name || card.set || "Unknown Set";
   const cardImage = card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png";
-  const cardType = card.rarity || card.type || "Holo";
+  const cardType = card.rarity || card.type || "Standard";
   const popData = card.population || {}; 
 
   /**
    * DYNAMIC PRICE RESOLVER
-   * Pulls specific price based on user selection.
-   * If specific grade price isn't in card.prices, it falls back to the main price.
+   * Standardizes the key format to cleanly look up string or numeric values from the database
    */
   const getDynamicPrice = () => {
-    const gradeKey = selectedGrade.toLowerCase().replace(" ", ""); // e.g., "psa10"
-    if (card.prices && card.prices[gradeKey]) {
-      return card.prices[gradeKey];
+    const gradeKey = selectedGrade.toLowerCase().replace(" ", ""); // e.g., "psa10", "raw"
+    
+    if (card.prices && card.prices[gradeKey] !== undefined && card.prices[gradeKey] !== null) {
+      const val = card.prices[gradeKey];
+      return typeof val === 'number' ? `$${val.toLocaleString()}` : val;
     }
-    return card.price || "$0.00";
+    
+    if (card.price) {
+      return typeof card.price === 'number' ? `$${card.price.toLocaleString()}` : card.price;
+    }
+    
+    return "$0.00";
   };
 
   const currentDisplayPrice = getDynamicPrice();
@@ -155,7 +161,7 @@ export default function CardDetails({ card }: { card: any }) {
                     { l: "Registry ID", v: card.id || "N/A" },
                     { l: "Artist", v: card.artist || "Unknown" },
                     { l: "Rarity", v: cardType },
-                    { l: "Card Number", v: card.number || "N/A" },
+                    { l: "Card Number", v: card.cardNumber || card.number || "N/A" },
                     { l: "Release", v: card.release_date || card.releaseDate || "N/A" }
                   ].map((row, idx) => (
                     <div key={idx} className="flex justify-between items-center border-b border-slate-50 dark:border-white/5 pb-3 last:border-0">
@@ -187,9 +193,9 @@ export default function CardDetails({ card }: { card: any }) {
                 <div>
                   <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-sora">Current Value ({selectedGrade})</p>
                   <div className="flex items-baseline gap-4">
-                    <span className="text-5xl font-black tabular-nums tracking-tighter">{currentDisplayPrice}</span>
+                    <span className="text-4xl md:text-5xl font-black tabular-nums tracking-tighter">{currentDisplayPrice}</span>
                     <span className="text-[12px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg flex items-center">
-                      <TrendingUp size={14} className="mr-1" /> 12.4%
+                      <TrendingUp size={14} className="mr-1" /> {card.change7D || card.change30D || "0.0"}%
                     </span>
                   </div>
                 </div>
@@ -238,12 +244,10 @@ export default function CardDetails({ card }: { card: any }) {
                 <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-sora">PSA Population Data</h3>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global Audit</span>
               </div>
-              {/* Find this section in your JSX */}
               <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 md:gap-4">
                 {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((grade) => {
-                  // Dynamically access the key (psa10, psa9, etc)
                   const gradeKey = `psa${grade}`;
-                  const count = popData[gradeKey] ?? 0; // Fallback to 0
+                  const count = popData[gradeKey] ?? 0;
 
                   return (
                     <div key={grade} className="bg-slate-50/50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-4 text-center hover:border-[#00BA88]/30 transition-colors">

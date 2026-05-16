@@ -28,7 +28,7 @@ export default function PortfolioPage() {
         if (response.success) {
           const apiData = response.data;
           
-          // 3. Map the backend response to your UI structure
+         // 3. Map the backend response to your UI structure
           setData({
             stats: {
               totalValue: apiData.totalValue || 0,
@@ -40,12 +40,18 @@ export default function PortfolioPage() {
               change7DPct: apiData.growth7D || 0,
             },
             cards: (apiData.cards || []).map((card: any) => ({
+              // FIX 1: Change card.card_id to card.id to match your API JSON layout payload
+              id: card.id,             
+              card_id: card.id,       
               name: card.name,
-              setName: card.set || 'N/A',
+              // FIX 2: Grab the exact property namespace from the backend payload
+              setName: card.set || 'N/A', 
               grade: card.grade || 'Raw',
               value: card.value || 0,
               change: card.change7D || 0,
               image: card.imageUrl,
+              imageUrl: card.imageUrl,     
+              url: card.url,               
             })),
             allocation: apiData.allocation || [],
             recentActivity: apiData.recentActivity || [] 
