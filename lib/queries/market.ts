@@ -58,12 +58,12 @@ export async function fetchCMCCards(
   sort = "top", 
   category = "all", 
   grade = "psa 10",
-  game = "pokemon" // Added game parameter
+  game = "pokemon"
 ) {
   try {
     const baseUrl = `${API_BASE}/cmc_cards.php`;
     const queryParams = new URLSearchParams({
-      game: game, // Pass the game to PHP
+      game: game,
       page: page.toString(),
       search: search || "",
       sort: sort || "top",
@@ -84,8 +84,8 @@ export async function fetchCMCCards(
       ...card,
       image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
       
-      // ✨ Normalizing routing variations securely:
-      canonicalUrl: card.canonical_path || card.canonicalUrl || card.url || "",
+      // ✨ SAFELY CAPTURE CANONICAL ROUTE FROM THE UPDATED PHP PAYLOAD
+      canonicalUrl: card.canonical_path || card.canonicalUrl || "",
       
       // EXPLICIT RARITY FETCHING
       rarity: card.rarity || card.type || "Standard", 
@@ -291,31 +291,33 @@ export async function fetchSetDetails(setId: string) {
     };
 
    const formattedAssets = (cardsResult.data || []).map((card: any) => {
-  const imageCandidates = [
-    card.largeImage,
-    card.imageUrl,
-    card.image_url,
-    card.image,
-  ];
+      const imageCandidates = [
+        card.largeImage,
+        card.imageUrl,
+        card.image_url,
+        card.image,
+      ];
 
-  const validImage = imageCandidates.find(
-    (url) =>
-      typeof url === "string" &&
-      url.trim() !== "" &&
-      url.startsWith("http")
-  );
+      const validImage = imageCandidates.find(
+        (url) =>
+          typeof url === "string" &&
+          url.trim() !== "" &&
+          url.startsWith("http")
+      );
 
-  return {
-    ...card,
-    id: String(card.id),
-    imageUrl:
-      validImage ||
-      "https://pokecollectorhub.com/assets/placeholder.png",
-    price: card.price || "$0.00",
-    rarity: card.rarity || card.type || "Standard",
-    number: card.number || "000",
-  };
-});
+      return {
+        ...card,
+        id: String(card.id),
+        imageUrl: validImage || "https://pokecollectorhub.com/assets/placeholder.png",
+        
+        // ✨ FIX: Map the canonical path so your internal link routers don't break
+        canonicalUrl: card.canonical_path || card.canonicalUrl || "",
+        
+        price: card.price || "$0.00",
+        rarity: card.rarity || card.type || "Standard",
+        number: card.number || "000",
+      };
+    });
 
     return {
       success: true,

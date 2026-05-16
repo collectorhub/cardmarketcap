@@ -20,11 +20,13 @@ export function AssetCard({ asset }: AssetCardProps) {
   const gameValue = asset.game || "pokemon";
   const gameQuery = `?game=${gameValue}`;
 
-  // Use the canonicalUrl if it exists, otherwise use the ID
-  // We ensure there are no double slashes //
-  let baseUrl = asset.canonicalUrl ? asset.canonicalUrl : `/${asset.id}`;
+  // ✨ FIX: Check for trim length to prevent empty string ("") fallbacks
+  const rawPath = asset.canonicalUrl && asset.canonicalUrl.trim() !== "" 
+    ? asset.canonicalUrl 
+    : `/${asset.id}`;
   
   // Prepend /card if it's not already there
+  let baseUrl = rawPath;
   if (!baseUrl.startsWith('/card')) {
     baseUrl = `/card${baseUrl.startsWith('/') ? '' : '/'}${baseUrl}`;
   }
