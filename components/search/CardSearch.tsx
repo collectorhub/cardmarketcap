@@ -54,11 +54,20 @@ export default function CardSearch() {
   };
 
   const normalizeData = (data: any[]) => {
-    return (data || []).map(item => ({
-      ...item,
-      imageUrl: getAssetImage(item),
-      href: item.canonical_path || item.url || item.href || `/card/${item.id}`
-    }));
+    return (data || []).map(item => {
+      // Get the raw path fallback string
+      const rawPath = item.canonical_path || item.canonicalUrl || item.url || item.href || `/card/${item.id}`;
+      
+      // ✨ SANITIZE: Split off any trailing query variables (?game=...) if they exist
+      const cleanPath = rawPath.split('?')[0];
+
+      return {
+        ...item,
+        imageUrl: getAssetImage(item),
+        canonicalUrl: cleanPath,
+        href: cleanPath
+      };
+    });
   };
 
   const loadInitialData = useCallback(async (category: string | null) => {
@@ -104,9 +113,9 @@ export default function CardSearch() {
 
     setIsSearching(true);
     try {
-      // The PHP backend now handles splitting "Charizard Skyridge" or looking up "4/144"
       const results = await fetchUniversalSearch(trimmedQuery, categoryId, 100);
-      setSearchResults(results);
+      // ✨ Map the results instantly here so displayAssets is already formatted safely
+      setSearchResults(normalizeData(results));
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
@@ -293,6 +302,8 @@ export default function CardSearch() {
                   asset={{
                     ...asset,
                     imageUrl: getAssetImage(asset),
+                    // ✨ FIX: Map canonicalUrl here as well to protect initial filter views
+                    canonicalUrl: asset.canonical_path || asset.canonicalUrl || asset.url || "",
                     href: asset.canonical_path || asset.url || asset.href || `/card/${asset.id}`
                   }} 
                 />
