@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CgArrowLongRight } from 'react-icons/cg';
 import AllocationCard from '../AllocationCard';
 import { useRouter } from 'next/navigation';
+import AddCardModal from './AddCardModal';
 
 const ALLOCATION = [
   { name: 'PSA 10', value: 45.2, color: '#7c3aed' },
