@@ -57,16 +57,28 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="bg-[#FAFAFB] dark:bg-slate-950 min-h-screen font-sans w-full space-y-8 p-4 md:p-8">
+    <div className="bg-[#FAFAFB] dark:bg-slate-950 min-h-screen font-sans w-full space-y-8 pb-20 md:pb-0">
       
       {/* 1. HEADER */}
       <DashboardHeader isRefreshing={isRefreshing} onRefresh={handleManualSync} />
 
       {/* 2. CORE SYSTEM COUNTS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {coreMetrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
+      <div className="w-full">
+        <div className="flex md:grid md:grid-cols-4 overflow-x-auto md:overflow-x-visible gap-5 md:gap-5 items-stretch scrollbar-hide">
+          {coreMetrics.map((metric, i) => (
+            <MetricCard 
+              key={metric.label} 
+              index={i} 
+              {...metric} 
+            />
+          ))}
+        </div>
+
+        {/* Injected layout-level global style block to guarantee clean cross-device tracks */}
+        {/* <style jsx global>{`
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        `}</style> */}
       </div>
 
       {/* 3. MAIN WORKSPACE SPLIT GRID */}

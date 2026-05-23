@@ -12,7 +12,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ isRefreshing, onRefresh }: DashboardHeaderProps) {
   return (
-    <header className="w-full pt-18 md:pt-7 md:pb-5 px-4 md:px-0  border-b border-slate-100 dark:border-slate-800 font-inter">
+    <header className="w-full px-4 md:px-0 border-slate-100 dark:border-slate-800 font-inter">
       <div className="flex items-start justify-between gap-4">
         
         {/* Left Side: Consolidated Operational Title (Strict Left-Align Everywhere) */}
@@ -27,7 +27,7 @@ export default function DashboardHeader({ isRefreshing, onRefresh }: DashboardHe
           <motion.h1 
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-[16px] md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sora"
+            className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sora"
           >
             Operational <span className="text-[#00BA88]">Control Center</span>
           </motion.h1>

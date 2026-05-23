@@ -9,7 +9,8 @@ import {
   Activity, BarChart3, Zap, Settings, HelpCircle, 
   LogOut, ChevronDown, X, Layers, UserRoundPlus, 
   LogIn, PackageSearch, LayoutDashboard, Terminal, 
-  ShieldAlert, Database, ArrowLeft, ClipboardList, Coins
+  ShieldAlert, Database, ArrowLeft, ClipboardList, Coins,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from '@/context/MobileMenuContext';
@@ -68,7 +69,7 @@ const adminDesktopNavigation = [
     icon: ClipboardList,
     collapsible: true,
     items: [
-      { name: "QA Reporting Center", href: "/admin/qa", icon: ClipboardList },
+      { name: "QA Reporting Center", href: "/admin/qa-reporting", icon: ClipboardList },
       { name: "Matching Queue", href: "/admin/matching", icon: Layers },
     ]
   },
@@ -76,7 +77,7 @@ const adminDesktopNavigation = [
     title: "Data Management",
     icon: Database,
     items: [
-      { name: "Card Catalogue", href: "/admin/cards", icon: PackageSearch },
+      { name: "Card Catalogue", href: "/admin/catalogue", icon: PackageSearch },
       { name: "PSA Pop Manager", href: "/admin/psa", icon: Activity },
       { name: "Pricing & Sales", href: "/admin/pricing", icon: Coins },
       { name: "Overrides & Mappings", href: "/admin/mappings", icon: Settings },
@@ -199,9 +200,9 @@ export default function Sidebar() {
         {/* ADMIN MODE CONTEXT SWITCH INDICATOR */}
         {showAdminMenu && (
           <div className="px-4 mb-4 hidden lg:block">
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                <ShieldAlert className="h-4 w-4" />
+            <div className="p-3 bg-[#00BA88]/5 border border-[#00BA88]/10 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-[#00BA88]">
+                <ShieldCheck className="h-4 w-4" />
                 <span className="text-xs font-bold uppercase tracking-wider font-heading">Admin Control</span>
               </div>
               <Link 
