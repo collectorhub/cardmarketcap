@@ -61,7 +61,7 @@ const adminDesktopNavigation = [
     icon: ShieldAlert,
     items: [
       { name: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
-      { name: "Pipeline Monitor", href: "/admin/pipelines", icon: Terminal },
+      { name: "Pipeline Monitor", href: "/admin/pipeline-monitor", icon: Terminal },
     ]
   },
   {
@@ -70,7 +70,7 @@ const adminDesktopNavigation = [
     collapsible: true,
     items: [
       { name: "QA Reporting Center", href: "/admin/qa-reporting", icon: ClipboardList },
-      { name: "Matching Queue", href: "/admin/matching", icon: Layers },
+      { name: "Matching Queue", href: "/admin/matching-queue", icon: Layers },
     ]
   },
   {
@@ -78,18 +78,22 @@ const adminDesktopNavigation = [
     icon: Database,
     items: [
       { name: "Card Catalogue", href: "/admin/catalogue", icon: PackageSearch },
-      { name: "PSA Pop Manager", href: "/admin/psa", icon: Activity },
-      { name: "Pricing & Sales", href: "/admin/pricing", icon: Coins },
-      { name: "Overrides & Mappings", href: "/admin/mappings", icon: Settings },
+      { name: "PSA Pop Manager", href: "/admin/psa-pop-manager", icon: Activity },
+      { name: "Pricing & Sales", href: "/admin/pricing-sales", icon: Coins },
+      { name: "Overrides & Mappings", href: "/admin/overrides-mappings", icon: Settings },
     ]
   }
 ];
 
 const adminMobileNavigation = [
   { name: "Admin Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "QA Reports", href: "/admin/qa", icon: ClipboardList },
-  { name: "Matching Queue", href: "/admin/matching", icon: Layers },
-  { name: "PSA Manager", href: "/admin/psa", icon: Activity },
+  { name: "QA Reports", href: "/admin/qa-reporting", icon: ClipboardList },
+  { name: "Pipeline Monitor", href: "/admin/pipeline-monitor", icon: Terminal },
+  { name: "Pricing & Sales", href: "/admin/pricing-sales", icon: Coins },
+  { name: "PSA Manager", href: "/admin/psa-pop-manager", icon: Activity },
+  { name: "Card Catalogue", href: "/admin/catalogue", icon: PackageSearch },
+  { name: "Matching Queue", href: "/admin/matching-queue", icon: Layers },
+  { name: "Overrides & Mappings", href: "/admin/overrides-mappings", icon: Settings },
 ];
 
 

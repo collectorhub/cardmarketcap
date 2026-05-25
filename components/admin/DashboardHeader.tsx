@@ -12,7 +12,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ isRefreshing, onRefresh }: DashboardHeaderProps) {
   return (
-    <header className="w-full px-4 md:px-0 border-slate-100 dark:border-slate-800 font-inter">
+    <header className="w-full pt-18 md:pt-0 px-4 md:px-0 border-slate-100 dark:border-slate-800 font-inter">
       <div className="flex items-start justify-between gap-4">
         
         {/* Left Side: Consolidated Operational Title (Strict Left-Align Everywhere) */}
