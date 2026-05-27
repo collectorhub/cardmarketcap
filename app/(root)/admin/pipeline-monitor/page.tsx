@@ -101,7 +101,7 @@ export default function PipelineMonitorPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-15 md:pt-0">
       <AdminPageHeader 
         title="Pipeline & Job Monitoring" 
         description="Audit execution loops, trigger direct target synchronizations, and safeguard ingestion ingestion rates safely."

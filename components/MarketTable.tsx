@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, ChevronDown, Check, Search, X, Inbox } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import Link from 'next/link'
 
 const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
 const SUBCAT_OPTIONS = ["All", "Modern", "Japanese", "Promos", "Common", "Sealed"];
@@ -36,7 +35,7 @@ const CustomDropdown = ({ label, value, options, onChange }: { label: string, va
         )}
       >
         <span className="text-[12px] md:text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight truncate">
-          {value.replace('psa', 'PSA')}
+          {value.replace(/psa/i, 'PSA')}
         </span>
         <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-[#00BA88]")} />
       </button>
@@ -110,9 +109,9 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const currentFilter = searchParams.get('sort') || 'Top';
-  const currentSubcat = searchParams.get('category') || 'All';
-  const currentGrade = searchParams.get('grade') || 'PSA 10';
+  const currentFilter = FILTER_OPTIONS.find(opt => opt.toLowerCase() === searchParams.get('sort')?.toLowerCase()) || 'Top';
+  const currentSubcat = SUBCAT_OPTIONS.find(opt => opt.toLowerCase() === searchParams.get('category')?.toLowerCase()) || 'All';
+  const currentGrade = GRADE_OPTIONS.find(opt => opt.toLowerCase() === searchParams.get('grade')?.toLowerCase()) || 'PSA 10';
 
   useEffect(() => { setIsLoading(false); }, [initialCards, currentPage, searchParams]);
 
@@ -129,14 +128,12 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   };
 
   const handleNavigation = (card: any) => {
-    const rawPath = card.canonicalUrl || card.canonical_path || card.url || "";
-    
+    const rawPath = card.canonical_path || card.canonicalUrl || card.url || "";
     if (rawPath) {
-      // If the path from DB already contains '/card', route directly. Otherwise prefix it.
-      const dynamicRoute = rawPath.startsWith('/card') ? rawPath : `/card${rawPath}`;
+      const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+      const dynamicRoute = cleanPath.startsWith('/card') ? cleanPath : `/card${cleanPath}`;
       router.push(dynamicRoute);
     } else if (card.id) {
-      // Fallback if structure keys are missing completely
       router.push(`/card/${card.id}`);
     }
   };
@@ -240,113 +237,132 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
             {isLoading ? (
               <TableSkeleton />
             ) : initialCards && initialCards.length > 0 ? (
-              initialCards.map((card: any, idx: number) => (
-                <motion.tr
-            key={card.id || idx}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => handleNavigation(card)}
-              className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-            >
-        <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
-          {(currentPage - 1) * 50 + idx + 1}
-        </td>
+              initialCards.map((card: any, idx: number) => {
+                // Using the exact parsed values from your updated query file
+                const move7d = card.change7dNum ?? parseFloat(card.change_7d || card.move7d || "0");
+                const move30d = card.change30dNum ?? parseFloat(card.change_30d || card.move30d || "0");
+                const totalSales = card.sales90dNum ?? parseInt(String(card.sales90d || card.sales_90d || "0").replace(/,/g, ''), 10);
 
-        <td className="p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-5 group/item">
-            <div className="h-10 w-7 md:h-12 md:w-9 shrink-0 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden shadow-sm">
-              <img
-                src={card.imageUrl}
-                alt={card.name}
-                className="h-full w-full object-cover group-hover/item:scale-110 transition-transform"
-                onError={(e) => {
-                  e.currentTarget.src = "https://pokecollectorhub.com/assets/placeholder.png";
-                }}
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="font-black text-slate-900 dark:text-white text-[12px] md:text-sm truncate leading-tight mb-0.5 group-hover/item:text-[#00BA88] transition-colors">
-                {card.name}
-              </div>
-              <div className="text-[9px] md:text-[12px] font-black text-[#00BA88] uppercase tracking-wider">
-                {card.type}
-              </div>
-            </div>
-          </div>
-        </td>
+                return (
+                  <motion.tr
+                    key={card.id || idx}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => handleNavigation(card)}
+                    className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                  >
+                    <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
+                      {(currentPage - 1) * 50 + idx + 1}
+                    </td>
 
-        <td className="p-4 md:p-6 text-slate-500 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
-          {card.set}
-        </td>
-
-        <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
-          {card.price}
-          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold mt-0.5 uppercase tracking-tighter">Avg: $0.00</div>
-        </td>
-
-        <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
-        <td className="p-4 md:p-6 text-right font-bold text-emerald-500 text-[12px] md:text-sm">+0.00%</td>
-
-        <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
-          {card.marketCap}
-        </td>
-
-        <td className="p-4 md:p-6 text-right">
-          <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">
-            {Number(card.gradeCount || 0).toLocaleString()}
-          </div>
-          <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">
-            Total: {Number(card.popTotal || 0).toLocaleString()}
-          </div>
-        </td>
-
-        <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-400 whitespace-nowrap">
-          {card.sales90d || 0} sales
-        </td>
-
-        <td className="p-4 md:p-6 text-center">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // Add buy logic here
-            }}
-            className="relative z-10 mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
-          >
-            Buy
-          </button>
-        </td>
-      </motion.tr>
-    ))
-              ) : (
-                <tr>
-                  <td colSpan={10} className="py-32 text-center">
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-center justify-center space-y-4"
-                    >
-                      <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-full text-slate-300 dark:text-slate-600">
-                        <Inbox size={48} strokeWidth={1.5} />
+                    <td className="p-4 md:p-6">
+                      <div className="flex items-center gap-3 md:gap-5 group/item">
+                        <div className="h-10 w-7 md:h-12 md:w-9 shrink-0 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden shadow-sm">
+                          <img
+                            src={card.imageUrl || card.image}
+                            alt={card.name}
+                            className="h-full w-full object-cover group-hover/item:scale-110 transition-transform"
+                            onError={(e) => {
+                              e.currentTarget.src = "https://pokecollectorhub.com/assets/placeholder.png";
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-black text-slate-900 dark:text-white text-[12px] md:text-sm truncate leading-tight mb-0.5 group-hover/item:text-[#00BA88] transition-colors">
+                            {card.name}
+                          </div>
+                          <div className="text-[9px] md:text-[12px] font-black text-[#00BA88] uppercase tracking-wider">
+                            {card.rarity || card.type || "Standard"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm md:text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                          No cards found
-                        </p>
-                        <p className="text-[11px] md:text-xs text-slate-500 font-bold max-w-[320px] mx-auto px-4">
-                          We couldn't find any results for <span className="text-[#00BA88]">"{searchQuery || 'your search'}"</span>. 
-                          Try adjusting your keywords or filters.
-                        </p>
+                    </td>
+
+                    <td className="p-4 md:p-6 text-slate-500 dark:text-slate-400 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
+                      {card.set || "—"}
+                    </td>
+
+                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
+                      {card.price || "$0.00"}
+                    </td>
+
+                    <td className={cn(
+                      "p-4 md:p-6 text-right font-bold text-[12px] md:text-sm",
+                      move7d > 0 ? "text-emerald-500" : move7d < 0 ? "text-red-500" : "text-slate-400"
+                    )}>
+                      {move7d > 0 ? `+${move7d.toFixed(2)}%` : move7d < 0 ? `${move7d.toFixed(2)}%` : "0.00%"}
+                    </td>
+
+                    <td className={cn(
+                      "p-4 md:p-6 text-right font-bold text-[12px] md:text-sm",
+                      move30d > 0 ? "text-emerald-500" : move30d < 0 ? "text-red-500" : "text-slate-400"
+                    )}>
+                      {move30d > 0 ? `+${move30d.toFixed(2)}%` : move30d < 0 ? `${move30d.toFixed(2)}%` : "0.00%"}
+                    </td>
+
+                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
+                      {card.marketCap || "$0.00"}
+                    </td>
+
+                    <td className="p-4 md:p-6 text-right">
+                      <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">
+                        {Number(card.gradeCount || card.psa10 || 0).toLocaleString()}
                       </div>
-                      <button 
-                        onClick={clearSearch}
-                        className="px-6 py-2 bg-[#00BA88] text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-lg hover:bg-[#009a70] transition-colors"
+                      <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">
+                        Total: {card.popTotal ? card.popTotal.toLocaleString() : 0}
+                      </div>
+                    </td>
+
+                    <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      {totalSales.toLocaleString()} sales
+                    </td>
+
+                    <td className="p-4 md:p-6 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (card.buy_url || card.buyUrl) {
+                            window.open(card.buy_url || card.buyUrl, '_blank');
+                          }
+                        }}
+                        className="relative z-10 mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
                       >
-                        Clear Search
+                        Buy
                       </button>
-                    </motion.div>
-                  </td>
-                </tr>
-              )}
+                    </td>
+                  </motion.tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={10} className="py-32 text-center">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center space-y-4"
+                  >
+                    <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-full text-slate-300 dark:text-slate-600">
+                      <Inbox size={48} strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm md:text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        No cards found
+                      </p>
+                      <p className="text-[11px] md:text-xs text-slate-500 font-bold max-w-[320px] mx-auto px-4">
+                        We couldn't find any results for <span className="text-[#00BA88]">"{searchQuery || 'your search'}"</span>. 
+                        Try adjusting your keywords or filters.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={clearSearch}
+                      className="px-6 py-2 bg-[#00BA88] text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-lg hover:bg-[#009a70] transition-colors"
+                    >
+                      Clear Search
+                    </button>
+                  </motion.div>
+                </td>
+              </tr>
+            )}
             </tbody>
           </table>
         </div>

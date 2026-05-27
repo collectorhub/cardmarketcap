@@ -1,6 +1,7 @@
 import { fetchPopData } from "./pop";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export async function fetchMarketStats() {
   try {
     const response = await fetch(`${API_BASE}/market_stats.php`, {
@@ -38,8 +39,8 @@ export async function fetchTrendingCards() {
     return data.map((card: any) => ({
       id: card.id,
       name: card.name,
-      set: "Base Set",
-      price: `$${card.price.toLocaleString()}`,
+      set: card.set || "Base Set",
+      price: typeof card.price === "number" ? `$${card.price.toLocaleString()}` : card.price,
       h24: `+${card.change_24h}%`,
       score: 95,
       type: "Modern",
@@ -94,11 +95,16 @@ export async function fetchCMCCards(
       setLogo: card.setLogo || null,
       setSymbol: card.setSymbol || null,
 
-      // NUMBER PARSING
-      priceNum: parseFloat(card.price?.replace(/[$,]/g, '') || "0"),
-      popTotalNum: parseInt(card.popTotal?.replace(/,/g, '') || "0"),
-      gradeCountNum: parseInt(card.gradeCount?.replace(/,/g, '') || "0"),
-      marketCapNum: parseFloat(card.marketCap?.replace(/[$,M]/g, '') || "0")
+      // ✨ ROBUST NUMBER PARSING (Stripping commas globally from prices to handle values > $999.99)
+      priceNum: parseFloat(String(card.price || "0").replace(/[$,]/g, '') || "0"),
+      popTotalNum: parseInt(String(card.popTotal || "0").replace(/,/g, '') || "0"),
+      gradeCountNum: parseInt(String(card.gradeCount || "0").replace(/,/g, '') || "0"),
+      marketCapNum: parseFloat(String(card.marketCap || "0").replace(/[$,]/g, '') || "0"),
+      
+      // 📊 NEW TRANSACTION AND VOLATILITY FIELDS PARSED SAFELY FOR THE FRONTEND
+      sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
+      change7dNum: parseFloat(String(card.change_7d || "0").replace(/[%\s]/g, '') || "0"),
+      change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0")
     }));
 
     return { data: formattedData, metadata: result.metadata };
@@ -136,7 +142,10 @@ export async function fetchCardByCanonicalUrl(canonicalPath: string, game: strin
           canonical_path: assetMatch.url,
           rarity: "Standard",
           priceNum: 0,
-          price: "$0.00"
+          price: "$0.00",
+          sales90dNum: 0,
+          change7dNum: 0,
+          change30dNum: 0
         };
       }
     }
@@ -156,6 +165,11 @@ export async function fetchCardByCanonicalUrl(canonicalPath: string, game: strin
           rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
           priceNum: parseFloat(String(frontendMatch.price || "0").replace(/[$,]/g, '') || "0"),
           image: frontendMatch.imageUrl || frontendMatch.image_small,
+          
+          // 📊 NEW TRANSACTIONS PASSED INTO THE CANONICAL MATCH DETAILED VIEW
+          sales90dNum: parseInt(String(frontendMatch.sales90d || "0").replace(/,/g, '') || "0"),
+          change7dNum: parseFloat(String(frontendMatch.change_7d || "0").replace(/[%\s]/g, '') || "0"),
+          change30dNum: parseFloat(String(frontendMatch.change_30d || "0").replace(/[%\s]/g, '') || "0")
         };
       }
     }
@@ -204,7 +218,7 @@ export async function fetchExpansions(
       logoUrl: set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
       floorPrice: set.floorPrice || "$0.00",
       change: set.change || "0.00%",
-      language: set.language // Keep the 'en' or 'ja' from the DB
+      language: set.language 
     }));
 
     return {
@@ -220,28 +234,10 @@ export async function fetchExpansions(
 
 function getGameFromSetId(setId: string): string {
   const id = setId.toUpperCase();
-
-  // 1. ONE PIECE: Detects codes like OP01, EB01, ST01, PRB01, or P
-  if (/^(OP|EB|ST|PRB)\d+/.test(id) || id === 'P') {
-    return 'onepiece';
-  }
-
-  // 2. LORCANA: Detects all known Lorcana codes
-  const lorcanaCodes = [
-    'TFC', 'ROTF', 'ITI', 'UR', 'Q1', 'D100', 'C1', 'D23C24', 
-    'P2', 'SS', 'AZS', 'ARI', 'ROJ', 'FBL', 'P3', 'C2', 'WITW', 'WNTR'
-  ];
-  if (lorcanaCodes.includes(id) || id.startsWith('LOR')) {
-    return 'lorcana';
-  }
-
-  // 3. MAGIC: Only return 'mtg' if it explicitly contains the tag
-  // Removed "id.length === 3" to prevent 'me3' or 'sv1' from being caught
-  if (id.includes('MTG')) {
-    return 'mtg';
-  }
-
-  // 4. POKEMON: Default fallback
+  if (/^(OP|EB|ST|PRB)\d+/.test(id) || id === 'P') return 'onepiece';
+  const lorcanaCodes = ['TFC', 'ROTF', 'ITI', 'UR', 'Q1', 'D100', 'C1', 'D23C24', 'P2', 'SS', 'AZS', 'ARI', 'ROJ', 'FBL', 'P3', 'C2', 'WITW', 'WNTR'];
+  if (lorcanaCodes.includes(id) || id.startsWith('LOR')) return 'lorcana';
+  if (id.includes('MTG')) return 'mtg';
   return 'pokemon';
 }
 
@@ -250,7 +246,6 @@ export async function fetchSetDetails(setId: string) {
     const decodedId = decodeURIComponent(setId);
     const game = getGameFromSetId(decodedId);
     
-    // 1. Fetch expansion metadata
     const expResponse = await fetch(`${API_BASE}/cmc_expansions.php?game=${game}`, {
       next: { revalidate: 60 }
     });
@@ -265,20 +260,12 @@ export async function fetchSetDetails(setId: string) {
       return { success: false, set: null, assets: [] };
     }
 
-    // 2. Fetch cards for this expansion
-    const cardsResponse = await fetch(
-      `${API_BASE}/cmc_cards.php?game=${game}&expansion_id=${encodeURIComponent(targetSet.id)}&limit=500`,
+    // ✨ FIX: Safe query utilizing the fallback order directly to prevent schema column errors
+    let response = await fetch(
+      `${API_BASE}/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`,
       { next: { revalidate: 60 } }
     );
-    let cardsResult = await cardsResponse.json();
-
-    // Fallback: Try searching by Set Name if ID search returns empty
-    if (!cardsResult.data || cardsResult.data.length === 0) {
-      const nameResponse = await fetch(
-        `${API_BASE}/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`
-      );
-      cardsResult = await nameResponse.json();
-    }
+    let cardsResult = await response.json();
 
     const setInfo = {
       id: targetSet.id,
@@ -290,80 +277,53 @@ export async function fetchSetDetails(setId: string) {
       marketCap: targetSet.floorPrice || "$0.00"
     };
 
-   const formattedAssets = (cardsResult.data || []).map((card: any) => {
-      const imageCandidates = [
-        card.largeImage,
-        card.imageUrl,
-        card.image_url,
-        card.image,
-      ];
-
-      const validImage = imageCandidates.find(
-        (url) =>
-          typeof url === "string" &&
-          url.trim() !== "" &&
-          url.startsWith("http")
-      );
+    const formattedAssets = (cardsResult.data || []).map((card: any) => {
+      const imageCandidates = [card.largeImage, card.imageUrl, card.image_url, card.image];
+      const validImage = imageCandidates.find(url => typeof url === "string" && url.trim() !== "" && url.startsWith("http"));
 
       return {
         ...card,
         id: String(card.id),
         imageUrl: validImage || "https://pokecollectorhub.com/assets/placeholder.png",
-        
-        // ✨ FIX: Map the canonical path so your internal link routers don't break
         canonicalUrl: card.canonical_path || card.canonicalUrl || "",
-        
         price: card.price || "$0.00",
         rarity: card.rarity || card.type || "Standard",
         number: card.number || "000",
+        
+        // 📊 PARSE TRANSACTION VALUES LOCALLY INSIDE EXPANSION LANDING LISTINGS
+        sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
+        change7dNum: parseFloat(String(card.change_7d || "0").replace(/[%\s]/g, '') || "0"),
+        change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0")
       };
     });
 
-    return {
-      success: true,
-      set: setInfo,
-      assets: formattedAssets
-    };
-
+    return { success: true, set: setInfo, assets: formattedAssets };
   } catch (error) {
     console.error("fetchSetDetails Error:", error);
     return { success: false, set: null, assets: [] };
   }
 }
 
-// Add this alongside your existing fetchExpansions function
 export async function fetchExpansionDetails(setId: string) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), 10000);
-
   try {
-    // Note: Adjust the URL if your PHP API uses a different endpoint for single sets
-    // e.g., '${API_BASE}/set-details.php?id='
     const response = await fetch(`${API_BASE}/sets.php?id=${setId}`, {
       signal: controller.signal,
       next: { revalidate: 3600 } 
     });
-
     clearTimeout(id);
-
     if (!response.ok) return { success: false, data: null };
-
     const result = await response.json();
-
-    if (!result.success || !result.data) {
-      return { success: false, data: null };
-    }
-
-    // Ensure the data structure matches what SetDetailsPage expects
-    const formattedData = {
-      ...result.data,
-      logoUrl: result.data.logoUrl || "https://pokecollectorhub.com/assets/placeholder-logo.png",
-      cards: result.data.cards || [] // Ensure cards array exists
-    };
+    if (!result.success || !result.data) return { success: false, data: null };
 
     return {
       success: true,
-      data: formattedData
+      data: {
+        ...result.data,
+        logoUrl: result.data.logoUrl || "https://pokecollectorhub.com/assets/placeholder-logo.png",
+        cards: result.data.cards || []
+      }
     };
   } catch (error) {
     console.error(`⚠️ Set Details Fetch Error (${setId}):`, error);

@@ -74,7 +74,7 @@ export default function PricingSalesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-15 md:pt-0">
       <AdminPageHeader 
         title="Pricing & Sales Ingestion Stream" 
         description="Govern real-time marketplace sales telemetry, capture volatile outliers, and protect canonical charts from index spikes."
