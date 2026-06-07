@@ -10,6 +10,17 @@ const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
 const SUBCAT_OPTIONS = ["All", "Modern", "Japanese", "Promos", "Common", "Sealed"];
 const GRADE_OPTIONS = ["PSA 10", "PSA 9", "PSA 8", "PSA 7", "PSA 6", "PSA 5"];
 
+// Helper function to safely parse numbers containing formatting characters (like commas) or missing values
+const safeParseNumber = (val: any): number => {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  
+  // Strip commas or formatting characters before casting to number
+  const cleanStr = String(val).replace(/,/g, '').trim();
+  const parsed = Number(cleanStr);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 // --- CUSTOM DROPDOWN COMPONENT ---
 const CustomDropdown = ({ label, value, options, onChange }: { label: string, value: string, options: string[], onChange: (val: string) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,8 +90,8 @@ const TableSkeleton = () => (
   <>
     {[...Array(8)].map((_, i) => (
       <tr key={i} className="animate-pulse border-b border-slate-100 dark:border-slate-800">
-        <td className="p-3 md:p-5"><div className="h-3 w-3 bg-slate-100 dark:bg-slate-800 rounded mx-auto" /></td>
-        <td className="p-3 md:p-5">
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-3 bg-slate-100 dark:bg-slate-800 rounded mx-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4">
           <div className="flex items-center gap-2 md:gap-4">
             <div className="h-10 w-7 md:h-12 md:w-9 bg-slate-100 dark:bg-slate-800 rounded shadow-sm" />
             <div className="space-y-1">
@@ -89,14 +100,13 @@ const TableSkeleton = () => (
             </div>
           </div>
         </td>
-        <td className="p-3 md:p-5"><div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-12 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-8 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-8 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-14 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-3 w-12 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
-        <td className="p-3 md:p-5"><div className="h-8 w-14 md:h-10 md:w-24 bg-slate-100 dark:bg-slate-800 rounded mx-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-12 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-8 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-8 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-3 w-14 bg-slate-100 dark:bg-slate-800 rounded ml-auto" /></td>
+        <td className="py-2.5 md:py-3.5 px-4"><div className="h-8 w-14 md:h-10 md:w-24 bg-slate-100 dark:bg-slate-800 rounded mx-auto" /></td>
       </tr>
     ))}
   </>
@@ -144,7 +154,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
+    setQuery('');
     updateParams('q', '');
   };
 
@@ -156,7 +166,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
         <div>
           <h2 className="text-[14px] md:text-base font-black uppercase tracking-[0.1em] text-slate-900 dark:text-white mb-1">Card Overview</h2>
           <p className="text-[11px] md:text-xs text-slate-500 font-bold tracking-wider opacity-70 leading-tight">
-            Check card's rank, price, % moves, population, market cap, and sales.
+            Check card's rank, price, population, market cap, and sales volume metrics.
           </p>
         </div>
         
@@ -221,16 +231,15 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
           <table className="w-full text-left border-collapse min-w-[1100px] font-sans">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-950/20 text-[9px] md:text-xs uppercase font-black text-slate-400 tracking-widest border-b border-slate-100 dark:border-slate-800">
-                <th className="p-4 md:p-6 w-10 md:w-16 text-center">#</th>
-                <th className="p-4 md:p-6">Card</th>
-                <th className="p-4 md:p-6 w-[120px] md:w-auto">Set</th>
-                <th className="p-4 md:p-6 text-right">Price ({currentGrade.toUpperCase()})</th>
-                <th className="p-4 md:p-6 text-right">7D %</th>
-                <th className="p-4 md:p-6 text-right">30D %</th>
-                <th className="p-4 md:p-6 text-right">Market Cap</th>
-                <th className="p-4 md:p-6 text-right">Pop Report</th>
-                <th className="p-4 md:p-6 text-right whitespace-nowrap">90D Sales</th>
-                <th className="p-4 md:p-6 text-center">Action</th>
+                <th className="py-5 px-4 w-10 md:w-16 text-center">#</th>
+                <th className="py-5 px-4">Card</th>
+                <th className="py-5 px-4 w-[120px] md:w-auto">Set</th>
+                <th className="py-5 px-4 text-right">Price ({currentGrade.toUpperCase()})</th>
+                <th className="py-5 px-4 text-right">30D Sales Vol</th>
+                <th className="py-5 px-4 text-right whitespace-nowrap">90D Sales Vol</th>
+                <th className="py-5 px-4 text-right">Market Cap</th>
+                <th className="py-5 px-4 text-right">Pop Report</th>
+                <th className="py-5 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -238,10 +247,11 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               <TableSkeleton />
             ) : initialCards && initialCards.length > 0 ? (
               initialCards.map((card: any, idx: number) => {
-                // Using the exact parsed values from your updated query file
-                const move7d = card.change7dNum ?? parseFloat(card.change_7d || card.move7d || "0");
-                const move30d = card.change30dNum ?? parseFloat(card.change_30d || card.move30d || "0");
-                const totalSales = card.sales90dNum ?? parseInt(String(card.sales90d || card.sales_90d || "0").replace(/,/g, ''), 10);
+                // Safely scrub input strings via parsing wrapper
+                const totalSales30d = safeParseNumber(card.sales30dNum ?? card.sales30d);
+                const totalSales90d = safeParseNumber(card.sales90dNum ?? card.sales90d);
+                const currentGradeCount = safeParseNumber(card.gradeCount ?? card.psa10);
+                const currentPopTotal = safeParseNumber(card.popTotal);
 
                 return (
                   <motion.tr
@@ -251,11 +261,11 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                     onClick={() => handleNavigation(card)}
                     className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                   >
-                    <td className="p-4 md:p-6 text-[12px] md:text-sm font-bold text-slate-400 text-center">
+                    <td className="py-2 md:py-3 px-4 text-[12px] md:text-sm font-bold text-slate-400 text-center">
                       {(currentPage - 1) * 50 + idx + 1}
                     </td>
 
-                    <td className="p-4 md:p-6">
+                    <td className="py-2 md:py-3 px-4">
                       <div className="flex items-center gap-3 md:gap-5 group/item">
                         <div className="h-10 w-7 md:h-12 md:w-9 shrink-0 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden shadow-sm">
                           <img
@@ -278,46 +288,36 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                       </div>
                     </td>
 
-                    <td className="p-4 md:p-6 text-slate-500 dark:text-slate-400 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
+                    <td className="py-2 md:py-7 px-4 text-slate-500 dark:text-slate-400 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
                       {card.set || "—"}
                     </td>
 
-                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
+                    <td className="py-2 md:py-7 px-4 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px]">
                       {card.price || "$0.00"}
                     </td>
 
-                    <td className={cn(
-                      "p-4 md:p-6 text-right font-bold text-[12px] md:text-sm",
-                      move7d > 0 ? "text-emerald-500" : move7d < 0 ? "text-red-500" : "text-slate-400"
-                    )}>
-                      {move7d > 0 ? `+${move7d.toFixed(2)}%` : move7d < 0 ? `${move7d.toFixed(2)}%` : "0.00%"}
+                    <td className="py-2 md:py-7 px-4 text-right text-[12px] md:text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      {totalSales30d.toLocaleString()}
                     </td>
 
-                    <td className={cn(
-                      "p-4 md:p-6 text-right font-bold text-[12px] md:text-sm",
-                      move30d > 0 ? "text-emerald-500" : move30d < 0 ? "text-red-500" : "text-slate-400"
-                    )}>
-                      {move30d > 0 ? `+${move30d.toFixed(2)}%` : move30d < 0 ? `${move30d.toFixed(2)}%` : "0.00%"}
+                    <td className="py-2 md:py-7 px-4 text-right text-[12px] md:text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      {totalSales90d.toLocaleString()}
                     </td>
 
-                    <td className="p-4 md:p-6 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
+                    <td className="py-2 md:py-7 px-4 text-right font-black text-slate-900 dark:text-white text-[12px] md:text-[15px] uppercase">
                       {card.marketCap || "$0.00"}
                     </td>
 
-                    <td className="p-4 md:p-6 text-right">
+                    <td className="py-2 md:py-7 px-4 text-right">
                       <div className="text-[12px] md:text-sm font-black text-slate-700 dark:text-slate-200">
-                        {Number(card.gradeCount || card.psa10 || 0).toLocaleString()}
+                        {currentGradeCount.toLocaleString()}
                       </div>
                       <div className="text-[8px] md:text-[12px] text-slate-400 font-bold uppercase tracking-tighter">
-                        Total: {card.popTotal ? card.popTotal.toLocaleString() : 0}
+                        Total: {currentPopTotal.toLocaleString()}
                       </div>
                     </td>
 
-                    <td className="p-4 md:p-6 text-right text-[12px] md:text-sm font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      {totalSales.toLocaleString()} sales
-                    </td>
-
-                    <td className="p-4 md:p-6 text-center">
+                    <td className="py-2 md:py-7 px-4 text-center">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -325,7 +325,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                             window.open(card.buy_url || card.buyUrl, '_blank');
                           }
                         }}
-                        className="relative z-10 mx-auto px-4 md:px-8 py-2 md:py-2.5 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
+                        className="relative z-10 mx-auto px-4 md:px-6 py-1.5 md:py-2 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
                       >
                         Buy
                       </button>
@@ -335,7 +335,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               })
             ) : (
               <tr>
-                <td colSpan={10} className="py-32 text-center">
+                <td colSpan={9} className="py-32 text-center">
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }} 
                     animate={{ opacity: 1, y: 0 }}

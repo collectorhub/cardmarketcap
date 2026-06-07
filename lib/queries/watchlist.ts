@@ -6,14 +6,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * ADDS A CARD TO THE USER'S WATCHLIST
- * Points to the new save_to_watchlist.php endpoint
  */
 export async function addCardToWatchlist(formData: {
   user_id: number;
   card_id: string;
   grade: string;
 }) {
-  // Debugging log for server-side terminal
   console.log("Adding to Watchlist for User ID:", formData.user_id);
 
   if (!formData.user_id || formData.user_id === 0) {
@@ -37,8 +35,9 @@ export async function addCardToWatchlist(formData: {
       return { success: false, message: data.message || "Backend server error" };
     }
 
-    // Trigger a refresh of any components using the 'watchlist' tag
+    // 🔄 Clear both the watchlist state metrics and the live tracking pipeline views
     revalidateTag('watchlist');
+    revalidateTag('activities');
 
     return data;
   } catch (error) {
@@ -49,7 +48,6 @@ export async function addCardToWatchlist(formData: {
 
 /**
  * FETCHES THE USER'S WATCHLIST DATA
- * Points to the updated watchlist.php endpoint
  */
 export async function getWatchlist(userId: number) {
   if (!userId || userId === 0) {
@@ -78,7 +76,7 @@ export async function getWatchlist(userId: number) {
 
     return {
       success: true,
-      data: data.watchlist // Returns: { totalValue, cards, allocation, setCount, etc. }
+      data: data.watchlist
     };
 
   } catch (error) {

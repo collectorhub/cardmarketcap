@@ -38,16 +38,17 @@ export async function addCardToPortfolio(formData: {
   }
 }
 
-export async function getWatchlist(userId: number) {
+export async function getPortfolio(userId: number) {
   try {
-    // We use a query parameter for the GET request
+    if (!userId || userId === 0) {
+      return { success: false, message: "Invalid or missing User ID." };
+    }
+
     const response = await fetch(`${API_BASE}/portfolio.php?userId=${userId}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      // 'no-store' ensures we always get the latest data from the DB
       cache: 'no-store', 
-      // Optional: use tags if you want to use revalidateTag() later
-      next: { tags: ['watchlist'] } 
+      next: { tags: ['portfolio'] } // Renamed the tag for consistency as well
     });
 
     if (!response.ok) {
@@ -59,21 +60,21 @@ export async function getWatchlist(userId: number) {
     if (!data.success) {
       return { 
         success: false, 
-        message: data.message || "Failed to fetch watchlist." 
+        message: data.message || "Failed to fetch portfolio." 
       };
     }
 
+    // ✅ Returning the root object so the frontend can destructure cards, stats, and allocation safely
     return {
       success: true,
-      data: data.watchlist // Returns the object containing totalValue, cards, allocation, etc.
+      data: data 
     };
 
   } catch (error) {
-    console.error("Fetch Watchlist Error:", error);
+    console.error("Fetch Portfolio Error:", error);
     return { 
       success: false, 
       message: "Could not connect to the server. Please try again later." 
     };
   }
 }
-

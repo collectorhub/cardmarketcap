@@ -1,3 +1,4 @@
+// @/lib/queries/market.ts
 import { fetchPopData } from "./pop";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -101,12 +102,22 @@ export async function fetchCMCCards(
       gradeCountNum: parseInt(String(card.gradeCount || "0").replace(/,/g, '') || "0"),
       marketCapNum: parseFloat(String(card.marketCap || "0").replace(/[$,]/g, '') || "0"),
       
-      // 📊 NEW TRANSACTION AND VOLATILITY FIELDS PARSED SAFELY FOR THE FRONTEND
+      // 📊 NEW TRANSACTION AND METRIC FIELD PARSING MAP
+      sales30dNum: parseInt(String(card.sales30d || "0").replace(/,/g, '') || "0"),
       sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
-      change7dNum: parseFloat(String(card.change_7d || "0").replace(/[%\s]/g, '') || "0"),
-      change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0")
+      avgPrice30dNum: parseFloat(String(card.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
+      avgPrice90dNum: parseFloat(String(card.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
+      liquidityScoreNum: parseFloat(String(card.liquidityScore || "0").replace(/,/g, '') || "0"),
+
+      // Backward fallback structural fields matching old properties to keep your rendering intact
+      change7dNum: parseFloat(String(card.change_7d || card.change || "0").replace(/[%\s]/g, '') || "0"),
+      change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0"),
+
+      // 🎯 FULL PSA POPULATION PASS THROUGH
+      fullPsaPop: card.full_psa_pop || result.full_psa_pop || null
     }));
 
+    // Note: result.metadata naturally contains the new set_summary object now
     return { data: formattedData, metadata: result.metadata };
   } catch (error) {
     console.error("Fetch error:", error);
@@ -114,14 +125,88 @@ export async function fetchCMCCards(
   }
 }
 
-export async function fetchCardByCanonicalUrl(canonicalPath: string, game: string = "pokemon") {
+export async function fetchCardById(id: string, game: string = "pokemon") {
+  try {
+    // 1. Fetch Population Data in parallel with the main card request for speed
+    const popDataPromise = fetchPopData(id);
+
+    // 2. Primary Fetch: Include the 'game' parameter
+    const cmcResponse = await fetch(
+      `${API_BASE}/cmc_cards.php?search=${id}&game=${game}`, 
+      {
+        next: { revalidate: 60 } 
+      }
+    );
+
+    let cardResult: any = null;
+
+    if (cmcResponse.ok) {
+      const cmcJson = await cmcResponse.json();
+      
+      if (cmcJson.success && cmcJson.data?.length > 0) {
+        const found = cmcJson.data.find((c: any) => String(c.id) === id);
+        
+        if (found) {
+          const population = await popDataPromise;
+          cardResult = {
+            ...found,
+            rarity: found.rarity || found.type || "Standard", 
+            setLogo: found.setLogo,
+            setSymbol: found.setSymbol,
+            priceNum: parseFloat(found.price?.replace(/[$,]/g, '') || "0"),
+            image: found.imageUrl,
+            population: population || {} // Attach the pop data here
+          };
+        }
+      }
+    }
+
+    // 3. Fallback to Trending if primary fetch failed
+    if (!cardResult) {
+      const trendingCards = await fetchTrendingCards();
+      const trendingMatch = trendingCards.find(c => String(c.id) === id);
+
+      if (trendingMatch) {
+        const population = await popDataPromise;
+        cardResult = {
+          id: trendingMatch.id,
+          name: trendingMatch.name,
+          imageUrl: trendingMatch.image,
+          image: trendingMatch.image, 
+          priceNum: parseFloat(trendingMatch.price?.replace(/[$,]/g, '') || "0"),
+          price: trendingMatch.price,
+          set: trendingMatch.set,
+          set_name: trendingMatch.set,
+          rarity: "Trending",
+          grade: trendingMatch.grade || "Raw",
+          setLogo: null,
+          setSymbol: null,
+          population: population || {} // Also attach here
+        };
+      }
+    }
+    
+    return cardResult;
+  } catch (error) {
+    console.error("Error in unified fetchCardById:", error);
+    return null;
+  }
+}
+
+export async function fetchCardByCanonicalUrl(
+  canonicalPath: string, 
+  game: string = "pokemon",
+  grade: string = "psa 10" 
+) {
   try {
     let normalizedGame = game.toLowerCase();
     if (normalizedGame === "magic") normalizedGame = "mtg";
 
+    const cleanGrade = grade.toLowerCase().trim();
+
     // 1. QUERY CMC_ASSETS VIA EXACT PATH 
     const assetResponse = await fetch(
-      `${API_BASE}/cmc_universal_search.php?q=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&limit=1`,
+      `${API_BASE}/cmc_universal_search.php?q=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&grade=${encodeURIComponent(cleanGrade)}&limit=1`,
       { next: { revalidate: 60 } }
     );
 
@@ -136,23 +221,51 @@ export async function fetchCardByCanonicalUrl(canonicalPath: string, game: strin
           game: assetMatch.game,
           set_name: assetMatch.set,
           expansion_name: assetMatch.set,
+          set: assetMatch.set || 'Unknown Set',
           number: assetMatch.number,
           image: assetMatch.imageUrl,
           imageUrl: assetMatch.imageUrl,
+          largeImage: assetMatch.largeImage || assetMatch.imageUrl,
           canonical_path: assetMatch.url,
-          rarity: "Standard",
-          priceNum: 0,
-          price: "$0.00",
-          sales90dNum: 0,
-          change7dNum: 0,
-          change30dNum: 0
+          canonicalUrl: assetMatch.url,
+          rarity: assetMatch.rarity || "Standard",
+          price: assetMatch.price || "$0.00",
+          marketCap: assetMatch.marketCap || "$0.00",
+          popTotal: assetMatch.popTotal || "0",
+          gradeCount: assetMatch.gradeCount || "0",
+          psa10: assetMatch.psa10 || "0",
+          resolvedGrade: assetMatch.resolvedGrade || `PSA ${cleanGrade.replace(/[^0-9]/g, '')}`,
+          
+          // Math parsing 
+          priceNum: parseFloat(String(assetMatch.price || "0").replace(/[$,]/g, '') || "0"),
+          marketCapNum: parseFloat(String(assetMatch.marketCap || "0").replace(/[$,]/g, '') || "0"),
+          popTotalNum: parseInt(String(assetMatch.popTotal || "0").replace(/,/g, '') || "0"),
+          gradeCountNum: parseInt(String(assetMatch.gradeCount || "0").replace(/,/g, '') || "0"),
+          sales30dNum: parseInt(String(assetMatch.sales30d || "0").replace(/,/g, '') || "0"),
+          sales90dNum: parseInt(String(assetMatch.sales90d || "0").replace(/,/g, '') || "0"),
+          avgPrice30dNum: parseFloat(String(assetMatch.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
+          avgPrice90dNum: parseFloat(String(assetMatch.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
+          liquidityScoreNum: parseFloat(String(assetMatch.liquidityScore || "0").replace(/,/g, '') || "0"),
+          change7dNum: parseFloat(String(assetMatch.change_7d || assetMatch.change || "0").replace(/[%\s]/g, '') || "0"),
+          change30dNum: parseFloat(String(assetMatch.change_30d || "0").replace(/[%\s]/g, '') || "0"),
+          historicalSales: assetJson.historical_sales || [],
+
+          // 🎯 FULL PSA POPULATION PASS THROUGH
+          fullPsaPop: assetMatch.full_psa_pop || assetJson.full_psa_pop || null
         };
       }
     }
 
-    // 2. FALLBACK: QUERY CMC_CARDS VIA EXACT PATH
+    // 2. FALLBACK: QUERY CMC_CARDS VIA EXACT PATH (Matches your PHP code perfectly)
+    const cardQueryParams = new URLSearchParams({
+      search: canonicalPath,
+      game: normalizedGame,
+      grade: cleanGrade,
+      limit: "1"
+    });
+
     const cmcResponse = await fetch(
-      `${API_BASE}/cmc_cards.php?search=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&limit=1`,
+      `${API_BASE}/cmc_cards.php?${cardQueryParams.toString()}`,
       { next: { revalidate: 60 } }
     );
 
@@ -160,16 +273,33 @@ export async function fetchCardByCanonicalUrl(canonicalPath: string, game: strin
       const cmcJson = await cmcResponse.json();
       if (cmcJson.success && cmcJson.data?.length > 0) {
         const frontendMatch = cmcJson.data[0];
+        
         return {
-          ...frontendMatch,
-          rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
-          priceNum: parseFloat(String(frontendMatch.price || "0").replace(/[$,]/g, '') || "0"),
+          ...frontendMatch, // Inherits string keys explicitly passed from php (price, marketCap, sales30d, etc.)
           image: frontendMatch.imageUrl || frontendMatch.image_small,
+          largeImage: frontendMatch.largeImage || frontendMatch.imageUrl,
+          canonicalUrl: frontendMatch.canonical_path || frontendMatch.canonicalUrl || "",
+          rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
           
-          // 📊 NEW TRANSACTIONS PASSED INTO THE CANONICAL MATCH DETAILED VIEW
+          // ✨ ROBUST PARSING FOR THE INDIVIDUAL FALLBACK VIEW (aligning with fetchCMCCards)
+          priceNum: parseFloat(String(frontendMatch.price || "0").replace(/[$,]/g, '') || "0"),
+          marketCapNum: parseFloat(String(frontendMatch.marketCap || "0").replace(/[$,]/g, '') || "0"),
+          popTotalNum: parseInt(String(frontendMatch.popTotal || "0").replace(/,/g, '') || "0"),
+          gradeCountNum: parseInt(String(frontendMatch.gradeCount || "0").replace(/,/g, '') || "0"),
+          
+          sales30dNum: parseInt(String(frontendMatch.sales30d || "0").replace(/,/g, '') || "0"),
           sales90dNum: parseInt(String(frontendMatch.sales90d || "0").replace(/,/g, '') || "0"),
-          change7dNum: parseFloat(String(frontendMatch.change_7d || "0").replace(/[%\s]/g, '') || "0"),
-          change30dNum: parseFloat(String(frontendMatch.change_30d || "0").replace(/[%\s]/g, '') || "0")
+          avgPrice30dNum: parseFloat(String(frontendMatch.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
+          avgPrice90dNum: parseFloat(String(frontendMatch.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
+          liquidityScoreNum: parseFloat(String(frontendMatch.liquidityScore || "0").replace(/,/g, '') || "0"),
+          change7dNum: parseFloat(String(frontendMatch.change_7d || frontendMatch.change || "0").replace(/[%\s]/g, '') || "0"),
+          change30dNum: parseFloat(String(frontendMatch.change_30d || "0").replace(/[%\s]/g, '') || "0"),
+          
+          // ✨ LIVE HISTORICAL SALES TRANSACTIONS VIA PHP PAYLOAD
+          historicalSales: cmcJson.historical_sales || [],
+
+          // 🎯 FULL PSA POPULATION PASS THROUGH
+          fullPsaPop: frontendMatch.full_psa_pop || cmcJson.full_psa_pop || null
         };
       }
     }
@@ -260,12 +390,13 @@ export async function fetchSetDetails(setId: string) {
       return { success: false, set: null, assets: [] };
     }
 
-    // ✨ FIX: Safe query utilizing the fallback order directly to prevent schema column errors
     let response = await fetch(
       `${API_BASE}/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`,
       { next: { revalidate: 60 } }
     );
     let cardsResult = await response.json();
+
+    const setSummary = cardsResult.metadata?.set_summary || null;
 
     const setInfo = {
       id: targetSet.id,
@@ -274,7 +405,14 @@ export async function fetchSetDetails(setId: string) {
       releaseDate: targetSet.releaseDate,
       totalCards: targetSet.totalCards || cardsResult.data?.length || 0,
       logoUrl: targetSet.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
-      marketCap: targetSet.floorPrice || "$0.00"
+      marketCap: (setSummary && setSummary.total_market_value !== "N/A") 
+        ? setSummary.total_market_value 
+        : (targetSet.floorPrice || "$0.00"),
+      metrics: setSummary ? {
+        salesVolume90d: setSummary.sales_volume_90d,
+        salesCount90d: setSummary.total_sales_count_90d,
+        trackedCardsCount: setSummary.tracked_market_cards
+      } : null
     };
 
     const formattedAssets = (cardsResult.data || []).map((card: any) => {
@@ -290,10 +428,14 @@ export async function fetchSetDetails(setId: string) {
         rarity: card.rarity || card.type || "Standard",
         number: card.number || "000",
         
-        // 📊 PARSE TRANSACTION VALUES LOCALLY INSIDE EXPANSION LANDING LISTINGS
+        sales30dNum: parseInt(String(card.sales30d || "0").replace(/,/g, '') || "0"),
         sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
-        change7dNum: parseFloat(String(card.change_7d || "0").replace(/[%\s]/g, '') || "0"),
-        change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0")
+        avgPrice30dNum: parseFloat(String(card.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
+        avgPrice90dNum: parseFloat(String(card.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
+        liquidityScoreNum: parseFloat(String(card.liquidityScore || "0").replace(/,/g, '') || "0"),
+        change7dNum: parseFloat(String(card.change_7d || card.change || "0").replace(/[%\s]/g, '') || "0"),
+        change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0"),
+        fullPsaPop: card.full_psa_pop || null
       };
     });
 
@@ -328,5 +470,42 @@ export async function fetchExpansionDetails(setId: string) {
   } catch (error) {
     console.error(`⚠️ Set Details Fetch Error (${setId}):`, error);
     return { success: false, data: null };
+  }
+}
+
+export async function fetchCardsBySet(setName: string, game: string = "pokemon", limit: number = 6) {
+  try {
+    const cleanGame = game.toLowerCase() === "magic" ? "mtg" : game.toLowerCase();
+    
+    // Construct query parameters matching your PHP API specifications
+    const queryParams = new URLSearchParams({
+      game: cleanGame,
+      set: setName,
+      limit: limit.toString()
+    });
+
+    const response = await fetch(`${API_BASE}/cmc_cards.php?${queryParams.toString()}`, {
+      next: { revalidate: 60 } // Standard cache
+    });
+
+    if (!response.ok) return [];
+    const result = await response.json();
+
+    if (!result.success || !Array.isArray(result.data)) return [];
+
+    // Map and normalize fields so they match your frontend card components
+    return result.data.map((card: any) => ({
+      ...card,
+      id: String(card.id),
+      image: card.imageUrl || card.image_url || card.image || "https://pokecollectorhub.com/assets/placeholder.png",
+      imageUrl: card.imageUrl || card.image_url,
+      canonicalUrl: card.canonical_path || card.canonicalUrl || "",
+      price: card.price || "$0.00",
+      rarity: card.rarity || card.type || "Standard",
+      priceNum: parseFloat(String(card.price || "0").replace(/[$,]/g, '') || "0")
+    }));
+  } catch (error) {
+    console.error("Error inside fetchCardsBySet:", error);
+    return [];
   }
 }

@@ -47,7 +47,11 @@ export default async function Page({
       popTotal: card.popTotal || card.total || "0",
       
       // Explicitly passing your new parsed numeric properties forward
+      sales30dNum: card.sales30dNum || 0,
       sales90dNum: card.sales90dNum || 0,
+      avgPrice30dNum: card.avgPrice30dNum || 0,
+      avgPrice90dNum: card.avgPrice90dNum || 0,
+      liquidityScoreNum: card.liquidityScoreNum || 0,
       change7dNum: card.change7dNum || 0,
       change30dNum: card.change30dNum || 0
     };
@@ -56,16 +60,19 @@ export default async function Page({
   const apiStats = statsResponse?.stats || [];
   
   // Clean fallback checks to ensure total counts never visually show 0 during slow queries
-  const globalTotalCount = metadata?.total_records || 94; 
+  const globalTotalCount = metadata?.total_records || 35051; 
   const filteredTotalCount = metadata?.total_records || 0;
 
+  // Sync high-level summary cards if returned from custom subset filters
+  const currentMarketCap = metadata?.set_summary?.total_market_value || 
+                          apiStats.find((s: any) => s.label === "Total Market Cap")?.value || "$1.1B";
+
   const psa10Value = apiStats.find((s: any) => s.label === "PSA 10 Index")?.value || "2,396";
-  const marketVol = apiStats.find((s: any) => s.label === "Total Market Cap")?.value || "$1.1B";
 
   const synchronizedStats = [
     {
       label: "TOTAL MARKET CAP",
-      value: marketVol,
+      value: currentMarketCap,
       change: apiStats.find((s: any) => s.label === "Total Market Cap")?.change || "+2.1%",
       trend: "up",
     },
@@ -150,7 +157,7 @@ export default async function Page({
       <MarketTicker 
         totalCards={globalTotalCount} 
         psa10Pop={psa10Value}
-        volume30d={marketVol}
+        volume30d={currentMarketCap}
       />
     </div>
   )

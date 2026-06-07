@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Navbar from "@/components/Navbar";
 import PortfolioHeader from "@/components/portfolio/PortfolioHeader";
 import Sidebar from "@/components/Sidebar";
-import { getWatchlist } from "@/lib/queries/portfolio"; // Import your fetch function
+import { getPortfolio } from "@/lib/queries/portfolio"; // ✅ Updated function name
 
 export default function PortfolioLayout({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<any>(null);
@@ -16,16 +16,16 @@ export default function PortfolioLayout({ children }: { children: React.ReactNod
   });
 
   useEffect(() => {
-    // 1. Get user from localStorage
     const stored = localStorage.getItem('user_data');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setUserData(parsed);
         
-        // 2. Fetch real stats from your PHP backend
-        if (parsed.user_id) {
-          fetchDashboardData(parsed.user_id);
+        // Grab either identifier structure matching your localstorage setup
+        const userId = parsed.id || parsed.user_id;
+        if (userId) {
+          fetchDashboardData(userId);
         }
       } catch (e) {
         console.error("Error parsing user data", e);
@@ -34,25 +34,27 @@ export default function PortfolioLayout({ children }: { children: React.ReactNod
   }, []);
 
   const fetchDashboardData = async (userId: number) => {
-    const response = await getWatchlist(userId);
+    const response = await getPortfolio(userId);
     
     if (response.success && response.data) {
-      // Mapping your PHP backend fields to the UI state
-      // totalValue: 0, totalCards: 14, setCount: 10 from your screenshot
+      const apiData = response.data;
+      const backendStats = apiData.stats || {};
+      const backendPerformance = apiData.performance || {};
+
+      // ✅ Drilled down directly into backend data nested structural keys
       setStats({
-        totalValue: response.data.totalValue || 0,
-        growth7D: response.data.growth7D || 0,
-        totalCards: response.data.totalCards || 0,
-        totalSets: response.data.setCount || 0,
+        totalValue: backendStats.totalValue || 0,
+        growth7D: backendPerformance.change7DPct || 0,
+        totalCards: backendStats.totalCards || 0,
+        totalSets: backendStats.totalSets || 0,
       });
     }
   };
 
-  // Combine user info and real stats
   const dashboardData = {
     user: {
       name: userData?.username || "Collector",
-      id: userData?.user_id || 0,
+      id: userData?.id || userData?.user_id || 0,
     },
     stats: stats
   };
@@ -66,7 +68,6 @@ export default function PortfolioLayout({ children }: { children: React.ReactNod
       </div>
 
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10">
-        {/* Now passing real data fetched from watchlist.php */}
         <PortfolioHeader data={dashboardData} />
         
         <main className="py-4">
