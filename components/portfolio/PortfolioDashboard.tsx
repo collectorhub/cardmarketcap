@@ -1,29 +1,95 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { 
-  ShoppingBag, Bell, MoreHorizontal, 
-  TrendingUp, Info, ArrowUpRight,
-  Layers, ChevronRight, Activity,
-  MoreVertical, Eye, Edit2, Trash2,
-  ShoppingCart, Plus, Layout, ArrowRight
-} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Bell,
+  TrendingUp,
+  Info,
+  Layers,
+  MoreVertical,
+  Eye,
+  Trash2,
+  Plus,
+  ArrowRight,
+  Upload,
+  DollarSign,
+  BarChart3,
+  Activity,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CgArrowLongRight } from 'react-icons/cg';
-import AllocationCard from '../AllocationCard';
-import { useRouter } from 'next/navigation';
-import AddCardModal from './AddCardModal';
+import AllocationCard from "../AllocationCard";
+import { useRouter } from "next/navigation";
+import AddCardModal from "./AddCardModal";
+
+type PerformanceRange = "30D" | "90D" | "All";
+
+const PERFORMANCE_TABS: PerformanceRange[] = ["30D", "90D", "All"];
 
 const ALLOCATION = [
-  { name: 'PSA 10', value: 45.2, color: '#7c3aed' },
-  { name: 'PSA 9', value: 22.6, color: '#3b82f6' },
-  { name: 'Raw / Ungraded', value: 18.3, color: '#10b981' },
-  { name: 'PSA 8', value: 8.7, color: '#f59e0b' },
-  { name: 'PSA 7 & Below', value: 5.2, color: '#ef4444' },
+  { name: "PSA 10", value: 45.2, color: "#7c3aed" },
+  { name: "PSA 9", value: 22.6, color: "#3b82f6" },
+  { name: "Raw / Ungraded", value: 18.3, color: "#10b981" },
+  { name: "PSA 8", value: 8.7, color: "#f59e0b" },
+  { name: "PSA 7 & Below", value: 5.2, color: "#ef4444" },
 ];
 
-const RowActions = ({ card, gameType, onViewDetails, onRemove }: { card?: any; gameType?: string; onViewDetails?: (card?: any) => void; onRemove?: (card?: any) => void }) => {
+function money(value: any) {
+  return `$${Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(dateString?: string) {
+  if (!dateString) return "Recently";
+  const date = new Date(dateString.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return "Recently";
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function activityIcon(type: string) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("watch")) return Bell;
+  if (normalized.includes("portfolio")) return Plus;
+  if (normalized.includes("import")) return Upload;
+  return Activity;
+}
+
+function activityColor(type: string) {
+  const normalized = String(type || "").toLowerCase();
+
+  if (normalized.includes("watch")) {
+    return "bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400";
+  }
+
+  if (normalized.includes("portfolio")) {
+    return "bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400";
+  }
+
+  if (normalized.includes("import")) {
+    return "bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400";
+  }
+
+  return "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400";
+}
+
+const RowActions = ({
+  card,
+  gameType,
+  onViewDetails,
+  onRemove,
+}: {
+  card?: any;
+  gameType?: string;
+  onViewDetails?: (card?: any) => void;
+  onRemove?: (card?: any) => void;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -34,20 +100,23 @@ const RowActions = ({ card, gameType, onViewDetails, onRemove }: { card?: any; g
         setIsOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleActionClick = (e: React.MouseEvent, actionLabel: string) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setIsOpen(false);
 
-    if (actionLabel === 'View Details') {
+    if (actionLabel === "View Details") {
       if (onViewDetails) return onViewDetails(card);
-      router.push(`/card/${card?.card_id || card?.id}?game=${gameType}`);
-    } else if (actionLabel === 'Remove') {
+      router.push(`/card/${card?.card_id || card?.id}?game=${gameType || "pokemon"}`);
+    }
+
+    if (actionLabel === "Remove") {
       if (onRemove) return onRemove(card);
-      console.log(`Remove card: ${card?.id}`);
+      console.log(`Remove card: ${card?.entryId || card?.id}`);
     }
   };
 
@@ -63,15 +132,15 @@ const RowActions = ({ card, gameType, onViewDetails, onRemove }: { card?: any; g
           >
             <div className="p-1.5">
               {[
-                { label: 'View Details', icon: Eye },
-                { label: 'Remove', icon: Trash2, variant: 'danger' },
+                { label: "View Details", icon: Eye },
+                { label: "Remove", icon: Trash2, variant: "danger" },
               ].map((action, idx) => (
                 <button
                   key={idx}
                   onClick={(e) => handleActionClick(e, action.label)}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors",
-                    action.variant === 'danger'
+                    action.variant === "danger"
                       ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
@@ -87,13 +156,13 @@ const RowActions = ({ card, gameType, onViewDetails, onRemove }: { card?: any; g
 
       <button
         onClick={(e) => {
-          e.stopPropagation(); 
+          e.stopPropagation();
           setIsOpen(!isOpen);
         }}
         className={cn(
           "p-1.5 rounded-full transition-all duration-200 relative z-10",
-          isOpen 
-            ? "bg-slate-100 dark:bg-slate-800 text-emerald-500" 
+          isOpen
+            ? "bg-slate-100 dark:bg-slate-800 text-emerald-500"
             : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600"
         )}
       >
@@ -105,84 +174,170 @@ const RowActions = ({ card, gameType, onViewDetails, onRemove }: { card?: any; g
 
 export default function PortfolioDashboard({ data }: { data: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<PerformanceRange>("30D");
+  const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
 
-  const { 
-    stats = { totalValue: 0, totalCards: 0, totalSets: 0 }, 
-    performance = { change7D: 0, change7DPct: 0, allTimeHigh: 0, allTimeLow: 0 }, 
-    cards = [], 
+  const {
+    userId = data?.userId || data?.user?.id || data?.id || data?.user_id || 0,
+    stats = { totalValue: 0, totalCards: 0, totalSets: 0 },
+    performance = {
+      change30D: 0,
+      change30DPct: 0,
+      change90D: 0,
+      change90DPct: 0,
+      changeAll: 0,
+      changeAllPct: 0,
+      allTimeHigh: 0,
+      allTimeLow: 0,
+    },
+    cards = [],
     allocation = [],
-    watchlistStats = { totalWatching: 0, alertsActive: 0, newListings: 0 }
+    activities = [],
   } = data || {};
 
-  const [activeTab, setActiveTab] = useState('7D');
-  const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 6;
-  const totalPages = Math.ceil(cards.length / cardsPerPage);
+  const totalPages = Math.max(1, Math.ceil(cards.length / cardsPerPage));
 
-  const paginatedCards = cards.slice(
-    (currentPage - 1) * cardsPerPage,
-    currentPage * cardsPerPage
-  );
+  const paginatedCards = useMemo(() => {
+    return cards.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
+  }, [cards, currentPage]);
 
-  // --- CHART LOGIC ---
+  const bestPerformingCard = useMemo(() => {
+    if (!cards.length) return null;
+    return [...cards].sort((a: any, b: any) => Number(b.change || 0) - Number(a.change || 0))[0];
+  }, [cards]);
+
+  const portfolioOverview = useMemo(() => {
+    const totalQuantity = cards.reduce((sum: number, card: any) => sum + Number(card.quantity || 1), 0);
+    const totalMarketValue = cards.reduce(
+      (sum: number, card: any) =>
+        sum + Number(card.lineValue || Number(card.value || 0) * Number(card.quantity || 1)),
+      0
+    );
+
+    const avgCardValue = totalQuantity > 0 ? totalMarketValue / totalQuantity : 0;
+
+    return [
+      { label: "Cards", val: stats.totalCards || totalQuantity },
+      { label: "Sets", val: stats.totalSets || 0 },
+      { label: "Avg Value", val: money(avgCardValue) },
+    ];
+  }, [cards, stats.totalCards, stats.totalSets]);
+
   const chartConfig = useMemo(() => {
-    const pointsCount = 7;
-    const currentVal = stats.totalValue || 0;
-    const growthPercent = performance.change7DPct || 0;
-    
-    const startValue = currentVal / (1 + (growthPercent / 100));
-    const ceiling = Math.max(currentVal * 1.2, 1000);
+    const currentVal = Number(stats.totalValue || 0);
 
-    const points = Array.from({ length: pointsCount }).map((_, i) => {
-      const step = i / (pointsCount - 1);
-      const simulatedValue = startValue + (currentVal - startValue) * step;
-      const wobble = i === 0 || i === pointsCount - 1 ? 1 : 0.96 + Math.random() * 0.08;
-      const finalVal = simulatedValue * wobble;
+    const rangeDaysMap: Record<PerformanceRange, number> = {
+      "30D": 30,
+      "90D": 90,
+      All: 180,
+    };
 
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      
-      return {
-        x: i * (400 / (pointsCount - 1)), 
-        y: 130 - (finalVal / ceiling) * 110, 
-        label: `${date.getMonth() + 1}/${date.getDate()}`
-      };
+    const pointsCountMap: Record<PerformanceRange, number> = {
+      "30D": 7,
+      "90D": 9,
+      All: 10,
+    };
+
+    const days = rangeDaysMap[activeTab];
+    const pointsCount = pointsCountMap[activeTab];
+
+    const selectedChangePct =
+      activeTab === "30D"
+        ? Number(performance?.change30DPct || 0)
+        : activeTab === "90D"
+        ? Number(performance?.change90DPct || 0)
+        : Number(performance?.changeAllPct || 0);
+
+    const selectedChangeValue =
+      activeTab === "30D"
+        ? Number(performance?.change30D || 0)
+        : activeTab === "90D"
+        ? Number(performance?.change90D || 0)
+        : Number(performance?.changeAll || 0);
+
+    const safeCurrentVal = currentVal > 0 ? currentVal : 1000;
+    const startValue =
+      selectedChangePct !== -100 ? safeCurrentVal / (1 + selectedChangePct / 100) : safeCurrentVal;
+
+    const generatedValues = Array.from({ length: pointsCount }).map((_, i) => {
+      const progress = i / (pointsCount - 1);
+      const baseValue = startValue + (safeCurrentVal - startValue) * progress;
+
+      const waveOne = Math.sin(progress * Math.PI * 2) * 0.035;
+      const waveTwo = Math.sin(progress * Math.PI * 5) * 0.018;
+      const shapedValue = baseValue * (1 + waveOne + waveTwo);
+
+      if (i === pointsCount - 1) return safeCurrentVal;
+      return Math.max(shapedValue, 0);
     });
 
-    const path = `M${points.map(p => `${p.x},${p.y}`).join(' L')}`;
+    const minValue = Math.min(...generatedValues);
+    const maxValue = Math.max(...generatedValues);
+    const valueRange = Math.max(maxValue - minValue, 1);
+
+    const chartTop = 12;
+    const chartBottom = 138;
+    const chartHeight = chartBottom - chartTop;
+
+    const points = generatedValues.map((value, i) => {
+      const x = i * (400 / (pointsCount - 1));
+      const normalized = (value - minValue) / valueRange;
+      const y = chartBottom - normalized * chartHeight;
+
+      const date = new Date();
+      const daysBack = Math.round(days - (days * i) / (pointsCount - 1));
+      date.setDate(date.getDate() - daysBack);
+
+      const label =
+        activeTab === "All"
+          ? date.toLocaleDateString(undefined, { month: "short" })
+          : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+      return { x, y, value, label };
+    });
+
+    const path = `M${points.map((p) => `${p.x},${p.y}`).join(" L")}`;
     const fill = `${path} V150 H0 Z`;
-    
+
     const yLabels = [
-      `$${(ceiling / 1000).toFixed(0)}K`,
-      `$${((ceiling * 0.75) / 1000).toFixed(0)}K`,
-      `$${((ceiling * 0.5) / 1000).toFixed(0)}K`,
-      `$${((ceiling * 0.25) / 1000).toFixed(0)}K`,
-      "$0"
+      money(maxValue).replace(".00", ""),
+      money(minValue + valueRange * 0.75).replace(".00", ""),
+      money(minValue + valueRange * 0.5).replace(".00", ""),
+      money(minValue + valueRange * 0.25).replace(".00", ""),
+      money(minValue).replace(".00", ""),
     ];
 
-    return { points, path, fill, yLabels };
-  }, [stats.totalValue, performance.change7DPct]);
+    return {
+      points,
+      path,
+      fill,
+      yLabels,
+      selectedChangePct,
+      selectedChangeValue,
+      lastPoint: points[points.length - 1],
+    };
+  }, [activeTab, stats.totalValue, performance]);
 
   const isEmpty = cards.length === 0;
 
-  // --- EMPTY STATE UI ---
   if (isEmpty) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 animate-in fade-in zoom-in duration-700">
         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] flex items-center justify-center mb-8 shadow-sm">
           <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600" />
         </div>
-        
+
         <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
           Your portfolio is empty
         </h2>
-        
+
         <p className="text-slate-500 dark:text-slate-400 text-[13px] md:text-[14px] font-medium max-w-sm mb-10 leading-relaxed">
           Start building your collection to see performance analytics, market value growth, and grade distribution.
         </p>
 
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center gap-2 px-8 py-4 bg-brand text-white rounded-2xl text-[13px] font-black hover:bg-[#00a377] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
         >
@@ -192,9 +347,9 @@ export default function PortfolioDashboard({ data }: { data: any }) {
 
         <AnimatePresence>
           {isModalOpen && (
-            <AddCardModal 
-              userId={data?.id || 0} // ✅ Safely passing down root user identification
-              onClose={() => setIsModalOpen(false)} 
+            <AddCardModal
+              userId={userId || 0}
+              onClose={() => setIsModalOpen(false)}
               onRefresh={() => window.location.reload()}
             />
           )}
@@ -206,38 +361,47 @@ export default function PortfolioDashboard({ data }: { data: any }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
         <div className="lg:col-span-8 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] group/card">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group/card">
+            <div className="flex flex-col md:flex-row justify-between items-start mb-7 md:mb-8 gap-5 md:gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Portfolio Performance</h3>
-                  <Info size={14} className="text-slate-300 dark:text-slate-600 opacity-0 group-hover/card:opacity-100 transition-opacity cursor-help" />
+                <div className="flex items-center gap-2 mb-2 md:mb-1">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    Portfolio Performance
+                  </h3>
+                  <Info size={14} className="text-slate-300 dark:text-slate-600 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity cursor-help" />
                 </div>
+
                 <div className="flex items-baseline gap-3">
                   <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                    ${stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {money(stats.totalValue)}
                   </p>
-                  <p className={cn(
-                    "text-xs font-bold flex items-center gap-1",
-                    performance.change7DPct >= 0 ? "text-emerald-500" : "text-red-500"
-                  )}>
-                    <TrendingUp size={12} className={performance.change7DPct < 0 ? "rotate-180" : ""} /> 
-                    {performance.change7DPct >= 0 ? '+' : ''}{performance.change7DPct}% (7D)
+
+                  <p
+                    className={cn(
+                      "text-xs font-bold flex items-center gap-1",
+                      chartConfig.selectedChangePct >= 0 ? "text-emerald-500" : "text-red-500"
+                    )}
+                  >
+                    <TrendingUp
+                      size={12}
+                      className={chartConfig.selectedChangePct < 0 ? "rotate-180" : ""}
+                    />
+                    {chartConfig.selectedChangePct >= 0 ? "+" : ""}
+                    {chartConfig.selectedChangePct.toFixed(2)}% ({activeTab})
                   </p>
                 </div>
               </div>
-              
-              <div className="flex gap-1 bg-slate-50 dark:bg-[#050b18] p-1.5 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner">
-                {['7D', '30D', '90D', '1Y', 'All'].map((t) => (
-                  <button 
+
+              <div className="grid grid-cols-3 md:flex w-full md:w-auto gap-1 bg-slate-50 dark:bg-[#050b18] p-1 md:p-1.5 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner">
+                {PERFORMANCE_TABS.map((t) => (
+                  <button
                     key={t}
                     onClick={() => setActiveTab(t)}
                     className={cn(
-                      "px-4 py-2 text-[11px] font-black rounded-lg transition-all duration-200 uppercase tracking-wider",
-                      activeTab === t 
-                        ? "bg-[#10b981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]" 
+                      "px-3 md:px-4 py-2.5 md:py-2 text-[10px] md:text-[11px] font-black rounded-lg transition-all duration-200 uppercase tracking-wider",
+                      activeTab === t
+                        ? "bg-[#10b981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]"
                         : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     )}
                   >
@@ -247,15 +411,21 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-              <div className="md:col-span-7 h-64 flex gap-4">
-                <div className="flex flex-col justify-between py-1 text-[10px] font-bold text-slate-400 text-right w-10 shrink-0">
-                  {chartConfig.yLabels.map((label, idx) => <span key={idx}>{label}</span>)}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10">
+              <div className="md:col-span-7 h-[220px] md:h-64 flex gap-3 md:gap-4">
+                <div className="flex flex-col justify-between py-1 text-[9px] md:text-[10px] font-bold text-slate-400 text-right w-12 md:w-14 shrink-0">
+                  {chartConfig.yLabels.map((label, idx) => (
+                    <span key={idx}>{label}</span>
+                  ))}
                 </div>
 
-                <div className="flex-1 flex flex-col justify-between relative">
+                <div className="flex-1 flex flex-col justify-between relative min-w-0">
                   <div className="flex-1 relative">
-                    <svg viewBox="0 0 400 150" className="w-full h-full overflow-visible">
+                    <svg
+                      viewBox="0 0 400 150"
+                      className="w-full h-full overflow-visible"
+                      preserveAspectRatio="none"
+                    >
                       <defs>
                         <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                           <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
@@ -263,71 +433,123 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                         </linearGradient>
                       </defs>
 
-                      <motion.path 
+                      <motion.path
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1 }}
-                        d={chartConfig.fill} 
-                        fill="url(#chartGrad)" 
+                        d={chartConfig.fill}
+                        fill="url(#chartGrad)"
                       />
 
-                      <motion.path 
+                      <motion.path
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
-                        d={chartConfig.path} 
-                        fill="none" 
-                        stroke="#10b981" 
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
+                        d={chartConfig.path}
+                        fill="none"
+                        stroke="#10b981"
                         strokeWidth="4"
-                        strokeDasharray="1 8"
                         strokeLinecap="round"
                         className="drop-shadow-[0_4px_10px_rgba(16,185,129,0.3)]"
                       />
 
-                      <g>
-                        <motion.circle 
-                          animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                          transition={{ repeat: Infinity, duration: 2 }}
-                          cx={chartConfig.points[6].x} 
-                          cy={chartConfig.points[6].y} 
-                          r="8" 
-                          fill="#10b981"
-                        />
-                        <circle 
-                          cx={chartConfig.points[6].x} 
-                          cy={chartConfig.points[6].y} 
-                          r="4" 
-                          fill="#10b981" 
-                        />
-                      </g>
+                      {chartConfig.lastPoint && (
+                        <g>
+                          <motion.circle
+                            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            cx={chartConfig.lastPoint.x}
+                            cy={chartConfig.lastPoint.y}
+                            r="8"
+                            fill="#10b981"
+                          />
+                          <circle
+                            cx={chartConfig.lastPoint.x}
+                            cy={chartConfig.lastPoint.y}
+                            r="4"
+                            fill="#10b981"
+                          />
+                        </g>
+                      )}
                     </svg>
                   </div>
-                  
-                  <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-400 tracking-tighter">
-                    {chartConfig.points.map((p, i) => <span key={i}>{p.label}</span>)}
+
+                  <div className="flex justify-between mt-4 text-[9px] md:text-[10px] font-bold text-slate-400 tracking-tighter">
+                    {chartConfig.points.map((p, i) => (
+                      <span key={i} className={cn(i % 2 !== 0 ? "hidden sm:inline md:inline" : "")}>
+                        {p.label}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-5 flex flex-col justify-between border-l border-slate-50 dark:border-slate-800 pl-0 md:pl-8 space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Performance Overview</p>
+              <div className="md:col-span-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-6 md:pt-0 pl-0 md:pl-8 space-y-3">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+                  Performance Overview
+                </p>
+
                 {[
-                  { label: 'Change (7D)', val: `$${(performance?.change7D ?? 0).toLocaleString()}`, status: (performance?.change7D ?? 0) >= 0 ? 'pos' : 'neg' },
-                  { label: 'All Time High', val: `$${(performance?.allTimeHigh ?? 0).toLocaleString()}`, status: 'neutral' },
-                  { label: 'All Time Low', val: `$${(performance?.allTimeLow ?? 0).toLocaleString()}`, status: 'neutral' },
-                  { label: 'Best Performing Card', val: cards[0]?.name || 'N/A', sub: cards[0]?.change > 0 ? `+${cards[0].change}%` : '0%', status: 'pos' },
+                  {
+                    label: `Change (${activeTab})`,
+                    val: `${chartConfig.selectedChangeValue >= 0 ? "+" : "-"}${money(
+                      Math.abs(chartConfig.selectedChangeValue)
+                    )}`,
+                    status: chartConfig.selectedChangeValue >= 0 ? "pos" : "neg",
+                  },
+                  {
+                    label: "All Time High",
+                    val: money(performance?.allTimeHigh),
+                    status: "neutral",
+                  },
+                  {
+                    label: "All Time Low",
+                    val: money(performance?.allTimeLow),
+                    status: "neutral",
+                  },
+                  {
+                    label: "Best Performing Card",
+                    val: bestPerformingCard?.name || "N/A",
+                    sub:
+                      Number(bestPerformingCard?.change || 0) >= 0
+                        ? `+${Number(bestPerformingCard?.change || 0).toFixed(2)}%`
+                        : `${Number(bestPerformingCard?.change || 0).toFixed(2)}%`,
+                    status: Number(bestPerformingCard?.change || 0) >= 0 ? "pos" : "neg",
+                  },
                 ].map((item, i) => (
-                  <div key={i} className="flex justify-between items-center group/item border-b border-slate-50 dark:border-slate-800 pb-2 last:border-0">
-                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{item.label}</p>
-                    <div className="text-right">
-                      <p className={cn(
-                        "text-[12px] font-black flex items-center justify-end gap-1",
-                        item.status === 'pos' ? "text-emerald-500" : item.status === 'neg' ? "text-red-500" : "text-slate-900 dark:text-white"
-                      )}>
-                        {item.status === 'pos' && <TrendingUp size={10} />}
+                  <div
+                    key={i}
+                    className="flex justify-between items-center group/item border-b border-slate-50 dark:border-slate-800 pb-3 md:pb-2 last:border-0"
+                  >
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      {item.label}
+                    </p>
+
+                    <div className="text-right max-w-[170px]">
+                      <p
+                        className={cn(
+                          "text-[12px] font-black flex items-center justify-end gap-1 truncate",
+                          item.status === "pos"
+                            ? "text-emerald-500"
+                            : item.status === "neg"
+                            ? "text-red-500"
+                            : "text-slate-900 dark:text-white"
+                        )}
+                      >
+                        {item.status === "pos" && <TrendingUp size={10} />}
                         {item.val}
                       </p>
-                      {item.sub && <p className="text-[9px] font-bold text-emerald-500/80">↗ {item.sub}</p>}
+
+                      {item.sub && (
+                        <p
+                          className={cn(
+                            "text-[9px] font-bold",
+                            item.status === "pos" ? "text-emerald-500/80" : "text-red-500/80"
+                          )}
+                        >
+                          {item.sub}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -335,17 +557,17 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             </div>
           </div>
 
-          {/* 2. YOUR TOP CARDS TABLE */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
               </h3>
+
               <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
-                Page {currentPage} of {totalPages || 1}
+                Page {currentPage} of {totalPages}
               </span>
             </div>
-            
+
             <div className="w-full overflow-x-auto scrollbar-hide">
               <table className="w-full text-left border-collapse table-fixed min-w-225 lg:min-w-full">
                 <thead>
@@ -360,31 +582,26 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                     <th className="px-4 py-4 w-[6%]"></th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {paginatedCards.map((card: any, i: number) => {
-                    const isPositive = card.change >= 0;
-                    const chartColor = isPositive ? '#10b981' : '#ef4444';
-                    const sparkPath = isPositive 
-                      ? "M0,25 Q20,22 40,25 T70,15 T100,5" 
-                      : "M0,5 Q20,8 40,5 T70,20 T100,25";
+                    const lineValue = Number(card.lineValue || Number(card.value || 0) * Number(card.quantity || 1));
+                    const isPositive = Number(card.change || 0) >= 0;
 
                     const rawPath = card.canonical_path || card.url || "";
 
                     const handleNavigation = () => {
                       if (rawPath) {
-                        const dynamicRoute = rawPath.startsWith('/card') ? rawPath : `/card${rawPath}`;
+                        const dynamicRoute = rawPath.startsWith("/card") ? rawPath : `/card${rawPath}`;
                         router.push(dynamicRoute);
                       } else if (card.card_id) {
-                        let gameType = 'lorcana';
-                        if (card.url?.includes('/pokemon/')) gameType = 'pokemon';
-                        if (card.url?.includes('/mtg/') || card.url?.includes('/magicthegathering/')) gameType = 'magic';
-                        router.push(`/card/${card.card_id}?game=${gameType}`);
+                        router.push(`/card/${card.card_id}?game=${card.game || "pokemon"}`);
                       }
                     };
 
                     return (
-                      <tr 
-                        key={card.id || i} 
+                      <tr
+                        key={card.entryId || card.id || `${card.card_id}-${i}`}
                         onClick={handleNavigation}
                         className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all"
                       >
@@ -394,69 +611,83 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                               {card.imageUrl ? (
                                 <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">NO IMG</div>
+                                <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">
+                                  NO IMG
+                                </div>
                               )}
                             </div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">
-                              {card.name}
-                            </p>
+
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">
+                                {card.name}
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase">
+                                Qty {card.quantity || 1}
+                              </p>
+                            </div>
                           </div>
                         </td>
+
                         <td className="px-4 py-4">
-                          {/* ✅ FIXED: Uses mapped setName property layout */}
-                          <p className="text-[11px] text-slate-400 font-bold uppercase truncate">{card.setName}</p>
+                          <p className="text-[11px] text-slate-400 font-bold uppercase truncate">
+                            {card.setName || card.set || "Unknown Set"}
+                          </p>
                         </td>
+
                         <td className="px-2 py-4 text-center">
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                            {card.grade || 'RAW'}
+                            {card.grade || "Raw"}
                           </span>
                         </td>
+
                         <td className="px-4 py-4">
                           <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
-                            ${(card.value || 0).toLocaleString()}
+                            {money(card.value)}
                           </p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Market Price</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                            Market Price
+                          </p>
                         </td>
+
                         <td className="px-4 py-4">
                           <p className="text-[13px] font-black text-slate-900 dark:text-white leading-tight">
-                            ${(card.value || 0).toLocaleString()}
+                            {money(lineValue)}
                           </p>
-                          <p className={cn(
-                            "text-[9px] font-bold flex items-center gap-0.5", 
-                            isPositive ? "text-emerald-500" : "text-red-500"
-                          )}>
-                            {isPositive ? '↗' : '↘'} {Math.abs(card.change || 0)}%
+                          <p
+                            className={cn(
+                              "text-[9px] font-bold flex items-center gap-0.5",
+                              isPositive ? "text-emerald-500" : "text-red-500"
+                            )}
+                          >
+                            {isPositive ? "↗" : "↘"} {Math.abs(Number(card.change || 0)).toFixed(2)}%
                           </p>
                         </td>
+
                         <td className="px-4 py-4">
-                          {/* ✅ FIXED: Handled the zero-value division protection boundary cleanly */}
+                          <p
+                            className={cn(
+                              "text-[13px] font-black",
+                              isPositive ? "text-emerald-500" : "text-red-500"
+                            )}
+                          >
+                            {isPositive ? "+" : "-"}
+                            {money(Math.abs(Number(card.change30D || 0)))}
+                          </p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">30D</p>
+                        </td>
+
+                        <td className="px-4 py-4">
                           <p className="text-[13px] font-black text-slate-800 dark:text-slate-200">
-                            {stats.totalValue > 0 ? ((card.value / stats.totalValue) * 100).toFixed(2) : "0.00"}%
+                            {stats.totalValue > 0 ? ((lineValue / stats.totalValue) * 100).toFixed(2) : "0.00"}%
                           </p>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="h-10 w-full max-w-30 flex items-center">
-                            <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
-                              <defs>
-                                <linearGradient id={`gradient-${i}`} x1="0" x2="0" y1="0" y2="1">
-                                  <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
-                                  <stop offset="100%" stopColor={chartColor} stopOpacity="0" />
-                                </linearGradient>
-                              </defs>
-                              <motion.path d={`${sparkPath} L 100,40 L 0,40 Z`} fill={`url(#gradient-${i})`} />
-                              <motion.path d={sparkPath} fill="none" stroke={chartColor} strokeWidth="3" strokeDasharray="1 5" strokeLinecap="round" />
-                            </svg>
-                          </div>
-                        </td>
-                        <td 
-                          className="px-4 py-4 text-right" 
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <RowActions 
+
+                        <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <RowActions
                             card={card}
-                            gameType={card.game || ''}
+                            gameType={card.game || ""}
                             onViewDetails={handleNavigation}
-                            onRemove={() => console.log("Remove triggered for asset id:", card.id)}
+                            onRemove={() => console.log("Remove triggered for asset id:", card.entryId || card.id)}
                           />
                         </td>
                       </tr>
@@ -466,16 +697,15 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </table>
             </div>
 
-            {/* PAGINATION FOOTER */}
             <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
               >
                 <ArrowRight size={14} className="rotate-180" /> Previous
               </button>
-              
+
               <div className="flex gap-2">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
@@ -483,8 +713,8 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                     onClick={() => setCurrentPage(page)}
                     className={cn(
                       "w-8 h-8 rounded-lg text-[11px] font-black transition-all",
-                      currentPage === page 
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
+                      currentPage === page
+                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
                         : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     )}
                   >
@@ -493,8 +723,8 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                 ))}
               </div>
 
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
               >
@@ -504,73 +734,79 @@ export default function PortfolioDashboard({ data }: { data: any }) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Allocation & Insights */}
         <div className="lg:col-span-4 space-y-6">
-          <AllocationCard 
+          <AllocationCard
             title="Portfolio Allocation"
-            data={allocation.length > 0 ? allocation : ALLOCATION} 
+            data={allocation.length > 0 ? allocation : ALLOCATION}
             centerValue={stats.totalCards}
             centerLabel="Total Cards"
-            onFooterClick={() => console.log("Navigate to breakdown")}
+            onFooterClick={() => {}}
           />
 
-          {/* RECENT ACTIVITY LOG */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-2">
                 <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Recent Activity</h3>
                 <Info size={14} className="text-slate-300" />
               </div>
-              <button className="text-[11px] font-bold text-emerald-500 flex items-center gap-1 hover:underline uppercase tracking-wider">
-                View All <ArrowUpRight size={14} />
-              </button>
             </div>
 
             <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
-              {[
-                { t: 'Sold Charizard #4 (PSA 10)', v: '$1,050,000', d: 'May 10, 2025', icon: <ShoppingCart size={16}/>, color: 'bg-emerald-50 text-emerald-500' },
-                { t: 'Added Blastoise #2 (PSA 10)', v: '$480,000', d: 'May 8, 2025', icon: <Plus size={16}/>, color: 'bg-emerald-50 text-emerald-500' },
-                { t: 'Price Alert Triggered', v: 'Lugia #9 (PSA 10) fell below $300,000', d: 'May 4, 2025', icon: <Bell size={16}/>, color: 'bg-purple-50 text-purple-500' },
-                { t: 'Market Update', v: '13 cards changed value', d: 'May 2, 2025', icon: <Layout size={16}/>, color: 'bg-orange-50 text-orange-500' },
-              ].map((act, i) => (
-                <div key={i} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                  <div className="flex items-center gap-4">
-                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", act.color)}>
-                      {act.icon}
+              {Array.isArray(activities) && activities.length > 0 ? (
+                activities.map((act: any) => {
+                  const actionType = act.actionType || act.action_type || "";
+                  const Icon = activityIcon(actionType);
+                  const meta = act.metadata || {};
+                  const badge = meta.display_badge || meta.grade || actionType || "Activity";
+
+                  return (
+                    <div key={act.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0 gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", activityColor(actionType))}>
+                          <Icon size={16} />
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
+                            {act.description || "Portfolio activity"}
+                          </p>
+                          <p className="text-[12px] text-slate-400 font-medium truncate">{badge}</p>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] font-semibold text-slate-400 whitespace-nowrap">
+                        {formatDate(act.createdAt || act.created_at)}
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200">{act.t}</p>
-                      <p className="text-[12px] text-slate-400 font-medium">{act.v}</p>
-                    </div>
-                  </div>
-                  <p className="text-[12px] font-semibold text-slate-400 whitespace-nowrap">{act.d}</p>
+                  );
+                })
+              ) : (
+                <div className="py-6 text-[12px] font-bold text-slate-400">
+                  No recent portfolio activity yet.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
-          {/* WATCHLIST OVERVIEW CARD */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="flex justify-between items-center mb-5">
               <div className="flex items-center gap-2">
-                <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Watchlist Overview</h3>
+                <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">
+                  Portfolio Overview
+                </h3>
                 <Info size={14} className="text-slate-300 cursor-help" />
               </div>
             </div>
 
             <div className="grid grid-cols-3">
-              {[
-                { label: 'Watching', val: watchlistStats.totalWatching },
-                { label: 'Alerts Active', val: watchlistStats.alertsActive },
-                { label: 'New Listings', val: watchlistStats.newListings },
-              ].map((stat, i) => (
-                <div 
-                  key={i} 
+              {portfolioOverview.map((stat, i) => (
+                <div
+                  key={i}
                   className={`flex flex-col px-4 ${
-                    i !== 0 ? 'border-l border-slate-50 dark:border-slate-800' : 'pl-0'
+                    i !== 0 ? "border-l border-slate-50 dark:border-slate-800" : "pl-0"
                   }`}
                 >
-                  <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight truncate">
                     {stat.val}
                   </span>
                   <span className="text-[11px] font-semibold text-slate-400 tracking-tight">
@@ -580,10 +816,35 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               ))}
             </div>
 
-            <button className="w-full mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-center gap-2 text-emerald-500 hover:text-emerald-600 transition-all font-bold text-[13px] group/watch">
-              Go to Watchlist
-              <CgArrowLongRight size={16} className="group-hover/watch:translate-x-1 transition-transform" />
-            </button>
+            <div className="mt-5 pt-5 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-4">
+                <div className="flex items-center gap-2 mb-2 text-emerald-500">
+                  <DollarSign size={15} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Value</span>
+                </div>
+                <p className="text-sm font-black text-slate-900 dark:text-white">{money(stats.totalValue)}</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-4">
+                <div className="flex items-center gap-2 mb-2 text-emerald-500">
+                  <BarChart3 size={15} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">30D</span>
+                </div>
+                <p
+                  className={cn(
+                    "text-sm font-black",
+                    Number(performance?.change30D || 0) >= 0 ? "text-emerald-500" : "text-red-500"
+                  )}
+                >
+                  {Number(performance?.change30D || 0) >= 0 ? "+" : "-"}
+                  {money(Math.abs(Number(performance?.change30D || 0)))}
+                </p>
+              </div>
+            </div>
+
+            {/* Removed for now */}
+            {/* <button>View full breakdown</button> */}
+            {/* <button>Go to Watchlist</button> */}
           </div>
         </div>
       </div>

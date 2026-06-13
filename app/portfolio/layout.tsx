@@ -1,67 +1,112 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import PortfolioHeader from "@/components/portfolio/PortfolioHeader";
 import Sidebar from "@/components/Sidebar";
-import { getPortfolio } from "@/lib/queries/portfolio"; // ✅ Updated function name
+import { getPortfolio } from "@/lib/queries/portfolio";
+import { getWatchlist } from "@/lib/queries/watchlist";
 
 export default function PortfolioLayout({ children }: { children: React.ReactNode }) {
-  const [userData, setUserData] = useState<any>(null);
-  const [stats, setStats] = useState({
-    totalValue: 0,
-    growth7D: 0,
-    totalCards: 0,
-    totalSets: 0,
+  const pathname = usePathname();
+  const isWatchlist = pathname === "/portfolio/watchlist";
+
+  const [dashboardData, setDashboardData] = useState<any>({
+    user: { name: "Collector", id: 0 },
+    stats: { totalValue: 0, totalCards: 0, totalSets: 0 },
+    performance: { change30D: 0, change30DPct: 0 },
+    cards: [],
+    watchlist: {
+      totalValue: 0,
+      totalCards: 0,
+      setCount: 0,
+      growth30D: 0,
+      change30DValue: 0,
+      cards: [],
+    },
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('user_data');
-    if (stored) {
+    async function loadHeaderData() {
+      const stored = localStorage.getItem("user_data");
+      if (!stored) return;
+
       try {
         const parsed = JSON.parse(stored);
-        setUserData(parsed);
-        
-        // Grab either identifier structure matching your localstorage setup
-        const userId = parsed.id || parsed.user_id;
-        if (userId) {
-          fetchDashboardData(userId);
+        const userId = Number(parsed.id || parsed.user_id || 0);
+        if (!userId) return;
+
+        const user = {
+          ...parsed,
+          id: userId,
+          name: parsed.username || parsed.name || parsed.email || "Collector",
+        };
+
+        if (isWatchlist) {
+          const response = await getWatchlist(userId);
+
+          if (response.success && response.data) {
+            const data = response.data;
+
+            setDashboardData({
+              user,
+              userId,
+              watchlist: {
+                totalValue: Number(data.totalValue || 0),
+                totalCards: Number(data.totalCards || 0),
+                setCount: Number(data.setCount || 0),
+                growth30D: Number(data.growth30D || 0),
+                growth90D: Number(data.growth90D || 0),
+                growthAll: Number(data.growthAll || 0),
+                change30DValue: Number(data.change30DValue || 0),
+                change90DValue: Number(data.change90DValue || 0),
+                changeAllValue: Number(data.changeAllValue || 0),
+                cards: Array.isArray(data.cards) ? data.cards : [],
+              },
+            });
+          }
+
+          return;
         }
-      } catch (e) {
-        console.error("Error parsing user data", e);
+
+        const response = await getPortfolio(userId);
+
+        if (response.success && response.data) {
+          const apiData = response.data;
+          const backendStats = apiData.stats || {};
+          const backendPerformance = apiData.performance || {};
+
+          setDashboardData({
+            user,
+            userId,
+            stats: {
+              totalValue: Number(backendStats.totalValue || 0),
+              totalCards: Number(backendStats.totalCards || 0),
+              totalSets: Number(backendStats.totalSets || 0),
+            },
+            performance: {
+              change30D: Number(backendPerformance.change30D || 0),
+              change30DPct: Number(backendPerformance.change30DPct || 0),
+              change90D: Number(backendPerformance.change90D || 0),
+              change90DPct: Number(backendPerformance.change90DPct || 0),
+              changeAll: Number(backendPerformance.changeAll || 0),
+              changeAllPct: Number(backendPerformance.changeAllPct || 0),
+            },
+            cards: Array.isArray(apiData.cards) ? apiData.cards : [],
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load portfolio header data:", error);
       }
     }
-  }, []);
 
-  const fetchDashboardData = async (userId: number) => {
-    const response = await getPortfolio(userId);
-    
-    if (response.success && response.data) {
-      const apiData = response.data;
-      const backendStats = apiData.stats || {};
-      const backendPerformance = apiData.performance || {};
-
-      // ✅ Drilled down directly into backend data nested structural keys
-      setStats({
-        totalValue: backendStats.totalValue || 0,
-        growth7D: backendPerformance.change7DPct || 0,
-        totalCards: backendStats.totalCards || 0,
-        totalSets: backendStats.totalSets || 0,
-      });
-    }
-  };
-
-  const dashboardData = {
-    user: {
-      name: userData?.username || "Collector",
-      id: userData?.id || userData?.user_id || 0,
-    },
-    stats: stats
-  };
+    loadHeaderData();
+  }, [isWatchlist, pathname]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
-      <Navbar /> 
+      <Navbar />
 
       <div className="lg:hidden">
         <Sidebar />
@@ -69,10 +114,8 @@ export default function PortfolioLayout({ children }: { children: React.ReactNod
 
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10">
         <PortfolioHeader data={dashboardData} />
-        
-        <main className="py-4">
-          {children}
-        </main>
+
+        <main className="py-4">{children}</main>
       </div>
     </div>
   );

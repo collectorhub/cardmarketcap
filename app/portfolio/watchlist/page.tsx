@@ -1,94 +1,149 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import WatchlistPage from "@/components/portfolio/WatchlistPage";
-// 1. POINT TO THE NEW QUERY FILE
-import { getWatchlist } from "@/lib/queries/watchlist"; 
-import { Loader2, LayoutGrid } from 'lucide-react';
-import Link from 'next/link';
+import { getWatchlist } from "@/lib/queries/watchlist";
+import { Loader2 } from "lucide-react";
 
 export default function Page() {
   const [watchlistData, setWatchlistData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Inside watchlist/page.tsx
-useEffect(() => {
-  async function loadData() {
-    const stored = localStorage.getItem('user_data');
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    async function loadData() {
+      const stored = localStorage.getItem("user_data");
 
-    try {
-      const parsed = JSON.parse(stored);
-      const userId = parsed.id || parsed.user_id;
-      
-      const response = await getWatchlist(userId);
-
-      if (response && response.success) {
-          setWatchlistData({
-              watchlist: {
-                  // Note: Use response.data because your getWatchlist query 
-                  // wraps the PHP result in a 'data' key.
-                  cards: response.data.cards || [],
-                  allocation: response.data.allocation || [],
-                  totalCards: response.data.totalCards || 0,
-                  stats: {
-                      totalValue: response.data.totalValue || 0,
-                      growth7D: response.data.growth7D || 0,
-                      totalCards: response.data.totalCards || 0,
-                      totalSets: response.data.setCount || 0,
-                  },
-                  meta: {
-                      createdAt: "May 2026",
-                      initialValue: response.data.totalValue || 0,
-                      totalIncrease: 0,
-                      totalIncreasePercent: 0
-                  }
-              }
-          });
-      } else {
-        // If fetch failed but we reached the server, set an empty watchlist 
-        // to stop the infinite spin and show the "Empty" state instead
-        setWatchlistData({ watchlist: { cards: [] } });
+      if (!stored) {
+        setLoading(false);
+        return;
       }
-    } catch (e) {
-      console.error("Failed to load user watchlist:", e);
-      setWatchlistData({ watchlist: { cards: [] } });
-    } finally {
-      setLoading(false);
+
+      try {
+        const parsed = JSON.parse(stored);
+        const userId = Number(parsed.id || parsed.user_id || 0);
+
+        if (!userId) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await getWatchlist(userId);
+
+        if (response?.success && response.data) {
+          const data = response.data;
+
+          setWatchlistData({
+            userId,
+
+            user: {
+              ...parsed,
+              id: userId,
+            },
+
+            watchlist: {
+              totalValue: Number(data.totalValue || 0),
+              totalCards: Number(data.totalCards || 0),
+              setCount: Number(data.setCount || 0),
+
+              growth7D: Number(data.growth7D || 0),
+              growth30D: Number(data.growth30D || 0),
+              growth90D: Number(data.growth90D || 0),
+              growthAll: Number(data.growthAll || 0),
+
+              change7DValue: Number(data.change7DValue || 0),
+              change30DValue: Number(data.change30DValue || 0),
+              change90DValue: Number(data.change90DValue || 0),
+              changeAllValue: Number(data.changeAllValue || 0),
+
+              activeAlerts: Number(data.activeAlerts || 0),
+              avgDailyChange: Number(data.avgDailyChange || 0),
+
+              cards: Array.isArray(data.cards)
+                ? data.cards.map((card: any) => ({
+                    watchlist_id: card.watchlist_id,
+                    card_id: card.card_id,
+
+                    name: card.name,
+                    set: card.set,
+                    setName: card.setName,
+
+                    grade: card.grade,
+                    game: card.game,
+
+                    value: Number(card.value || 0),
+
+                    avg7: Number(card.avg7 || 0),
+                    avg30: Number(card.avg30 || 0),
+                    avg90: Number(card.avg90 || 0),
+
+                    change7D: Number(card.change7D || 0),
+                    change30D: Number(card.change30D || 0),
+                    change90D: Number(card.change90D || 0),
+                    changeAll: Number(card.changeAll || 0),
+
+                    change7DValue: Number(card.change7DValue || 0),
+                    change30DValue: Number(card.change30DValue || 0),
+                    change90DValue: Number(card.change90DValue || 0),
+                    changeAllValue: Number(card.changeAllValue || 0),
+
+                    lastSalePrice: Number(card.lastSalePrice || 0),
+                    lastSaleDate: card.lastSaleDate,
+
+                    imageUrl: card.imageUrl,
+                    canonical_path: card.canonical_path,
+                    url: card.url,
+
+                    createdAt: card.createdAt,
+                  }))
+                : [],
+
+              allocation: Array.isArray(data.allocation)
+                ? data.allocation
+                : [],
+
+              meta: {
+                createdAt: data.meta?.createdAt || null,
+                initialValue: Number(data.meta?.initialValue || 0),
+                totalIncrease: Number(data.meta?.totalIncrease || 0),
+                totalIncreasePercent: Number(
+                  data.meta?.totalIncreasePercent || 0
+                ),
+              },
+            },
+          });
+        } else {
+          setWatchlistData({
+            watchlist: {
+              cards: [],
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load user watchlist:", error);
+
+        setWatchlistData({
+          watchlist: {
+            cards: [],
+          },
+        });
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2
+          className="animate-spin text-[#00BA88]"
+          size={40}
+        />
+      </div>
+    );
   }
-  loadData();
-}, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Loader2 className="animate-spin text-[#00BA88]" size={40} />
-    </div>
-  );
-
-  // --- OPTIONAL: UNCOMMENT FOR AUTH GUARD ---
-  // if (!watchlistData) {
-  //   return (
-  //     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-  //       <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] flex items-center justify-center mb-8">
-  //         <LayoutGrid className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-  //       </div>
-  //       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-3">
-  //         No Watchlist Found
-  //       </h1>
-  //       <p className="text-slate-500 text-[13px] mb-10">
-  //         Sign in to track cards you're interested in buying.
-  //       </p>
-  //       <Link href="/login" className="px-8 py-4 bg-[#00BA88] text-white rounded-2xl text-[13px] font-black">
-  //         Sign In
-  //       </Link>
-  //     </div>
-  //   );
-  // }
-
-  // Passes the data directly to your UI layout
   return <WatchlistPage data={watchlistData} />;
 }

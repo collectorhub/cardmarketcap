@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import PortfolioDashboard from '@/components/portfolio/PortfolioDashboard';
-import { getPortfolio } from "@/lib/queries/portfolio"; // ✅ Updated function name
-import { Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import PortfolioDashboard from "@/components/portfolio/PortfolioDashboard";
+import { getPortfolio } from "@/lib/queries/portfolio";
+import { getUserActivities } from "@/lib/queries/activities";
+import { Loader2 } from "lucide-react";
 
 export default function PortfolioPage() {
   const [data, setData] = useState<any>(null);
@@ -11,7 +12,8 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     async function loadPortfolio() {
-      const stored = localStorage.getItem('user_data');
+      const stored = localStorage.getItem("user_data");
+
       if (!stored) {
         setLoading(false);
         return;
@@ -19,41 +21,98 @@ export default function PortfolioPage() {
 
       try {
         const parsed = JSON.parse(stored);
-        const userId = parsed.id || parsed.user_id;
+        const userId = Number(parsed.id || parsed.user_id || 0);
 
-        // Fetch using the renamed, fixed function
-        const response = await getPortfolio(userId);
+        if (!userId) {
+          setLoading(false);
+          return;
+        }
 
-        if (response.success && response.data) {
-          const apiData = response.data;
+        const [portfolioResponse, activitiesResponse] = await Promise.all([
+          getPortfolio(userId),
+          getUserActivities(userId, 5),
+        ]);
+
+        if (portfolioResponse.success && portfolioResponse.data) {
+          const apiData = portfolioResponse.data;
           const backendStats = apiData.stats || {};
           const backendPerformance = apiData.performance || {};
-          
-          // ✅ Mapping precisely to your PHP JSON payload structure
+
           setData({
+            userId,
+            user: {
+              ...parsed,
+              id: userId,
+            },
+
             stats: {
-              totalValue: backendStats.totalValue || 0,
-              totalCards: backendStats.totalCards || 0,
-              totalSets: backendStats.totalSets || 0,
+              totalValue: Number(backendStats.totalValue || 0),
+              totalCards: Number(backendStats.totalCards || 0),
+              totalSets: Number(backendStats.totalSets || 0),
             },
+
             performance: {
-              change7D: backendPerformance.change7D || 0,
-              change7DPct: backendPerformance.change7DPct || 0,
+              change30D: Number(backendPerformance.change30D || 0),
+              change30DPct: Number(backendPerformance.change30DPct || 0),
+              change90D: Number(backendPerformance.change90D || 0),
+              change90DPct: Number(backendPerformance.change90DPct || 0),
+              changeAll: Number(backendPerformance.changeAll || 0),
+              changeAllPct: Number(backendPerformance.changeAllPct || 0),
+              allTimeHigh: Number(backendPerformance.allTimeHigh || 0),
+              allTimeLow: Number(backendPerformance.allTimeLow || 0),
             },
+
             cards: (apiData.cards || []).map((card: any) => ({
-              id: card.entryId,        // ✅ Maps cleanly to PHP selector "up.id as entryId"
-              card_id: card.card_id,   // ✅ Maps cleanly to PHP selector "up.card_id"
+              id: card.entryId,
+              entryId: card.entryId,
+              card_id: card.card_id,
               name: card.name,
-              setName: card.set || 'Unknown Set', 
-              grade: card.grade || 'Raw',
-              value: card.value || 0,
-              change: card.change7D || 0,
+              set: card.set || card.setName || "Unknown Set",
+              setName: card.setName || card.set || "Unknown Set",
+              grade: card.grade || "Raw",
+              quantity: Number(card.quantity || 1),
+              purchase_price: card.purchase_price,
+
+              value: Number(card.value || 0),
+              lineValue: Number(card.lineValue || Number(card.value || 0) * Number(card.quantity || 1)),
+
+              avg30: Number(card.avg30 || 0),
+              avg90: Number(card.avg90 || 0),
+              oldestPrice: Number(card.oldestPrice || 0),
+
+              change: Number(card.change || 0),
+              change30D: Number(card.change30D || 0),
+              change90D: Number(card.change90D || 0),
+              changeAll: Number(card.changeAll || 0),
+
               image: card.imageUrl,
-              imageUrl: card.imageUrl,     
-              url: card.canonical_path || '', // ✅ Maps cleanly to your PHP selector
+              imageUrl: card.imageUrl,
+              canonical_path: card.canonical_path || "",
+              url: card.canonical_path || "",
+              game: card.game || "pokemon",
             })),
+
             allocation: apiData.allocation || [],
-            recentActivity: apiData.recentActivity || [] 
+
+            activities:
+              activitiesResponse.success && Array.isArray(activitiesResponse.activities)
+                ? activitiesResponse.activities
+                : [],
+          });
+        } else {
+          setData({
+            userId,
+            user: {
+              ...parsed,
+              id: userId,
+            },
+            cards: [],
+            stats: {},
+            allocation: [],
+            activities:
+              activitiesResponse.success && Array.isArray(activitiesResponse.activities)
+                ? activitiesResponse.activities
+                : [],
           });
         }
       } catch (e) {
@@ -70,14 +129,18 @@ export default function PortfolioPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-brand" size={40} />
-        <p className="text-slate-500 font-medium animate-pulse">Loading your collection...</p>
+        <p className="text-slate-500 font-medium animate-pulse">
+          Loading your collection...
+        </p>
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      <PortfolioDashboard data={data || { cards: [], stats: {}, allocation: [] }} />
+      <PortfolioDashboard
+        data={data || { cards: [], stats: {}, allocation: [], activities: [] }}
+      />
     </div>
   );
 }
