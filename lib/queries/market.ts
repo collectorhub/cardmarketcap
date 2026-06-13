@@ -194,9 +194,9 @@ export async function fetchCardById(id: string, game: string = "pokemon") {
 }
 
 export async function fetchCardByCanonicalUrl(
-  canonicalPath: string, 
+  canonicalPath: string,
   game: string = "pokemon",
-  grade: string = "psa 10" 
+  grade: string = "psa 10"
 ) {
   try {
     let normalizedGame = game.toLowerCase();
@@ -204,24 +204,136 @@ export async function fetchCardByCanonicalUrl(
 
     const cleanGrade = grade.toLowerCase().trim();
 
-    // 1. QUERY CMC_ASSETS VIA EXACT PATH 
+    // 1. PRIMARY: QUERY CMC_CARDS FIRST
+    // This endpoint returns full_psa_pop + historical_sales for single-card views.
+    const cardQueryParams = new URLSearchParams({
+      search: canonicalPath,
+      game: normalizedGame,
+      grade: cleanGrade,
+      limit: "1",
+    });
+
+    const cmcResponse = await fetch(
+      `${API_BASE}/cmc_cards.php?${cardQueryParams.toString()}`,
+      { next: { revalidate: 60 } }
+    );
+
+    if (cmcResponse.ok) {
+      const cmcJson = await cmcResponse.json();
+
+      if (cmcJson.success && cmcJson.data?.length > 0) {
+        const frontendMatch = cmcJson.data[0];
+
+        return {
+          ...frontendMatch,
+
+          id: frontendMatch.id,
+          source_id: frontendMatch.id,
+          game: cmcJson.metadata?.game || normalizedGame,
+
+          set_name: frontendMatch.set,
+          expansion_name: frontendMatch.set,
+          set: frontendMatch.set || "Unknown Set",
+
+          image: frontendMatch.imageUrl || frontendMatch.image_small,
+          imageUrl: frontendMatch.imageUrl || frontendMatch.image_small,
+          largeImage:
+            frontendMatch.largeImage ||
+            frontendMatch.imageUrl ||
+            frontendMatch.image_small,
+
+          canonicalUrl:
+            frontendMatch.canonical_path ||
+            frontendMatch.canonicalUrl ||
+            "",
+          canonical_path:
+            frontendMatch.canonical_path ||
+            frontendMatch.canonicalUrl ||
+            "",
+
+          rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
+
+          priceNum: parseFloat(
+            String(frontendMatch.price || "0").replace(/[$,]/g, "") || "0"
+          ),
+          marketCapNum: parseFloat(
+            String(frontendMatch.marketCap || "0").replace(/[$,]/g, "") || "0"
+          ),
+          popTotalNum: parseInt(
+            String(frontendMatch.popTotal || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          gradeCountNum: parseInt(
+            String(frontendMatch.gradeCount || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          psa10Num: parseInt(
+            String(frontendMatch.psa10 || "0").replace(/,/g, "") || "0",
+            10
+          ),
+
+          sales30dNum: parseInt(
+            String(frontendMatch.sales30d || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          sales90dNum: parseInt(
+            String(frontendMatch.sales90d || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          avgPrice30dNum: parseFloat(
+            String(frontendMatch.avgPrice30d || "0").replace(/[$,]/g, "") ||
+              "0"
+          ),
+          avgPrice90dNum: parseFloat(
+            String(frontendMatch.avgPrice90d || "0").replace(/[$,]/g, "") ||
+              "0"
+          ),
+          liquidityScoreNum: parseFloat(
+            String(frontendMatch.liquidityScore || "0").replace(/,/g, "") ||
+              "0"
+          ),
+          change7dNum: parseFloat(
+            String(frontendMatch.change_7d || frontendMatch.change || "0").replace(
+              /[%\s]/g,
+              ""
+            ) || "0"
+          ),
+          change30dNum: parseFloat(
+            String(frontendMatch.change_30d || "0").replace(/[%\s]/g, "") ||
+              "0"
+          ),
+
+          historicalSales: cmcJson.historical_sales || {},
+          fullPsaPop:
+            frontendMatch.full_psa_pop ||
+            cmcJson.full_psa_pop ||
+            null,
+        };
+      }
+    }
+
+    // 2. FALLBACK: Universal search if exact cmc_cards match fails.
     const assetResponse = await fetch(
-      `${API_BASE}/cmc_universal_search.php?q=${encodeURIComponent(canonicalPath)}&game=${normalizedGame}&grade=${encodeURIComponent(cleanGrade)}&limit=1`,
+      `${API_BASE}/cmc_universal_search.php?q=${encodeURIComponent(
+        canonicalPath
+      )}&game=${normalizedGame}&grade=${encodeURIComponent(cleanGrade)}&limit=1`,
       { next: { revalidate: 60 } }
     );
 
     if (assetResponse.ok) {
       const assetJson = await assetResponse.json();
+
       if (assetJson.success && assetJson.results?.length > 0) {
         const assetMatch = assetJson.results[0];
+
         return {
           id: assetMatch.id,
           source_id: assetMatch.id,
           name: assetMatch.name,
-          game: assetMatch.game,
+          game: assetMatch.game || normalizedGame,
           set_name: assetMatch.set,
           expansion_name: assetMatch.set,
-          set: assetMatch.set || 'Unknown Set',
+          set: assetMatch.set || "Unknown Set",
           number: assetMatch.number,
           image: assetMatch.imageUrl,
           imageUrl: assetMatch.imageUrl,
@@ -234,72 +346,56 @@ export async function fetchCardByCanonicalUrl(
           popTotal: assetMatch.popTotal || "0",
           gradeCount: assetMatch.gradeCount || "0",
           psa10: assetMatch.psa10 || "0",
-          resolvedGrade: assetMatch.resolvedGrade || `PSA ${cleanGrade.replace(/[^0-9]/g, '')}`,
-          
-          // Math parsing 
-          priceNum: parseFloat(String(assetMatch.price || "0").replace(/[$,]/g, '') || "0"),
-          marketCapNum: parseFloat(String(assetMatch.marketCap || "0").replace(/[$,]/g, '') || "0"),
-          popTotalNum: parseInt(String(assetMatch.popTotal || "0").replace(/,/g, '') || "0"),
-          gradeCountNum: parseInt(String(assetMatch.gradeCount || "0").replace(/,/g, '') || "0"),
-          sales30dNum: parseInt(String(assetMatch.sales30d || "0").replace(/,/g, '') || "0"),
-          sales90dNum: parseInt(String(assetMatch.sales90d || "0").replace(/,/g, '') || "0"),
-          avgPrice30dNum: parseFloat(String(assetMatch.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
-          avgPrice90dNum: parseFloat(String(assetMatch.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
-          liquidityScoreNum: parseFloat(String(assetMatch.liquidityScore || "0").replace(/,/g, '') || "0"),
-          change7dNum: parseFloat(String(assetMatch.change_7d || assetMatch.change || "0").replace(/[%\s]/g, '') || "0"),
-          change30dNum: parseFloat(String(assetMatch.change_30d || "0").replace(/[%\s]/g, '') || "0"),
-          historicalSales: assetJson.historical_sales || [],
+          resolvedGrade:
+            assetMatch.resolvedGrade ||
+            `PSA ${cleanGrade.replace(/[^0-9]/g, "")}`,
 
-          // 🎯 FULL PSA POPULATION PASS THROUGH
-          fullPsaPop: assetMatch.full_psa_pop || assetJson.full_psa_pop || null
-        };
-      }
-    }
+          priceNum: parseFloat(
+            String(assetMatch.price || "0").replace(/[$,]/g, "") || "0"
+          ),
+          marketCapNum: parseFloat(
+            String(assetMatch.marketCap || "0").replace(/[$,]/g, "") || "0"
+          ),
+          popTotalNum: parseInt(
+            String(assetMatch.popTotal || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          gradeCountNum: parseInt(
+            String(assetMatch.gradeCount || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          sales30dNum: parseInt(
+            String(assetMatch.sales30d || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          sales90dNum: parseInt(
+            String(assetMatch.sales90d || "0").replace(/,/g, "") || "0",
+            10
+          ),
+          avgPrice30dNum: parseFloat(
+            String(assetMatch.avgPrice30d || "0").replace(/[$,]/g, "") || "0"
+          ),
+          avgPrice90dNum: parseFloat(
+            String(assetMatch.avgPrice90d || "0").replace(/[$,]/g, "") || "0"
+          ),
+          liquidityScoreNum: parseFloat(
+            String(assetMatch.liquidityScore || "0").replace(/,/g, "") || "0"
+          ),
+          change7dNum: parseFloat(
+            String(assetMatch.change_7d || assetMatch.change || "0").replace(
+              /[%\s]/g,
+              ""
+            ) || "0"
+          ),
+          change30dNum: parseFloat(
+            String(assetMatch.change_30d || "0").replace(/[%\s]/g, "") || "0"
+          ),
 
-    // 2. FALLBACK: QUERY CMC_CARDS VIA EXACT PATH (Matches your PHP code perfectly)
-    const cardQueryParams = new URLSearchParams({
-      search: canonicalPath,
-      game: normalizedGame,
-      grade: cleanGrade,
-      limit: "1"
-    });
-
-    const cmcResponse = await fetch(
-      `${API_BASE}/cmc_cards.php?${cardQueryParams.toString()}`,
-      { next: { revalidate: 60 } }
-    );
-
-    if (cmcResponse.ok) {
-      const cmcJson = await cmcResponse.json();
-      if (cmcJson.success && cmcJson.data?.length > 0) {
-        const frontendMatch = cmcJson.data[0];
-        
-        return {
-          ...frontendMatch, // Inherits string keys explicitly passed from php (price, marketCap, sales30d, etc.)
-          image: frontendMatch.imageUrl || frontendMatch.image_small,
-          largeImage: frontendMatch.largeImage || frontendMatch.imageUrl,
-          canonicalUrl: frontendMatch.canonical_path || frontendMatch.canonicalUrl || "",
-          rarity: frontendMatch.rarity || frontendMatch.type || "Standard",
-          
-          // ✨ ROBUST PARSING FOR THE INDIVIDUAL FALLBACK VIEW (aligning with fetchCMCCards)
-          priceNum: parseFloat(String(frontendMatch.price || "0").replace(/[$,]/g, '') || "0"),
-          marketCapNum: parseFloat(String(frontendMatch.marketCap || "0").replace(/[$,]/g, '') || "0"),
-          popTotalNum: parseInt(String(frontendMatch.popTotal || "0").replace(/,/g, '') || "0"),
-          gradeCountNum: parseInt(String(frontendMatch.gradeCount || "0").replace(/,/g, '') || "0"),
-          
-          sales30dNum: parseInt(String(frontendMatch.sales30d || "0").replace(/,/g, '') || "0"),
-          sales90dNum: parseInt(String(frontendMatch.sales90d || "0").replace(/,/g, '') || "0"),
-          avgPrice30dNum: parseFloat(String(frontendMatch.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
-          avgPrice90dNum: parseFloat(String(frontendMatch.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
-          liquidityScoreNum: parseFloat(String(frontendMatch.liquidityScore || "0").replace(/,/g, '') || "0"),
-          change7dNum: parseFloat(String(frontendMatch.change_7d || frontendMatch.change || "0").replace(/[%\s]/g, '') || "0"),
-          change30dNum: parseFloat(String(frontendMatch.change_30d || "0").replace(/[%\s]/g, '') || "0"),
-          
-          // ✨ LIVE HISTORICAL SALES TRANSACTIONS VIA PHP PAYLOAD
-          historicalSales: cmcJson.historical_sales || [],
-
-          // 🎯 FULL PSA POPULATION PASS THROUGH
-          fullPsaPop: frontendMatch.full_psa_pop || cmcJson.full_psa_pop || null
+          historicalSales: assetJson.historical_sales || {},
+          fullPsaPop:
+            assetMatch.full_psa_pop ||
+            assetJson.full_psa_pop ||
+            null,
         };
       }
     }
@@ -325,7 +421,7 @@ export async function fetchExpansions(
       game: game,
       search: search,
       page: page.toString(),
-      limit: "2000" // Fetch everything to allow instant local filtering
+      limit: "1000" // Aligned with the php script maximum limits boundary cap
     });
 
     const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
@@ -373,76 +469,186 @@ function getGameFromSetId(setId: string): string {
 
 export async function fetchSetDetails(setId: string) {
   try {
-    const decodedId = decodeURIComponent(setId);
-    const game = getGameFromSetId(decodedId);
-    
-    const expResponse = await fetch(`${API_BASE}/cmc_expansions.php?game=${game}`, {
-      next: { revalidate: 60 }
-    });
-    const expResult = await expResponse.json();
-    
-    const targetSet = expResult.data?.find((s: any) => 
-      s.id.toLowerCase() === decodedId.toLowerCase()
-    );
+    const decodedId = decodeURIComponent(setId).trim();
 
-    if (!targetSet) {
-      console.warn(`Set ${decodedId} not found.`);
-      return { success: false, set: null, assets: [] };
+    if (!decodedId) {
+      return {
+        success: false,
+        set: null,
+        assets: [],
+      };
     }
 
-    let response = await fetch(
-      `${API_BASE}/cmc_cards.php?game=${game}&set=${encodeURIComponent(targetSet.name)}&limit=500`,
-      { next: { revalidate: 60 } }
-    );
-    let cardsResult = await response.json();
+    const gamesToTry = ["pokemon", "mtg", "lorcana", "onepiece"];
 
-    const setSummary = cardsResult.metadata?.set_summary || null;
+    let result: any = null;
+    let finalGame = "";
+
+    for (const game of gamesToTry) {
+      const url = `${API_BASE}/cmc_expansions.php?game=${game}&expansion_key=${encodeURIComponent(
+        decodedId
+      )}&limit=1000`;
+
+      const response = await fetch(url, {
+        next: { revalidate: 60 },
+      });
+
+      if (!response.ok) continue;
+
+      const json = await response.json();
+
+      if (json?.success && json?.metadata?.expansion_key) {
+        result = json;
+        finalGame = json.metadata?.game || game;
+        break;
+      }
+    }
+
+    if (!result) {
+      return {
+        success: false,
+        set: null,
+        assets: [],
+      };
+    }
+
+    const metadata = result.metadata || {};
+    const rawAssetsArray = Array.isArray(result.data) ? result.data : [];
+
+    const totalCardsCount =
+      typeof metadata.total_records === "number"
+        ? metadata.total_records
+        : rawAssetsArray.length;
+
+    const expansionName =
+      metadata.expansion_name ||
+      rawAssetsArray[0]?.set ||
+      decodedId;
 
     const setInfo = {
-      id: targetSet.id,
-      name: targetSet.name,
-      series: targetSet.series || (game === 'pokemon' ? 'Pokémon' : game),
-      releaseDate: targetSet.releaseDate,
-      totalCards: targetSet.totalCards || cardsResult.data?.length || 0,
-      logoUrl: targetSet.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png",
-      marketCap: (setSummary && setSummary.total_market_value !== "N/A") 
-        ? setSummary.total_market_value 
-        : (targetSet.floorPrice || "$0.00"),
-      metrics: setSummary ? {
-        salesVolume90d: setSummary.sales_volume_90d,
-        salesCount90d: setSummary.total_sales_count_90d,
-        trackedCardsCount: setSummary.tracked_market_cards
-      } : null
+      id: metadata.expansion_key || decodedId,
+      requestedId: metadata.requested_expansion_key || decodedId,
+      name: expansionName,
+      series:
+        finalGame === "pokemon"
+          ? "Pokémon"
+          : finalGame === "mtg"
+          ? "Magic"
+          : finalGame === "lorcana"
+          ? "Disney Lorcana"
+          : finalGame === "onepiece"
+          ? "One Piece CG"
+          : "Other",
+      releaseDate: metadata.release_date || "",
+      logoUrl:
+        metadata.logo_url ||
+        "https://pokecollectorhub.com/assets/placeholder-set.png",
+      totalCards: totalCardsCount,
+      marketCap: "$0.00",
+      game: finalGame,
+      metrics: null,
     };
 
-    const formattedAssets = (cardsResult.data || []).map((card: any) => {
-      const imageCandidates = [card.largeImage, card.imageUrl, card.image_url, card.image];
-      const validImage = imageCandidates.find(url => typeof url === "string" && url.trim() !== "" && url.startsWith("http"));
+    const formattedAssets = rawAssetsArray.map((card: any) => {
+      const image =
+        card.imageUrl ||
+        card.image_url ||
+        card.image ||
+        card.image_small ||
+        card.small_image ||
+        card.large_image ||
+        "https://pokecollectorhub.com/assets/placeholder.png";
+
+      const priceString = card.price || "$0.00";
 
       return {
         ...card,
-        id: String(card.id),
-        imageUrl: validImage || "https://pokecollectorhub.com/assets/placeholder.png",
-        canonicalUrl: card.canonical_path || card.canonicalUrl || "",
-        price: card.price || "$0.00",
-        rarity: card.rarity || card.type || "Standard",
-        number: card.number || "000",
-        
-        sales30dNum: parseInt(String(card.sales30d || "0").replace(/,/g, '') || "0"),
-        sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
-        avgPrice30dNum: parseFloat(String(card.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
-        avgPrice90dNum: parseFloat(String(card.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
-        liquidityScoreNum: parseFloat(String(card.liquidityScore || "0").replace(/,/g, '') || "0"),
-        change7dNum: parseFloat(String(card.change_7d || card.change || "0").replace(/[%\s]/g, '') || "0"),
-        change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0"),
-        fullPsaPop: card.full_psa_pop || null
+
+        id: String(card.id || card.card_slug || ""),
+        name: card.name || "Unknown Card",
+        game: card.game || finalGame,
+        set: card.set || expansionName,
+
+        imageUrl: image,
+        image_url: image,
+        image,
+
+        number:
+          card.number ||
+          card.printed_number ||
+          card.number_display ||
+          "",
+
+        canonicalUrl:
+          card.canonicalUrl ||
+          card.canonical_path ||
+          card.url ||
+          "",
+
+        url:
+          card.url ||
+          card.canonical_path ||
+          card.canonicalUrl ||
+          "",
+
+        canonical_path:
+          card.canonical_path ||
+          card.url ||
+          card.canonicalUrl ||
+          "",
+
+        price: priceString,
+        rarity: card.rarity || "Standard",
+
+        sales30dNum: parseInt(
+          String(card.sales30d || "0").replace(/,/g, "") || "0",
+          10
+        ),
+
+        sales90dNum: parseInt(
+          String(card.sales90d || "0").replace(/,/g, "") || "0",
+          10
+        ),
+
+        avgPrice30dNum: parseFloat(
+          String(card.avgPrice30d || "0").replace(/[$,]/g, "") || "0"
+        ),
+
+        avgPrice90dNum: parseFloat(
+          String(card.avgPrice90d || "0").replace(/[$,]/g, "") || "0"
+        ),
+
+        liquidityScoreNum: parseFloat(
+          String(card.liquidityScore || "0").replace(/,/g, "") || "0"
+        ),
+
+        change7dNum: parseFloat(
+          String(card.change_7d || card.change || "0").replace(/[%\s]/g, "") ||
+            "0"
+        ),
+
+        change30dNum: parseFloat(
+          String(card.change_30d || "0").replace(/[%\s]/g, "") || "0"
+        ),
+
+        fullPsaPop: card.full_psa_pop || null,
       };
     });
 
-    return { success: true, set: setInfo, assets: formattedAssets };
+    return {
+      success: true,
+      set: setInfo,
+      assets: formattedAssets,
+      metadata,
+    };
   } catch (error) {
     console.error("fetchSetDetails Error:", error);
-    return { success: false, set: null, assets: [] };
+
+    return {
+      success: false,
+      set: null,
+      assets: [],
+    };
   }
 }
 

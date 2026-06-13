@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, ChevronDown, Check, Search, X, Inbox } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Check, Search, X, Inbox } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
@@ -154,7 +154,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
   };
 
   const clearSearch = () => {
-    setQuery('');
+    setSearchQuery('');
     updateParams('q', '');
   };
 
@@ -247,7 +247,6 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
               <TableSkeleton />
             ) : initialCards && initialCards.length > 0 ? (
               initialCards.map((card: any, idx: number) => {
-                // Safely scrub input strings via parsing wrapper
                 const totalSales30d = safeParseNumber(card.sales30dNum ?? card.sales30d);
                 const totalSales90d = safeParseNumber(card.sales90dNum ?? card.sales90d);
                 const currentGradeCount = safeParseNumber(card.gradeCount ?? card.psa10);
@@ -367,17 +366,30 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
           </table>
         </div>
 
+        {/* --- ADJUSTED PAGINATION BAR WITH FIRST/LAST JUMP CONTROLS --- */}
         {initialCards.length > 0 && (
           <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <p className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-400">Page {currentPage} / {totalPages}</p>
             <div className="flex items-center gap-2 md:gap-3">
+              
+              {/* Skip to First Page Button */}
+              <button 
+                disabled={currentPage === 1 || isLoading}
+                onClick={() => updateParams('page', 1)}
+                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                title="First Page"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </button>
+
               <button 
                 disabled={currentPage === 1 || isLoading}
                 onClick={() => updateParams('page', currentPage - 1)}
-                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
+
               <div className="hidden md:flex gap-1.5">
                   {[...Array(Math.min(5, totalPages))].map((_, i) => {
                     let pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
@@ -396,13 +408,25 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                     )
                   })}
               </div>
+
               <button 
                 disabled={currentPage === totalPages || isLoading}
                 onClick={() => updateParams('page', currentPage + 1)}
-                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
+
+              {/* Skip to Last Page Button */}
+              <button 
+                disabled={currentPage === totalPages || isLoading}
+                onClick={() => updateParams('page', totalPages)}
+                className="cursor-pointer p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                title="Last Page"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </button>
+
             </div>
           </div>
         )}

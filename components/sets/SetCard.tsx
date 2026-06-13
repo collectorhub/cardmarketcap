@@ -13,16 +13,25 @@ interface Set {
 }
 
 export function SetCard({ set }: { set: Set }) {
+  // Gracefully handle ISO strings or alternative date formats coming from raw cross-game datasets
+  const displayDate = set.releaseDate && set.releaseDate.includes('-')
+    ? set.releaseDate
+    : new Date(set.releaseDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+      });
+
   return (
     <Link href={`/sets/${encodeURIComponent(set.id)}`} className="block group">
       <div className="relative overflow-hidden rounded-[1.25rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-5 shadow-sm transition-all hover:shadow-2xl hover:shadow-[#00BA88]/10 hover:-translate-y-2 active:scale-[0.98]">
         
         {/* Set Logo Container */}
-        <div className="relative aspect-[3/2] w-full mb-3 md:mb-5 flex items-center justify-center bg-slate-50 dark:bg-slate-950/40 rounded-[1rem] md:rounded-[1.5rem] overflow-hidden border border-slate-100 dark:border-slate-800/50">
+        <div className="relative aspect-[3/2] w-full mb-3 md:mb-5 flex items-center justify-center bg-slate-50 dark:bg-slate-950/40 rounded-[1rem] md:rounded-[1.5rem] overflow-hidden border border-slate-100 dark:border-slate-800/50 p-4">
           <img 
-            src={set.logoUrl || "https://pokecollectorhub.com/assets/placeholder.png"} 
+            src={set.logoUrl || "https://pokecollectorhub.com/assets/placeholder-set.png"} 
             alt={set.name}
-            className="w-24 h-14 md:w-36 md:h-20 object-contain p-2 filter drop-shadow-sm group-hover:scale-110 transition-transform duration-500 ease-out"
+            className="w-full h-full max-w-[85%] max-h-[85%] object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform duration-500 ease-out"
+            loading="lazy"
           />
           
           <div className="absolute top-1.5 right-1.5 md:top-3 md:right-3 flex items-center gap-1 md:gap-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-1.5 py-0.5 md:px-2.5 md:py-1 border border-white/20 shadow-sm">
@@ -35,7 +44,7 @@ export function SetCard({ set }: { set: Set }) {
 
         {/* Content */}
         <div className="space-y-2.5 md:space-y-3">
-          <h3 className="text-[12px] md:text-base font-black text-slate-900 dark:text-white leading-[1.2] group-hover:text-[#00BA88] transition-colors md:line-clamp-1">
+          <h3 className="text-[12px] md:text-base font-black text-slate-900 dark:text-white leading-[1.2] group-hover:text-[#00BA88] transition-colors line-clamp-1">
             {set.name}
           </h3>
           
@@ -59,7 +68,7 @@ export function SetCard({ set }: { set: Set }) {
           
           <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
             <span className="text-[7.5px] md:text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-              {set.releaseDate}
+              {displayDate}
             </span>
 
             <span className="text-[9px] md:text-[10px] font-black text-slate-900 dark:text-white whitespace-nowrap">
@@ -71,7 +80,7 @@ export function SetCard({ set }: { set: Set }) {
           </div>
         </div>
 
-        {/* Action Overlay */}
+        {/* Action Overlay Button */}
         <div className="mt-3 md:mt-4 opacity-100 lg:opacity-0 group-hover:lg:opacity-100 transition-opacity">
           <div className="w-full py-2 md:py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg md:rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#00BA88] dark:hover:bg-[#00BA88] dark:hover:text-white transition-colors">
             View <span className="hidden sm:inline">Expansion</span>

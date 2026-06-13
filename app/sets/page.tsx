@@ -13,7 +13,7 @@ import { ExpansionsPageSkeleton } from "@/components/sets/ExpansionsLoading";
  * expansion data for the specific game and language selected.
  */
 async function SetsDataWrapper({ game, lang, query }: { game: string; lang: string; query: string }) {
-  const result = await fetchExpansions(game, ""); 
+  const result = await fetchExpansions(game, query); 
   
   return (
     <SetsClientContainer 
@@ -58,7 +58,7 @@ export default async function SetsPage({
   const currentLang = params.lang || "English";
   const searchQuery = params.q || "";
 
-  // 1. Fetch real counts for ALL active games
+  // 1. Fetch metadata payloads with optimized concurrent resolution paths
   const [pokemonRes, mtgRes, lorcanaRes, onepieceRes] = await Promise.all([
     fetchExpansions("pokemon", ""),
     fetchExpansions("mtg", ""),
@@ -67,10 +67,10 @@ export default async function SetsPage({
   ]);
 
   const realCounts = {
-    pokemon: pokemonRes.metadata?.total_records || 416,
-    mtg: mtgRes.metadata?.total_records || 798,
-    lorcana: lorcanaRes.metadata?.total_records || 20,
-    onepiece: onepieceRes.metadata?.total_records || 50,
+    pokemon: pokemonRes.metadata?.total_records || (pokemonRes.data?.length || 0) || 416,
+    mtg: mtgRes.metadata?.total_records || (mtgRes.data?.length || 0) || 798,
+    lorcana: lorcanaRes.metadata?.total_records || (lorcanaRes.data?.length || 0) || 20,
+    onepiece: onepieceRes.metadata?.total_records || (onepieceRes.data?.length || 0) || 50,
   };
 
   return (
@@ -132,7 +132,7 @@ export default async function SetsPage({
         )}
 
         {/* --- CLIENT GRID LOADING STATE --- */}
-        <Suspense key={currentGameSlug} fallback={<ExpansionsPageSkeleton />}>
+        <Suspense key={currentGameSlug + searchQuery + currentLang} fallback={<ExpansionsPageSkeleton />}>
           <SetsDataWrapper 
             game={currentGameSlug} 
             lang={currentLang} 

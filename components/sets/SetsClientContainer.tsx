@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { Sparkles, Inbox } from "lucide-react";
 import { SetCard } from "./SetCard";
 
-// Helper function to format series names (e.g., "scarlet_violet" -> "Scarlet Violet")
 const formatSeriesName = (name: string) => {
+  if (!name) return "Other Expansions";
   return name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 };
 
@@ -24,28 +24,31 @@ export function SetsClientContainer({
 }: SetsClientContainerProps) {
   
   const filteredAndGroupedData = useMemo(() => {
-    const dbLangCode = currentLang === "Japanese" ? "ja" : "en";
+    const dbLangCode = currentLang.toLowerCase().startsWith("ja") ? "ja" : "en";
     const isSearching = searchQuery.length > 0;
 
-    // 1. IMPROVED FILTERING
+    // 1. FILTERING - Directly matched to uniform backend object structure
     const filtered = initialData.filter((set) => {
-      const matchesSearch = set.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const nameString = set.name || "";
+      const matchesSearch = nameString.toLowerCase().includes(searchQuery.toLowerCase());
       
       if (currentGame === "pokemon") {
-        // If searching, show all matches regardless of tab. 
-        // If not searching, respect the English/Japanese tabs.
-        return isSearching ? matchesSearch : (matchesSearch && set.language === dbLangCode);
+        // Uniform fallback tracking for 'language' property keys
+        const targetLanguage = (set.language || "en").toLowerCase();
+        
+        // If searching, display matching results from both language datasets
+        return isSearching ? matchesSearch : (matchesSearch && targetLanguage === dbLangCode);
       }
       return matchesSearch;
     });
 
-    // 2. GROUPING (Stays the same, but now receives all 'Mega' matches)
+    // 2. GROUPING
     const groups = filtered.reduce((acc: any[], set: any) => {
-      // Ensure we have a string for series to avoid 'undefined' keys
-      const groupKey = set.series || (currentGame === "mtg" ? set.type : null) || "Other Expansions";
+      const groupKey = set.series || "Other Expansions";
       
-      const releaseDate = set.releaseDate || set.release_date;
-      const totalCards = set.totalCards || set.total || 0;
+      // Ensure fallbacks are aligned to API formatting strings
+      const releaseDate = set.releaseDate || set.release_date || new Date().toISOString();
+      const totalCards = parseInt(set.totalCards || set.total || "0") || 0;
 
       const existingGroup = acc.find((g) => g.series === groupKey);
 
@@ -55,18 +58,20 @@ export function SetsClientContainer({
         acc.push({
           series: groupKey,
           sets: [{ ...set, releaseDate, totalCards }],
-          latestRelease: new Date(releaseDate).getTime(),
+          latestRelease: new Date(releaseDate).getTime() || 0,
         });
       }
       return acc;
     }, []);
 
-    // 3. SORTING
+    // 3. CHRONOLOGICAL SORT BY RELEASE DATE
     groups.forEach((group: any) => {
-      group.sets.sort((a: any, b: any) => 
-        new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
-      );
-      group.latestRelease = new Date(group.sets[0].releaseDate).getTime();
+      group.sets.sort((a: any, b: any) => {
+        const timeB = new Date(b.releaseDate).getTime() || 0;
+        const timeA = new Date(a.releaseDate).getTime() || 0;
+        return timeB - timeA;
+      });
+      group.latestRelease = new Date(group.sets[0].releaseDate).getTime() || 0;
     });
 
     return groups.sort((a, b) => b.latestRelease - a.latestRelease);
@@ -88,7 +93,6 @@ export function SetsClientContainer({
     <div className="space-y-20 md:space-y-24">
       {filteredAndGroupedData.map((group) => (
         <section key={group.series} className="space-y-8">
-          {/* --- RESTORED CATEGORY HEADER & DESCRIPTION --- */}
           <div className="space-y-1">
             <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
               <Sparkles className="h-6 w-6 text-[#00BA88]" strokeWidth={2.5} />

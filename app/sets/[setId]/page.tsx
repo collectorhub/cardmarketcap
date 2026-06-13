@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useEffect, use } from 'react';
-import { 
-  Search, Activity, X, ArrowLeft
-} from "lucide-react";
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef, useEffect, use } from "react";
+import { Search, Activity, X, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { AssetCard } from "@/components/sets/AssetCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { fetchSetDetails } from "@/lib/queries/market"; 
+import { fetchSetDetails } from "@/lib/queries/market";
 
 function AssetCardSkeleton() {
   return (
@@ -18,11 +16,13 @@ function AssetCardSkeleton() {
       <div className="relative aspect-[3/4] w-full">
         <Skeleton className="w-full h-full rounded-2xl" />
       </div>
+
       <div className="space-y-3">
         <div className="space-y-2">
           <Skeleton className="h-5 w-3/4 rounded-md" />
           <Skeleton className="h-3 w-1/2 rounded-md" />
         </div>
+
         <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
           <div className="space-y-1">
             <Skeleton className="h-2 w-8" />
@@ -35,11 +35,16 @@ function AssetCardSkeleton() {
   );
 }
 
-export default function SetDetailsPage({ params }: { params: Promise<{ setId: string }> }) {
+export default function SetDetailsPage({
+  params,
+}: {
+  params: Promise<{ setId: string }>;
+}) {
   const resolvedParams = use(params);
   const setId = resolvedParams.setId;
 
   const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -49,92 +54,200 @@ export default function SetDetailsPage({ params }: { params: Promise<{ setId: st
   const [loading, setLoading] = useState(true);
   const [gameContext, setGameContext] = useState("pokemon");
 
-  // Inside SetDetailsPage
-useEffect(() => {
-  async function loadData() {
-    if (!setId) return;
-    setLoading(true);
+  useEffect(() => {
+    async function loadData() {
+      if (!setId) return;
 
-    // Fetch data using the unified function
-    const result = await fetchSetDetails(setId);
-    
-    if (result.success && result.set) {
-      setSetInfo(result.set);
-      setAssets(result.assets || []);
-      
-      // Determine context from the result rather than the ID string
-      // This ensures 'me3' is treated as pokemon
-      const series = result.set.series?.toLowerCase() || "";
-      if (series.includes("lorcana")) setGameContext("lorcana");
-      else if (series.includes("one piece")) setGameContext("onepiece");
-      else if (result.set.isMtg) setGameContext("mtg"); // Assuming your API flag
-      else setGameContext("pokemon");
-      
-    } else {
-      setSetInfo(null);
+      setLoading(true);
+
+      try {
+        const result = await fetchSetDetails(setId);
+
+        if (result?.success && result?.set) {
+          const rawSet = result.set || {};
+
+          const normalizedSet = {
+            ...rawSet,
+            name: rawSet.name || "Unknown Set",
+            series: rawSet.series || rawSet.expansion_series || "Other",
+            releaseDate:
+              rawSet.releaseDate ||
+              rawSet.release_date ||
+              rawSet.expansion_release_date ||
+              "N/A",
+            logoUrl:
+              rawSet.logoUrl ||
+              rawSet.logo_url ||
+              rawSet.symbol_url ||
+              "https://pokecollectorhub.com/assets/placeholder-set.png",
+            totalCards:
+              parseInt(String(rawSet.totalCards || rawSet.total || "0"), 10) ||
+              0,
+            marketCap: rawSet.marketCap || rawSet.floorPrice || "$0.00",
+            game: rawSet.game || result.metadata?.game || "pokemon",
+          };
+
+          setSetInfo(normalizedSet);
+
+          const rawAssetsArray = Array.isArray(result.assets)
+            ? result.assets
+            : Array.isArray(result.data)
+            ? result.data
+            : [];
+
+          const normalizedAssets = rawAssetsArray.map((card: any) => {
+            const image =
+              card.image_url ||
+              card.imageUrl ||
+              card.image ||
+              card.small_image ||
+              card.image_small ||
+              card.large_image ||
+              "https://pokecollectorhub.com/assets/placeholder.png";
+
+            return {
+              ...card,
+              image_url: image,
+              imageUrl: image,
+              image,
+              number:
+                card.number ||
+                card.printed_number ||
+                card.number_display ||
+                "",
+              canonicalUrl:
+                card.canonicalUrl ||
+                card.canonical_path ||
+                card.url ||
+                "",
+            };
+          });
+
+          setAssets(normalizedAssets);
+
+          const detectedGame =
+            normalizedSet.game || result.metadata?.game || "pokemon";
+
+          setGameContext(detectedGame);
+        } else {
+          setSetInfo(null);
+          setAssets([]);
+        }
+      } catch (error) {
+        console.error("Failed to load set context:", error);
+        setSetInfo(null);
+        setAssets([]);
+      } finally {
+        setLoading(false);
+      }
     }
-    setLoading(false);
-  }
-  loadData();
-}, [setId]);
+
+    loadData();
+  }, [setId]);
 
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.history.length > 1) router.back();
-    else router.push('/sets');
+
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/sets");
+    }
   };
 
-  const filteredAssets = assets.filter(asset => 
-    asset.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    asset.number?.includes(searchQuery)
-  );
+  const filteredAssets = assets.filter((asset) => {
+    if (!asset) return false;
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
-      <Navbar />
-      <div className="lg:hidden"><Sidebar /></div>
-      <main className="max-w-[1600px] mx-auto px-4 md:px-10 pt-24 md:pt-12 pb-32">
-        <header className="flex flex-col-reverse lg:flex-row items-start lg:items-center gap-8 mb-12">
-          <Skeleton className="w-full h-70 md:w-60 md:h-60 rounded-[2.5rem]" />
-          <div className="flex-1 space-y-4 w-full">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-12 w-3/4 md:w-1/2" />
-            <Skeleton className="h-4 w-full max-w-2xl" />
-          </div>
-        </header>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-          {[...Array(10)].map((_, i) => <AssetCardSkeleton key={i} />)}
+    const nameString = asset.name || "";
+    const numString = String(asset.number || asset.printed_number || "").trim();
+    const query = searchQuery.toLowerCase();
+
+    return (
+      nameString.toLowerCase().includes(query) ||
+      numString.toLowerCase().includes(query)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
+        <Navbar />
+        <div className="lg:hidden">
+          <Sidebar />
         </div>
-      </main>
-    </div>
-  );
 
-  if (!setInfo) return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
-      <h1 className="text-white font-black text-2xl">Set Not Found</h1>
-      <button onClick={() => router.push('/sets')} className="px-6 py-2 bg-[#00BA88] text-white rounded-xl font-bold">Return to Sets</button>
-    </div>
-  );
+        <main className="max-w-[1600px] mx-auto px-4 md:px-10 pt-24 md:pt-12 pb-32">
+          <header className="flex flex-col-reverse lg:flex-row items-start lg:items-center gap-8 mb-12">
+            <Skeleton className="w-full h-60 md:w-60 md:h-60 rounded-[2.5rem]" />
+
+            <div className="flex-1 space-y-4 w-full">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-12 w-3/4 md:w-1/2" />
+              <Skeleton className="h-4 w-full max-w-2xl" />
+            </div>
+          </header>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            {[...Array(10)].map((_, i) => (
+              <AssetCardSkeleton key={i} />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!setInfo) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
+        <h1 className="text-white font-black text-2xl">Set Not Found</h1>
+
+        <button
+          onClick={() => router.push("/sets")}
+          className="px-6 py-2 bg-[#00BA88] text-white rounded-xl font-bold transition-transform active:scale-95 cursor-pointer"
+        >
+          Return to Sets
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 selection:bg-brand/30">
       <Navbar />
-      <div className="lg:hidden"><Sidebar /></div>
+
+      <div className="lg:hidden">
+        <Sidebar />
+      </div>
 
       <div className="border-b border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-20 pt-15 md:pt-0">
         <div className="max-w-[1600px] mx-auto px-4 md:px-10 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
-            <button onClick={handleBack} className="hover:text-[#00BA88] transition-colors flex items-center gap-2 cursor-pointer group">
-              <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
+            <button
+              onClick={handleBack}
+              className="hover:text-[#00BA88] transition-colors flex items-center gap-2 cursor-pointer group"
+            >
+              <ArrowLeft
+                size={14}
+                className="group-hover:-translate-x-1 transition-transform"
+              />
               <span>Back</span>
             </button>
+
             <span className="opacity-20">/</span>
-            <span className="text-[#00BA88] truncate max-w-[150px] md:max-w-none">{setInfo.name}</span>
+
+            <span className="text-[#00BA88] truncate max-w-[150px] md:max-w-none">
+              {setInfo.name}
+            </span>
           </div>
+
           <div className="flex items-center gap-4">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">
-               Cap: <span className="text-slate-900 dark:text-white">{setInfo.marketCap || "$0.00"}</span>
-             </span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">
+              Cap:{" "}
+              <span className="text-slate-900 dark:text-white">
+                {setInfo.marketCap}
+              </span>
+            </span>
           </div>
         </div>
       </div>
@@ -142,36 +255,81 @@ useEffect(() => {
       <main className="relative max-w-[1600px] mx-auto px-4 md:px-10 pt-8 md:pt-12 pb-32">
         <header className="flex flex-col-reverse lg:flex-row items-start lg:items-center gap-8 mb-12">
           <div className="relative group shrink-0 w-full lg:w-auto">
-            <div className="relative w-full h-70 md:w-60 md:h-60 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/10 flex items-center justify-center p-10 shadow-premium overflow-hidden">
-               <img src={setInfo.logoUrl} className="relative w-full h-full object-contain z-10 filter drop-shadow-2xl" alt={setInfo.name} />
+            <div className="relative w-full h-60 md:w-60 md:h-60 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/10 flex items-center justify-center p-8 shadow-premium overflow-hidden">
+              <img
+                src={
+                  setInfo.logoUrl ||
+                  "https://pokecollectorhub.com/assets/placeholder-set.png"
+                }
+                className="relative max-w-[85%] max-h-[85%] object-contain z-10 filter drop-shadow-2xl animate-fade-in"
+                alt={setInfo.name}
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://pokecollectorhub.com/assets/placeholder-set.png";
+                }}
+              />
             </div>
           </div>
 
           <div className="flex-1 space-y-4 w-full">
-<div className="flex items-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
-  <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
-  {/* If it's pokemon, show the specific Era (Mega Evolution, etc). Otherwise show the Game Name */}
-  {gameContext === "pokemon" 
-    ? `${setInfo.series || 'Pokémon'} Era` 
-    : gameContext === "lorcana" ? "Disney Lorcana" 
-    : gameContext === "mtg" ? "Magic: The Gathering" 
-    : "One Piece TCG"}
-</div>
+            <div className="flex items-center gap-2 text-[#00BA88] font-bold text-[11px] uppercase tracking-widest">
+              <span className="flex h-2 w-2 rounded-full bg-[#00BA88] animate-pulse" />
+
+              {gameContext === "pokemon"
+                ? `${setInfo.series} Era`
+                : gameContext === "lorcana"
+                ? "Disney Lorcana"
+                : gameContext === "mtg"
+                ? "Magic: The Gathering"
+                : gameContext === "onepiece"
+                ? "One Piece TCG"
+                : setInfo.series}
+            </div>
+
             <h1 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               {setInfo.name} <span className="text-[#00BA88]">Cards</span>
             </h1>
+
             <p className="text-slate-500 dark:text-slate-400 text-sm md:text-lg max-w-2xl leading-relaxed font-medium">
-              Released on {setInfo.releaseDate}. Explore {setInfo.totalCards} unique cards indexed in the live market.
+              Explore {setInfo.totalCards} unique cards indexed in the live
+              market.
             </p>
           </div>
         </header>
 
         <div className="mb-12">
           <div className="relative group max-w-[1600px] mx-auto">
-            <div className={cn("absolute -inset-0.5 bg-gradient-to-r from-[#00BA88] to-emerald-500 rounded-2xl opacity-0 blur-md transition-opacity duration-500", isFocused && "opacity-15")} />
-            <div className={cn("relative flex items-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border transition-all duration-300 rounded-2xl overflow-hidden", isFocused ? "border-[#00BA88]/40 shadow-[0_0_20px_-12px_rgba(0,186,136,0.3)]" : "border-slate-200 dark:border-white/5")}>
-              <div className={cn("flex items-center w-full transition-all duration-500 ease-out px-5", !isFocused && !searchQuery ? "justify-center" : "justify-start")}>
-                <Search size={18} className={cn("transition-colors duration-300 shrink-0", isFocused ? "text-[#00BA88]" : "text-slate-400")} />
+            <div
+              className={cn(
+                "absolute -inset-0.5 bg-gradient-to-r from-[#00BA88] to-emerald-500 rounded-2xl opacity-0 blur-md transition-opacity duration-500",
+                isFocused && "opacity-15"
+              )}
+            />
+
+            <div
+              className={cn(
+                "relative flex items-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border transition-all duration-300 rounded-2xl overflow-hidden",
+                isFocused
+                  ? "border-[#00BA88]/40 shadow-[0_0_20px_-12px_rgba(0,186,136,0.3)]"
+                  : "border-slate-200 dark:border-white/5"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex items-center w-full transition-all duration-500 ease-out px-5",
+                  !isFocused && !searchQuery
+                    ? "justify-center"
+                    : "justify-start"
+                )}
+              >
+                <Search
+                  size={18}
+                  className={cn(
+                    "transition-colors duration-300 shrink-0",
+                    isFocused ? "text-[#00BA88]" : "text-slate-400"
+                  )}
+                />
+
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -179,12 +337,24 @@ useEffect(() => {
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={`Search cards in ${setInfo.name}...`}
-                  className={cn("bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400/50 text-sm md:text-base font-bold py-3 outline-none transition-all duration-500", !isFocused && !searchQuery ? "w-auto px-3 text-center" : "w-full px-4 text-left")}
+                  placeholder={`Search cards by name or number in ${setInfo.name}...`}
+                  className={cn(
+                    "bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400/50 text-sm md:text-base font-bold py-3 outline-none transition-all duration-500",
+                    !isFocused && !searchQuery
+                      ? "w-auto px-3 text-center"
+                      : "w-full px-4 text-left"
+                  )}
                 />
               </div>
+
               {(isFocused || searchQuery) && (
-                <button onMouseDown={(e) => { e.preventDefault(); setSearchQuery(""); }} className="absolute right-4 p-1.5 text-slate-400 hover:text-[#00BA88] transition-all">
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearchQuery("");
+                  }}
+                  className="absolute right-4 p-1.5 text-slate-400 hover:text-[#00BA88] transition-all"
+                >
                   <X size={16} />
                 </button>
               )}
@@ -195,33 +365,41 @@ useEffect(() => {
         <div className="flex items-center justify-between mb-8 px-1">
           <div className="space-y-1">
             <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-              <Activity className="h-6 w-6 text-[#00BA88]" strokeWidth={2.5} />
+              <Activity
+                className="h-6 w-6 text-[#00BA88]"
+                strokeWidth={2.5}
+              />
               Market Index
             </h3>
+
             <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-9">
               Real-time floor prices and population metrics for {setInfo.name}.
             </p>
           </div>
+
           <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
             {filteredAssets.length} Cards found
           </span>
         </div>
 
-       {/* Replace the grid section with this */}
-{filteredAssets.length > 0 ? (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-    {filteredAssets.map((asset) => (
-      <AssetCard 
-        key={asset.id} 
-        asset={{ ...asset, game: gameContext }} 
-      />
-    ))}
-  </div>
-) : (
-  <div className="py-20 text-center">
-    <p className="text-slate-400 font-medium">No cards matching "{searchQuery}" found in this set.</p>
-  </div>
-)}
+        {filteredAssets.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            {filteredAssets.map((asset, index) => (
+              <AssetCard
+                key={`${asset.id || asset.card_slug || "card"}-${index}`}
+                asset={asset}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="py-20 text-center">
+            <p className="text-slate-400 font-medium">
+              {searchQuery
+                ? `No cards matching "${searchQuery}" found in this set.`
+                : "No cards are currently indexed for this set yet."}
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );

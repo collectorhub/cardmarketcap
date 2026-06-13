@@ -53,22 +53,46 @@ export default function CardSearch() {
     return asset.image_large || asset.image_medium || asset.image_small || asset.imageUrl || asset.image || asset.image_url;
   };
 
-  const normalizeData = (data: any[]) => {
+  // ✨ UNIFIED CLIENT-SIDE ROUTE CORRECTION PIPELINE
+  const normalizeData = useCallback((data: any[], forcedCategory: string | null = null) => {
     return (data || []).map(item => {
-      // Get the raw path fallback string
-      const rawPath = item.canonical_path || item.canonicalUrl || item.url || item.href || `/card/${item.id}`;
-      
-      // ✨ SANITIZE: Split off any trailing query variables (?game=...) if they exist
-      const cleanPath = rawPath.split('?')[0];
+      const detectedGame = (item.game || forcedCategory || selectedCategory || "pokemon").toLowerCase();
+      let basePath = item.canonical_path || item.canonicalUrl || item.url || item.href || "";
+
+      // Clean off any existing query strings trailing from raw DB records
+      if (basePath) {
+        basePath = basePath.split('?')[0];
+        if (!basePath.startsWith('/')) basePath = '/' + basePath;
+      }
+
+      // Prepend framework prefixes if missing (Ensures zero 404 dead-ends)
+      let finalUrl = basePath;
+      if (basePath && !basePath.startsWith('/card')) {
+        if (detectedGame === 'pokemon') {
+          if (basePath.startsWith('/en/') || basePath.startsWith('/ja/')) {
+            finalUrl = `/card${basePath}`;
+          } else {
+            finalUrl = `/card/en${basePath}`;
+          }
+        } else {
+          finalUrl = `/card${basePath}`;
+        }
+      }
+
+      // Total failure fallback boundary
+      if (!finalUrl) {
+        finalUrl = detectedGame === 'pokemon' ? `/card/en/pokemon/${item.id}` : `/card/${detectedGame}/${item.id}`;
+      }
 
       return {
         ...item,
         imageUrl: getAssetImage(item),
-        canonicalUrl: cleanPath,
-        href: cleanPath
+        canonicalUrl: finalUrl,
+        href: finalUrl,
+        canonical_path: finalUrl
       };
     });
-  };
+  }, [selectedCategory]);
 
   const loadInitialData = useCallback(async (category: string | null) => {
     setIsLoading(true);
@@ -84,8 +108,8 @@ export default function CardSearch() {
         ? trending.filter((t: any) => t.game?.toLowerCase() === category.toLowerCase() || category === "pokemon")
         : trending;
 
-      setTrendingAssets(normalizeData(filteredTrending));
-      setPopularAssets(normalizeData(popular.data));
+      setTrendingAssets(normalizeData(filteredTrending, category));
+      setPopularAssets(normalizeData(popular.data, gameParam));
       
       if (setsResponse.success) {
         setQuickSetLinks(setsResponse.data.slice(0, 12));
@@ -95,7 +119,7 @@ export default function CardSearch() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [normalizeData]);
 
   useEffect(() => {
     if (query.length < 2) {
@@ -114,19 +138,19 @@ export default function CardSearch() {
     setIsSearching(true);
     try {
       const results = await fetchUniversalSearch(trimmedQuery, categoryId, 100);
-      // ✨ Map the results instantly here so displayAssets is already formatted safely
-      setSearchResults(normalizeData(results));
+      // Let search.ts do its job, then let normalizeData confirm fields are fully unified
+      setSearchResults(normalizeData(results, categoryId));
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [normalizeData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       performSearch(query, selectedCategory);
-    }, 400); // Slightly increased debounce for more complex backend queries
+    }, 400); 
     return () => clearTimeout(timer);
   }, [query, selectedCategory, performSearch]);
 
@@ -138,7 +162,6 @@ export default function CardSearch() {
 
   const isFiltering = query.trim().length >= 2;
   const displayAssets = isFiltering ? searchResults : [];
-  const showSkeletons = isLoading || (isFiltering && isSearching);
   
   const currentCategoryName = CATEGORIES.find(c => c.id === selectedCategory)?.name;
   const sectionTitle = isFiltering 
@@ -165,52 +188,48 @@ export default function CardSearch() {
         </div>
 
         {/* Search Input - Hyper Focused */}
-<div className="relative w-full max-w-4xl px-4 group">
-  {/* Glow: Always visible in dark mode, transition on focus in light mode */}
-  <div className={cn(
-    "absolute -inset-2 bg-[#00BA88]/10 rounded-[2rem] blur-xl transition-all duration-500",
-    "dark:opacity-100", 
-    isFocused ? "opacity-100" : "opacity-0"
-  )} />
-  
-  <div className={cn(
-    "relative flex items-center bg-white dark:bg-slate-950 border-2 transition-all duration-300 rounded-2xl overflow-hidden p-1.5",
-    /* Border: Always green in dark mode, only green on focus in light mode */
-    isFocused ? "border-[#00BA88] shadow-2xl shadow-[#00BA88]/20" : "border-[#00BA88]/50"
-  )}>
-    <div className="flex items-center w-full px-4">
-      {/* Icon: Always green in dark mode */}
-      <SparklesIcon size={22} className={cn("shrink-0", (isFocused || "dark") ? "text-[#00BA88]" : "text-slate-400")} />
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder='Try: "Gouging Fire Ex"'
-        className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-base md:text-lg font-bold py-2 px-3 outline-none"
-      />
-    </div>
+        <div className="relative w-full max-w-4xl px-4 group">
+          <div className={cn(
+            "absolute -inset-2 bg-[#00BA88]/10 rounded-[2rem] blur-xl transition-all duration-500",
+            "dark:opacity-100", 
+            isFocused ? "opacity-100" : "opacity-0"
+          )} />
+          
+          <div className={cn(
+            "relative flex items-center bg-white dark:bg-slate-950 border-2 transition-all duration-300 rounded-2xl overflow-hidden p-1.5",
+            isFocused ? "border-[#00BA88] shadow-2xl shadow-[#00BA88]/20" : "border-[#00BA88]/50"
+          )}>
+            <div className="flex items-center w-full px-4">
+              <SparklesIcon size={22} className={cn("shrink-0", (isFocused || "dark") ? "text-[#00BA88]" : "text-slate-400")} />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder='Try: "Gouging Fire Ex"'
+                className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-base md:text-lg font-bold py-2 px-3 outline-none"
+              />
+            </div>
 
-    <div className="flex items-center gap-2">
-      {query && (
-        <button 
-          onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} 
-          className="p-2 text-slate-400 hover:text-slate-600"
-        >
-          <X size={20} />
-        </button>
-      )}
-      
-      {/* The Little Green Button */}
-      <button className="bg-[#00BA88] hover:bg-[#00a377] text-white p-3 md:px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-[#00BA88]/20">
-        <Search size={18} strokeWidth={3} />
-        <span className="hidden md:block font-black text-xs uppercase tracking-wider">Search</span>
-      </button>
-    </div>
-  </div>
-</div>
+            <div className="flex items-center gap-2">
+              {query && (
+                <button 
+                  onMouseDown={(e) => { e.preventDefault(); setQuery(""); }} 
+                  className="p-2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={20} />
+                </button>
+              )}
+              
+              <button className="bg-[#00BA88] hover:bg-[#00a377] text-white p-3 md:px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-[#00BA88]/20">
+                <Search size={18} strokeWidth={3} />
+                <span className="hidden md:block font-black text-xs uppercase tracking-wider">Search</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         {!isFiltering && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-hidden">
@@ -248,36 +267,36 @@ export default function CardSearch() {
       </section>
 
       {/* --- RESULTS SECTION --- */}
-{isFiltering && (
-  <section className="space-y-6 md:space-y-8 px-4 md:px-0 animate-in slide-in-from-bottom-4 duration-500">
-    <div className="space-y-1">
-      <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-        <LayoutGrid className="h-5 w-5 text-[#00BA88]" />
-        {sectionTitle}
-      </h3>
-      <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
-        {isSearching ? "Searching index..." : "Displaying top matches"}
-      </p>
-    </div>
+      {isFiltering && (
+        <section className="space-y-6 md:space-y-8 px-4 md:px-0 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-1">
+            <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+              <LayoutGrid className="h-5 w-5 text-[#00BA88]" />
+              {sectionTitle}
+            </h3>
+            <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 pl-8 md:pl-9">
+              {isSearching ? "Searching index..." : "Displaying top matches"}
+            </p>
+          </div>
 
-    {isSearching ? (
-      <LoadingGrid />
-    ) : displayAssets.length > 0 ? (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-        {displayAssets.map((asset, idx) => (
-          <AssetCard 
-            key={`${asset.asset_id || asset.id}-${idx}`} 
-            asset={asset} 
-          />
-        ))}
-      </div>
-    ) : (
-      <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl">
-        <p className="text-slate-500 font-bold">No results found.</p>
-      </div>
-    )}
-  </section>
-)}
+          {isSearching ? (
+            <LoadingGrid />
+          ) : displayAssets.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+              {displayAssets.map((asset, idx) => (
+                <AssetCard 
+                  key={`${asset.asset_id || asset.id}-${idx}`} 
+                  asset={asset} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl">
+              <p className="text-slate-500 font-bold">No results found.</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* --- POPULAR SECTION --- */}
       {!isFiltering && (
@@ -299,13 +318,7 @@ export default function CardSearch() {
               {popularAssets.map((asset, idx) => (
                 <AssetCard 
                   key={`pop-${asset.id}-${idx}`} 
-                  asset={{
-                    ...asset,
-                    imageUrl: getAssetImage(asset),
-                    // ✨ FIX: Map canonicalUrl here as well to protect initial filter views
-                    canonicalUrl: asset.canonical_path || asset.canonicalUrl || asset.url || "",
-                    href: asset.canonical_path || asset.url || asset.href || `/card/${asset.id}`
-                  }} 
+                  asset={asset} 
                 />
               ))}
             </div>
