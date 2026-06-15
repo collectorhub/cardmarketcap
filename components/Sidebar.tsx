@@ -92,6 +92,37 @@ const adminDesktopNavigation = [
   },
 ];
 
+function SidebarSkeleton() {
+  return (
+    <div className="space-y-7 animate-pulse">
+      {[0, 1, 2].map((group) => (
+        <div key={group} className="space-y-2">
+          <div className="px-4 py-1">
+            <div className="h-3 w-24 rounded-full bg-slate-200 dark:bg-slate-800" />
+          </div>
+
+          <div className="space-y-2">
+            {[0, 1, 2].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+              >
+                <div className="h-4 w-4 rounded-md bg-slate-200 dark:bg-slate-800" />
+                <div
+                  className={cn(
+                    "h-4 rounded-full bg-slate-200 dark:bg-slate-800",
+                    item === 0 ? "w-32" : item === 1 ? "w-24" : "w-28"
+                  )}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -99,6 +130,7 @@ export default function Sidebar() {
 
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [indicesLoading, setIndicesLoading] = useState(true);
   const [groupedIndices, setGroupedIndices] = useState<any>(fallbackGroupedIndices);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Indices: true,
@@ -126,21 +158,38 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    async function loadDynamicIndices() {
-      const res = await getIndices();
+    let cancelled = false;
 
-      if (res?.success && res.grouped) {
-        setGroupedIndices({
-          market: Array.isArray(res.grouped.market) ? res.grouped.market : [],
-          index: Array.isArray(res.grouped.index) ? res.grouped.index : [],
-          specialty: Array.isArray(res.grouped.specialty) ? res.grouped.specialty : [],
-        });
-      } else {
-        setGroupedIndices(fallbackGroupedIndices);
+    async function loadDynamicIndices() {
+      try {
+        setIndicesLoading(true);
+
+        const res = await getIndices();
+
+        if (cancelled) return;
+
+        if (res?.success && res.grouped) {
+          setGroupedIndices({
+            market: Array.isArray(res.grouped.market) ? res.grouped.market : [],
+            index: Array.isArray(res.grouped.index) ? res.grouped.index : [],
+            specialty: Array.isArray(res.grouped.specialty) ? res.grouped.specialty : [],
+          });
+        } else {
+          setGroupedIndices(fallbackGroupedIndices);
+        }
+      } catch (error) {
+        console.error("Failed to load sidebar indices:", error);
+        if (!cancelled) setGroupedIndices(fallbackGroupedIndices);
+      } finally {
+        if (!cancelled) setIndicesLoading(false);
       }
     }
 
     loadDynamicIndices();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const showAdminMenu = pathname.startsWith("/admin");
@@ -206,7 +255,9 @@ export default function Sidebar() {
     if (isMobile) closeMenu();
   };
 
-  const getInitials = (name: string) => name.slice(0, 2).toUpperCase();
+  const getInitials = (name?: string) => {
+    return (name || "US").slice(0, 2).toUpperCase();
+  };
 
   const isActiveHref = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
@@ -217,6 +268,8 @@ export default function Sidebar() {
   };
 
   if (!mounted) return null;
+
+  const shouldShowPublicSkeleton = !showAdminMenu && indicesLoading;
 
   return (
     <>
@@ -306,74 +359,83 @@ export default function Sidebar() {
             </Link>
           )}
 
-          {currentDesktopNav.map((group) => {
-            const isGroupOpen = openGroups[group.title] !== false;
+          {shouldShowPublicSkeleton ? (
+            <SidebarSkeleton />
+          ) : (
+            currentDesktopNav.map((group) => {
+              const isGroupOpen = openGroups[group.title] !== false;
 
-            return (
-              <div key={group.title} className="space-y-1.5">
-                <button
-                  onClick={() => group.collapsible && toggleGroup(group.title)}
-                  className={cn(
-                    "flex w-full items-center justify-between px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 font-heading",
-                    group.collapsible &&
-                      "hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  )}
-                >
-                  {group.title}
-                  {group.collapsible && (
-                    <ChevronDown
-                      className={cn(
-                        "h-3 w-3 transition-transform",
-                        isGroupOpen ? "" : "-rotate-90"
-                      )}
-                    />
-                  )}
-                </button>
+              return (
+                <div key={group.title} className="space-y-1.5">
+                  <button
+                    onClick={() => group.collapsible && toggleGroup(group.title)}
+                    className={cn(
+                      "flex w-full items-center justify-between px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 font-heading",
+                      group.collapsible &&
+                        "hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    )}
+                  >
+                    {group.title}
+                    {group.collapsible && (
+                      <ChevronDown
+                        className={cn(
+                          "h-3 w-3 transition-transform",
+                          isGroupOpen ? "" : "-rotate-90"
+                        )}
+                      />
+                    )}
+                  </button>
 
-                <AnimatePresence initial={false}>
-                  {(!group.collapsible || isGroupOpen) && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="space-y-[2px]"
-                    >
-                      {group.items.map((item: any) => {
-                        const active = isActiveHref(item.href);
-                        const NavIcon = item.icon || group.icon;
+                  <AnimatePresence initial={false}>
+                    {(!group.collapsible || isGroupOpen) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="space-y-[2px]"
+                      >
+                        {group.items.map((item: any) => {
+                          const active = isActiveHref(item.href);
+                          const NavIcon = item.icon || group.icon;
 
-                        return (
-                          <Link
-                            key={`${item.name}-${item.href}`}
-                            href={item.href}
-                            onClick={isMobile ? closeMenu : undefined}
-                            className={cn(
-                              "group relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
-                              active
-                                ? "text-white"
-                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-900"
-                            )}
-                          >
-                            {active && (
-                              <motion.div
-                                layoutId="activeNavHighlight"
-                                className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10"
-                              />
-                            )}
+                          return (
+                            <Link
+                              key={`${item.name}-${item.href}`}
+                              href={item.href}
+                              onClick={isMobile ? closeMenu : undefined}
+                              className={cn(
+                                "group relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
+                                active
+                                  ? "text-white"
+                                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/30 dark:hover:bg-slate-900"
+                              )}
+                            >
+                              {active && (
+                                <motion.div
+                                  layoutId="activeNavHighlight"
+                                  className="absolute inset-0 bg-[#00BA88] rounded-xl -z-10"
+                                />
+                              )}
 
-                            <NavIcon className="h-4 w-4" />
-                            <span className={cn("text-sm", active ? "font-bold" : "font-medium")}>
-                              {item.name}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+                              <NavIcon className="h-4 w-4" />
+                              <span
+                                className={cn(
+                                  "text-sm",
+                                  active ? "font-bold" : "font-medium"
+                                )}
+                              >
+                                {item.name}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })
+          )}
 
           {isMobile && (
             <div className="space-y-1.5">

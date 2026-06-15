@@ -110,14 +110,11 @@ const AllocationCard = ({
 </div>
       </div>
 
-      {/* FOOTER BUTTON */}
-      <button 
-        onClick={onFooterClick}
-        className="w-full mt-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 text-emerald-500 text-[11px] font-black uppercase tracking-widest hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5 transition-all group/btn"
-      >
+      {/* FOOTER BUTTON - hidden for now, spacer keeps card height consistent */}
+      <div className="w-full mt-6 py-3.5 invisible flex items-center justify-center gap-2 rounded-xl border border-transparent text-[11px] font-black uppercase tracking-widest">
         {footerLabel}
-        <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-      </button>
+        <ChevronRight size={14} />
+      </div>
     </div>
   );
 };
