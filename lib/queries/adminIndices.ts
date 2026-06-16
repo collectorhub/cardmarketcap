@@ -149,3 +149,24 @@ export async function searchCardsForIndex(query: string) {
     return { success: false, cards: [], message: "Search failed." };
   }
 }
+
+export async function syncAutoTopIndices(userId: number) {
+  try {
+    const res = await fetch(`${API_BASE}/admin_auto_indices.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        user_id: Number(userId || 0),
+      }),
+    });
+
+    return await readJsonSafe(res);
+  } catch (error) {
+    console.error("syncAutoTopIndices error:", error);
+    return {
+      success: false,
+      message: "Failed to sync automatic top indices.",
+    };
+  }
+}

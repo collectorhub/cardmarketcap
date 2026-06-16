@@ -14,6 +14,8 @@ import {
   Activity,
   Eye,
   Loader2,
+  RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import {
   deleteIndex,
@@ -23,7 +25,9 @@ import {
   saveIndex,
   saveIndexCard,
   searchCardsForIndex,
+  syncAutoTopIndices,
 } from "@/lib/queries/adminIndices";
+import CustomDropdown from "@/components/CustomDropdown";
 import { cn } from "@/lib/utils";
 import MetricCard from "@/components/admin/MetricCard";
 
@@ -45,13 +49,32 @@ export default function AdminIndicesPage() {
   const [indexCards, setIndexCards] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [cardsLoading, setCardsLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [autoSyncing, setAutoSyncing] = useState(false);
+
   const [adminUserId, setAdminUserId] = useState<number>(0);
+  const [indexCardsPage, setIndexCardsPage] = useState(1);
+  const INDEX_CARDS_PER_PAGE = 5;
+
+  const selectedId = Number(selected?.id || form?.id || 0);
+  const isAutoManaged = form.slug === "top-20" || form.slug === "top-50";
+
+  const indexCardsTotalPages = Math.max(
+    1,
+    Math.ceil(indexCards.length / INDEX_CARDS_PER_PAGE)
+  );
+
+  const paginatedIndexCards = indexCards.slice(
+    (indexCardsPage - 1) * INDEX_CARDS_PER_PAGE,
+    indexCardsPage * INDEX_CARDS_PER_PAGE
+  );
 
   async function loadIndices() {
     const res = await getAdminIndices();
+
     if (res.success) {
       setIndices(res.indices || []);
     }
@@ -64,11 +87,14 @@ export default function AdminIndicesPage() {
     }
 
     setCardsLoading(true);
+
     const res = await getIndexCards(indexId);
+
     setCardsLoading(false);
 
     if (res.success) {
       setIndexCards(res.cards || []);
+      setIndexCardsPage(1);
     } else {
       setIndexCards([]);
       alert(res.message || "Failed to load index cards.");
@@ -100,7 +126,9 @@ export default function AdminIndicesPage() {
       }
 
       setSearching(true);
+
       const res = await searchCardsForIndex(search);
+
       setSearching(false);
 
       if (res.success) {
@@ -111,9 +139,7 @@ export default function AdminIndicesPage() {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [search]);
-
-  const selectedId = Number(selected?.id || form?.id || 0);
+  }, [search, selectedId]);
 
   const stats = useMemo(() => {
     return {
@@ -123,8 +149,29 @@ export default function AdminIndicesPage() {
     };
   }, [indices, indexCards]);
 
+  const handleSyncAutoIndices = async () => {
+    setAutoSyncing(true);
+
+    const res = await syncAutoTopIndices(adminUserId);
+
+    setAutoSyncing(false);
+
+    if (res.success) {
+      await loadIndices();
+
+      if (selectedId) {
+        await loadCards(selectedId);
+      }
+
+      alert(res.message || "Top 20 / Top 50 indices synced.");
+    } else {
+      alert(res.message || "Failed to sync automatic indices.");
+    }
+  };
+
   const handleSelectIndex = async (item: any) => {
     setSelected(item);
+
     setForm({
       id: Number(item.id),
       name: item.name || "",
@@ -136,6 +183,7 @@ export default function AdminIndicesPage() {
 
     setSearch("");
     setResults([]);
+
     await loadCards(Number(item.id));
   };
 
@@ -171,6 +219,7 @@ export default function AdminIndicesPage() {
 
         setSelected(saved);
         setForm(saved);
+
         await loadCards(savedId);
       }
     } else {
@@ -180,6 +229,12 @@ export default function AdminIndicesPage() {
 
   const handleDeleteIndex = async () => {
     if (!selectedId) return;
+
+    if (isAutoManaged) {
+      alert("This is an auto-managed index. You can edit it, but deleting it is not recommended.");
+      return;
+    }
+
     if (!confirm("Delete this index and all cards inside it?")) return;
 
     const res = await deleteIndex(selectedId);
@@ -210,6 +265,7 @@ export default function AdminIndicesPage() {
     if (res.success) {
       setSearch("");
       setResults([]);
+
       await loadCards(selectedId);
       await loadIndices();
     } else {
@@ -237,14 +293,30 @@ export default function AdminIndicesPage() {
           <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white font-sora">
             Market Index Builder
           </h1>
+
           <p className="text-sm text-slate-400 dark:text-slate-500 font-medium mt-0.5 max-w-2xl">
-            Create market indices, select cards, assign weights, and control which index portfolios appear on the public app.
+            Auto-sync Top 20 and Top 50 from the live ranking table, while preserving manual admin control when needed.
           </p>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#00BA88]/5 dark:bg-[#00BA88]/10 text-[#00BA88] border border-[#00BA88]/10 text-xs font-bold">
-          <ShieldCheck size={14} />
-          <span>Admin Controlled Indices</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncAutoIndices}
+            disabled={autoSyncing}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00BA88] text-white text-xs font-black disabled:opacity-50 hover:bg-[#00a377] transition"
+          >
+            {autoSyncing ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <RefreshCw size={14} />
+            )}
+            Sync Top 20 / Top 50
+          </button>
+
+          <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00BA88]/5 dark:bg-[#00BA88]/10 text-[#00BA88] border border-[#00BA88]/10 text-xs font-bold">
+            <ShieldCheck size={14} />
+            <span>Admin Controlled Indices</span>
+          </div>
         </div>
       </div>
 
@@ -296,7 +368,7 @@ export default function AdminIndicesPage() {
             <div>
               <h2 className="text-sm font-black">Indices</h2>
               <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                Published and draft baskets
+                Auto-managed and manual baskets
               </p>
             </div>
 
@@ -311,44 +383,57 @@ export default function AdminIndicesPage() {
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[520px] xl:max-h-[680px] overflow-y-auto scrollbar-hide">
             {indices.length > 0 ? (
-              indices.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleSelectIndex(item)}
-                  className={cn(
-                    "w-full text-left p-4 md:p-5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950 transition",
-                    selectedId === Number(item.id) && "bg-[#00BA88]/10"
-                  )}
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-slate-900 dark:text-white truncate">
-                      {item.name}
-                    </p>
+              indices.map((item) => {
+                const auto = item.slug === "top-20" || item.slug === "top-50";
 
-                    <p className="text-[11px] font-bold text-slate-400 truncate">
-                      /overview/indices/{item.slug}
-                    </p>
-
-                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase mt-1">
-                      {item.category} · {item.card_count || 0} cards
-                    </p>
-                  </div>
-
-                  <span
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectIndex(item)}
                     className={cn(
-                      "text-[10px] font-black px-2 py-1 rounded-lg shrink-0",
-                      Number(item.is_active) === 1
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-slate-500/10 text-slate-400"
+                      "w-full text-left p-4 md:p-5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950 transition",
+                      selectedId === Number(item.id) && "bg-[#00BA88]/10"
                     )}
                   >
-                    {Number(item.is_active) === 1 ? "LIVE" : "DRAFT"}
-                  </span>
-                </button>
-              ))
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-black text-slate-900 dark:text-white truncate">
+                          {item.name}
+                        </p>
+
+                        {auto && (
+                          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-500 shrink-0">
+                            AUTO
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] font-bold text-slate-400 truncate">
+                        /overview/indices/{item.slug}
+                      </p>
+
+                      <p className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase mt-1">
+                        {item.category} · {item.card_count || 0} cards
+                      </p>
+                    </div>
+
+                    <span
+                      className={cn(
+                        "text-[10px] font-black px-2 py-1 rounded-lg shrink-0",
+                        Number(item.is_active) === 1
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-slate-500/10 text-slate-400"
+                      )}
+                    >
+                      {Number(item.is_active) === 1 ? "LIVE" : "DRAFT"}
+                    </span>
+                  </button>
+                );
+              })
             ) : (
               <div className="p-8 text-center">
                 <BarChart3 className="mx-auto text-slate-400 mb-3" />
+
                 <p className="text-sm font-bold text-slate-400">
                   No index created yet.
                 </p>
@@ -362,6 +447,7 @@ export default function AdminIndicesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-sm font-black">Index Configuration</h2>
+
                 <p className="text-[11px] text-slate-400 font-bold mt-0.5">
                   Define the public index identity and status.
                 </p>
@@ -370,7 +456,7 @@ export default function AdminIndicesPage() {
               {selectedId > 0 && (
                 <div className="flex items-center gap-2">
                   <a
-                    href={`/indices/${form.slug}`}
+                    href={`/overview/indices/${form.slug}`}
                     target="_blank"
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs font-black"
                   >
@@ -389,6 +475,15 @@ export default function AdminIndicesPage() {
               )}
             </div>
 
+            {isAutoManaged && (
+              <div className="mb-5 p-4 rounded-2xl bg-[#00BA88]/5 border border-[#00BA88]/10 text-xs font-bold text-slate-500 dark:text-slate-400">
+                <span className="text-[#00BA88] font-black">
+                  Auto-managed index:
+                </span>{" "}
+                this basket is generated from the live ranking table. Manual edits are still allowed when needed.
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 value={form.name}
@@ -404,15 +499,23 @@ export default function AdminIndicesPage() {
                 className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88]"
               />
 
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88]"
-              >
-                <option value="market">Market</option>
-                <option value="index">Index</option>
-                <option value="specialty">Specialty</option>
-              </select>
+              <CustomDropdown
+                value={
+                  form.category === "market"
+                    ? "Market"
+                    : form.category === "specialty"
+                    ? "Specialty"
+                    : "Index"
+                }
+                options={["Market", "Index", "Specialty"]}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    category: value.toLowerCase(),
+                  })
+                }
+                className="w-full md:w-full"
+              />
 
               <button
                 onClick={() =>
@@ -424,6 +527,7 @@ export default function AdminIndicesPage() {
                 className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-black flex items-center justify-between"
               >
                 <span>{Number(form.is_active) === 1 ? "Published" : "Draft"}</span>
+
                 {Number(form.is_active) === 1 ? (
                   <ToggleRight className="text-[#00BA88]" />
                 ) : (
@@ -446,7 +550,11 @@ export default function AdminIndicesPage() {
               disabled={loading}
               className="mt-5 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#00BA88] text-white text-xs font-black disabled:opacity-50 hover:bg-[#00a377] transition"
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {loading ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Save size={15} />
+              )}
               {loading ? "Saving..." : "Save Index"}
             </button>
           </div>
@@ -455,8 +563,11 @@ export default function AdminIndicesPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-sm font-black">Cards In Index</h2>
+
                 <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                  Add canonical cards into this managed basket.
+                  {isAutoManaged
+                    ? "Synced from live ranking table. Manual edits are optional."
+                    : "Add canonical cards into this managed basket."}
                 </p>
               </div>
 
@@ -468,7 +579,9 @@ export default function AdminIndicesPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   disabled={!selectedId}
                   placeholder={
-                    selectedId ? "Search cards to add..." : "Save/select index first"
+                    selectedId
+                      ? "Search cards to add..."
+                      : "Save/select index first"
                   }
                   className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88] disabled:opacity-50"
                 />
@@ -499,8 +612,8 @@ export default function AdminIndicesPage() {
                       </p>
 
                       <p className="text-[11px] text-slate-400 font-bold truncate">
-                        {card.setName || card.set || "Unknown Set"} · {card.game || "unknown"} ·{" "}
-                        {card.card_id}
+                        {card.setName || card.set || "Unknown Set"} ·{" "}
+                        {card.game || "unknown"} · {card.card_id}
                       </p>
                     </div>
                   </button>
@@ -512,12 +625,13 @@ export default function AdminIndicesPage() {
               {cardsLoading ? (
                 <div className="p-8 text-center">
                   <Loader2 className="mx-auto text-slate-400 mb-3 animate-spin" />
+
                   <p className="text-sm font-bold text-slate-400">
                     Loading index cards...
                   </p>
                 </div>
               ) : indexCards.length > 0 ? (
-                indexCards.map((card) => (
+                paginatedIndexCards.map((card) => (
                   <div
                     key={card.id}
                     className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b last:border-b-0 border-slate-100 dark:border-slate-800"
@@ -559,11 +673,57 @@ export default function AdminIndicesPage() {
               ) : (
                 <div className="p-8 text-center">
                   <Layers className="mx-auto text-slate-400 mb-3" />
+
                   <p className="text-sm font-bold text-slate-400">
                     No cards added to this index yet.
                   </p>
                 </div>
               )}
+
+              {indexCards.length > INDEX_CARDS_PER_PAGE && (
+              <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                <button
+                  onClick={() => setIndexCardsPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={indexCardsPage === 1}
+                  className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
+                >
+                  <ArrowRight size={14} className="rotate-180" />
+                  Previous
+                </button>
+
+                <div className="flex gap-2">
+                  {Array.from({ length: indexCardsTotalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setIndexCardsPage(page)}
+                        className={cn(
+                          "w-8 h-8 rounded-lg text-[11px] font-black transition-all",
+                          indexCardsPage === page
+                            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                            : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setIndexCardsPage((prev) =>
+                      Math.min(prev + 1, indexCardsTotalPages)
+                    )
+                  }
+                  disabled={indexCardsPage === indexCardsTotalPages}
+                  className="px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-emerald-500 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors flex items-center gap-2"
+                >
+                  Next
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
             </div>
           </div>
         </div>
@@ -573,6 +733,7 @@ export default function AdminIndicesPage() {
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;

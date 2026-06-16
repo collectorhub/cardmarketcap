@@ -1,122 +1,170 @@
 "use client";
 
-import React, { useState } from 'react';
-import AdminPageHeader from '@/components/admin/AdminPageHeader';
-import PricingSummary from '@/components/admin/pricing-sales/PricingSummary';
-import PricingFilters from '@/components/admin/pricing-sales/PricingFilters';
-import TransactionRowItem from '@/components/admin/pricing-sales/TransactionRowItem';
-import { TransactionSale } from '@/types/pricing';
-import { ShoppingBag, Layers } from 'lucide-react';
-
-const MOCK_SALES_RECORDS: TransactionSale[] = [
-  {
-    id: "sale_001",
-    card_title: "1999 Pokemon Base Set Charizard Holo 1st Edition Shadowless #4",
-    source_platform: 'ebay',
-    price: 8450.00,
-    sale_date: "2026-05-25 12:04",
-    grade_status: 'graded',
-    grade_value: "PSA 10",
-    is_outlier: true,
-    anomaly_reason: 'price_spike'
-  },
-  {
-    id: "sale_002",
-    card_title: "2000 Neo Genesis Lugia Holo First Edition #9",
-    source_platform: 'price_charting',
-    price: 1250.00,
-    sale_date: "2026-05-25 11:42",
-    grade_status: 'graded',
-    grade_value: "PSA 9",
-    is_outlier: false,
-    anomaly_reason: 'none'
-  },
-  {
-    id: "sale_003",
-    card_title: "Base Set Blastoise Holo Authentic Reprint Lot Bundle Junk",
-    source_platform: 'ebay',
-    price: 18.50,
-    sale_date: "2026-05-25 09:15",
-    grade_status: 'raw',
-    is_outlier: true,
-    anomaly_reason: 'polluted_title_match'
-  }
-];
+import React, { useEffect, useState } from "react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import PricingSummary from "@/components/admin/pricing-sales/PricingSummary";
+import PricingFilters from "@/components/admin/pricing-sales/PricingFilters";
+import TransactionRowItem from "@/components/admin/pricing-sales/TransactionRowItem";
+import { TransactionSale } from "@/types/pricing";
+import { Layers } from "lucide-react";
+import {
+  getAdminPricingSales,
+  resolveAdminPricingSale,
+} from "@/lib/queries/admin/pricing-sales";
 
 export default function PricingSalesPage() {
-  const [activeTab, setActiveTab] = useState<'all_sales' | 'anomalies' | 'verified_pricing'>('all_sales');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sales, setSales] = useState<TransactionSale[]>(MOCK_SALES_RECORDS);
+  const [activeTab, setActiveTab] = useState<
+    "all_sales" | "anomalies" | "verified_pricing"
+  >("all_sales");
 
-  // Approve outlier rows to pipe through frontend tables cleanly
-  const handleApproveSale = (id: string) => {
-    setSales(prev => prev.map(s => s.id === id ? { ...s, is_outlier: false, anomaly_reason: 'none' } : s));
-  };
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sales, setSales] = useState<TransactionSale[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Drop or quarantine dirty data to isolate metric aggregations
-  const handleQuarantineSale = (id: string) => {
-    setSales(prev => prev.filter(s => s.id !== id));
-  };
-
-  // Derive top-line state summaries
-  const totalProcessed = sales.length;
-  const anomaliesCount = sales.filter(s => s.is_outlier).length;
-  const avgValue = sales.reduce((acc, s) => acc + s.price, 0) / (totalProcessed || 1);
-
-  // Filtration computation pass
-  const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.card_title.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-    if (activeTab === 'anomalies') return sale.is_outlier;
-    if (activeTab === 'verified_pricing') return !sale.is_outlier;
-    return true;
+  const [summary, setSummary] = useState({
+    totalSalesProcessed: 0,
+    avgCardValue: 0,
+    activeAnomaliesCount: 0,
+    healthyStreamRate: "0%",
   });
+
+  async function loadSales() {
+    try {
+      setLoading(true);
+
+      const res = await getAdminPricingSales({
+        search: searchQuery,
+        tab: activeTab,
+      });
+
+      if (res?.success) {
+        setSales(Array.isArray(res.sales) ? res.sales : []);
+        setSummary({
+          totalSalesProcessed: Number(res.summary?.totalSalesProcessed || 0),
+          avgCardValue: Number(res.summary?.avgCardValue || 0),
+          activeAnomaliesCount: Number(res.summary?.activeAnomaliesCount || 0),
+          healthyStreamRate: String(res.summary?.healthyStreamRate || "0%"),
+        });
+      } else {
+        console.warn("Pricing sales warning:", res?.message);
+        setSales([]);
+      }
+    } catch (error) {
+      console.error("Failed to load pricing sales:", error);
+      setSales([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadSales();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeTab]);
+
+  const handleApproveSale = async (id: string) => {
+    const stored =
+      typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
+    const parsed = stored ? JSON.parse(stored) : null;
+    const userId = Number(parsed?.id || parsed?.user_id || 0);
+
+    const res = await resolveAdminPricingSale({
+      id,
+      action: "approve",
+      user_id: userId,
+      reason: "Admin approved sale for pricing pool.",
+    });
+
+    if (res?.success) {
+      setSales((prev) =>
+        prev.map((sale) =>
+          sale.id === id
+            ? {
+                ...sale,
+                is_outlier: false,
+                anomaly_reason: "none",
+              }
+            : sale
+        )
+      );
+    } else {
+      alert(res?.message || "Failed to approve sale.");
+    }
+  };
+
+  const handleQuarantineSale = async (id: string) => {
+    const stored =
+      typeof window !== "undefined" ? localStorage.getItem("user_data") : null;
+    const parsed = stored ? JSON.parse(stored) : null;
+    const userId = Number(parsed?.id || parsed?.user_id || 0);
+
+    const res = await resolveAdminPricingSale({
+      id,
+      action: "quarantine",
+      user_id: userId,
+      reason: "Admin quarantined sale as anomaly.",
+    });
+
+    if (res?.success) {
+      setSales((prev) => prev.filter((sale) => sale.id !== id));
+    } else {
+      alert(res?.message || "Failed to quarantine sale.");
+    }
+  };
 
   return (
     <div className="space-y-6 pt-15 md:pt-0">
-      <AdminPageHeader 
-        title="Pricing & Sales Ingestion Stream" 
+      <AdminPageHeader
+        title="Pricing & Sales Ingestion Stream"
         description="Govern real-time marketplace sales telemetry, capture volatile outliers, and protect canonical charts from index spikes."
       />
 
-      {/* TELEMETRY RUNTIME METRICS CARD ROW */}
-      <PricingSummary 
-        totalSalesProcessed={totalProcessed * 142} // Multiplying to simulate scale volume
-        avgCardValue={avgValue}
-        activeAnomaliesCount={anomaliesCount}
-        healthyStreamRate="99.4%"
+      <PricingSummary
+        totalSalesProcessed={summary.totalSalesProcessed}
+        avgCardValue={summary.avgCardValue}
+        activeAnomaliesCount={summary.activeAnomaliesCount}
+        healthyStreamRate={summary.healthyStreamRate}
       />
 
-      {/* SEARCH AND TAB SEGMENTS FILTER CONTAINER */}
-      <PricingFilters 
+      <PricingFilters
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
       />
 
-      {/* GRID DATA LOOP BLOCK */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 px-1">
           <Layers size={12} className="text-slate-400" />
           <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 font-sans">
-            Filtered Sales Records In Feed ({filteredSales.length})
+            Filtered Sales Records In Feed ({sales.length})
           </span>
         </div>
 
         <div className="space-y-3">
-          {filteredSales.map(sale => (
-            <TransactionRowItem 
-              key={sale.id}
-              sale={sale}
-              onApproveSale={handleApproveSale}
-              onQuarantineSale={handleQuarantineSale}
-            />
-          ))}
+          {loading ? (
+            <div className="py-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-sm font-bold text-slate-400">
+              Loading live sales telemetry...
+            </div>
+          ) : sales.length > 0 ? (
+            sales.map((sale) => (
+              <TransactionRowItem
+                key={sale.id}
+                sale={sale}
+                onApproveSale={handleApproveSale}
+                onQuarantineSale={handleQuarantineSale}
+              />
+            ))
+          ) : (
+            <div className="py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 text-center text-sm font-bold text-slate-400">
+              No sales records match this filter.
+            </div>
+          )}
         </div>
       </div>
-
     </div>
   );
 }

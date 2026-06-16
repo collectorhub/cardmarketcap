@@ -1,49 +1,80 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  // 1. Get the token from cookies
-  const token = request.cookies.get('user_token')?.value;
-  const { pathname } = request.nextUrl;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  // 2. Define our path groups
-  const isAuthPage = pathname.startsWith('/sign-in') || 
-                     pathname.startsWith('/sign-up') || 
-                     pathname.startsWith('/forgot-password');
-
-  const isProtectedPage = pathname.startsWith('/overviewsss') || 
-                          pathname.startsWith('/portfolio') || 
-                          pathname.startsWith('/settings');
-
-  // 3. SCENARIO A: Authenticated user trying to access login/signup
-  // Redirect them to the home page
-  if (isAuthPage && token) {
-    return NextResponse.redirect(new URL('/', request.url));
+async function verifyUserToken(token: string) {
+  if (!API_BASE) {
+    return null;
   }
 
-  // 4. SCENARIO B: Guest trying to access protected pages
-  // Redirect them to login
+  try {
+    const res = await fetch(`${API_BASE}/verify_token.php`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+
+    if (!data?.success || !data?.user) {
+      return null;
+    }
+
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get("user_token")?.value;
+  const { pathname } = request.nextUrl;
+
+  const isAuthPage =
+    pathname.startsWith("/sign-in") ||
+    pathname.startsWith("/sign-up") ||
+    pathname.startsWith("/forgot-password");
+
+  const isProtectedPage =
+    pathname.startsWith("/overviewsss") ||
+    pathname.startsWith("/portfolio") ||
+    pathname.startsWith("/settings");
+
+  const isAdminPage = pathname.startsWith("/admin");
+
+  if (isAuthPage && token) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   if (isProtectedPage && !token) {
-    const loginUrl = new URL('/sign-in', request.url);
-    // Optional: Keep track of where they were trying to go
-    loginUrl.searchParams.set('callbackUrl', pathname);
+    const loginUrl = new URL("/sign-in", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAdminPage) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    const user = await verifyUserToken(token);
+    const role = user?.role;
+
+    const isAdmin = role === "admin" || role === "super_admin";
+
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return NextResponse.next();
 }
 
-// 5. Matcher Configuration
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files (logo.png, icons, etc)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|logo.png|.*\\.svg).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|logo.png|.*\\.svg).*)",
   ],
 };
