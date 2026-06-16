@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, TrendingDown, Info, Activity 
@@ -10,7 +10,7 @@ import { TrendingCards } from "./TrendingCards"
 
 // Define the Card interface to match your fetchTrendingCards output
 interface Card {
-  id: number;
+  id: string | number;
   name: string;
   set: string;
   price: string;
@@ -19,6 +19,7 @@ interface Card {
   type: string;
   grade: string;
   image: string;
+  url?: string;
 }
 
 interface MarketStat {
@@ -60,14 +61,47 @@ const CHART_DATA = {
 export function MarketOverview({ initialData, sentimentScore = 66, cards = [] }: MarketOverviewProps) {
   const [chartTab, setChartTab] = useState('Overview')
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const [liveCards, setLiveCards] = useState<Card[]>(cards || []);
+  const [cardsLoading, setCardsLoading] = useState(false);
+
+  useEffect(() => {
+    if (cards?.length) {
+      setLiveCards(cards);
+      return;
+    }
+
+    async function loadTrendingCards() {
+      try {
+        setCardsLoading(true);
+
+        const res = await fetch(`${API_BASE}/trending_cards.php?limit=24`, {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (data?.success && Array.isArray(data.cards)) {
+          setLiveCards(data.cards);
+        }
+      } catch (error) {
+        console.error("Trending cards fetch failed:", error);
+        setLiveCards([]);
+      } finally {
+        setCardsLoading(false);
+      }
+    }
+
+    loadTrendingCards();
+  }, [cards]);
+
   // Calculate gauge offset based on score (0-100)
   // Circumference of semi-circle is ~126
   const strokeDashoffset = 126 - (sentimentScore / 100) * 126;
 
   return (
-    <div className="space-y-8 md:space-y-12 pb-20">
-      {/* HEADER */}
-      <header className="flex flex-col gap-2 pt-15 md:pt-6">
+    <div className="space-y-6 md:space-y-8 pb-20">
+      <header className="flex flex-col gap-2 pt-8 md:pt-2 pb-2">
         <div className="flex items-center gap-2 text-[#00BA88]">
           <Activity className="h-4 w-4 animate-pulse" />
           <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Market Intelligence</span>
@@ -204,7 +238,7 @@ export function MarketOverview({ initialData, sentimentScore = 66, cards = [] }:
       </div>
 
       {/* TRENDING CARDS SECTION */}
-      <TrendingCards cards={cards} />
+      <TrendingCards cards={liveCards} loading={cardsLoading} />
     </div>
   )
 }

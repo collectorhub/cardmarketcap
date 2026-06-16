@@ -4,27 +4,26 @@ import type { NextRequest } from "next/server";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 async function verifyUserToken(token: string) {
-  if (!API_BASE) {
-    return null;
-  }
+  if (!API_BASE || !token) return null;
 
   try {
-    const res = await fetch(`${API_BASE}/verify_token.php`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
+    const cleanToken = decodeURIComponent(token);
+
+    const res = await fetch(
+      `${API_BASE}/verify_token.php?token=${encodeURIComponent(cleanToken)}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      }
+    );
 
     const data = await res.json();
 
-    if (!data?.success || !data?.user) {
-      return null;
-    }
+    if (!data?.success || !data?.user) return null;
 
     return data.user;
-  } catch {
+  } catch (error) {
+    console.error("Middleware token verify failed:", error);
     return null;
   }
 }
@@ -61,11 +60,9 @@ export async function middleware(request: NextRequest) {
     }
 
     const user = await verifyUserToken(token);
-    const role = user?.role;
+    const role = String(user?.role || "").toLowerCase();
 
-    const isAdmin = role === "admin" || role === "super_admin";
-
-    if (!isAdmin) {
+    if (role !== "admin" && role !== "super_admin") {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }

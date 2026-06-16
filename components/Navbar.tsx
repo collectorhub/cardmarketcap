@@ -23,6 +23,9 @@ import {
   Layers,
   ShieldCheck,
   LayoutDashboard,
+  Loader2,
+  TrendingUp,
+  Package,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -35,12 +38,81 @@ import {
 import { useMobileMenu } from "@/context/MobileMenuContext";
 import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
+import { globalSearch } from "@/lib/queries/globalSearch";
 
 type NavUser = {
   id?: number;
   username: string;
   role: string;
 };
+
+type SearchItem = {
+  type: "card" | "set" | "index";
+  id: string | number;
+  name: string;
+  subtitle?: string;
+  imageUrl?: string | null;
+  url: string;
+};
+
+function SearchGroup({
+  title,
+  icon: Icon,
+  items,
+  onSelect,
+}: {
+  title: string;
+  icon: any;
+  items: SearchItem[];
+  onSelect: (url: string) => void;
+}) {
+  if (!items?.length) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-2 mb-2">
+        <Icon className="h-3.5 w-3.5 text-[#00BA88]" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {title}
+        </p>
+      </div>
+
+      <div className="space-y-1">
+        {items.map((item) => (
+          <button
+            key={`${item.type}-${item.id}-${item.url}`}
+            onClick={() => onSelect(item.url)}
+            className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-900 text-left transition group"
+          >
+            <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <Icon className="h-4 w-4 text-slate-400" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-slate-900 dark:text-white truncate group-hover:text-[#00BA88] transition">
+                {item.name}
+              </p>
+              <p className="text-[11px] font-bold text-slate-400 truncate">
+                {item.subtitle || "CardMarketCap result"}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -54,6 +126,23 @@ export default function Navbar() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  const [globalResults, setGlobalResults] = useState<{
+    cards: SearchItem[];
+    sets: SearchItem[];
+    indices: SearchItem[];
+    count: number;
+  }>({
+    cards: [],
+    sets: [],
+    indices: [],
+    count: 0,
+  });
+
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
@@ -92,6 +181,88 @@ export default function Navbar() {
     }
   }, [isSearching]);
 
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const q = searchQuery.trim();
+
+      if (q.length < 2) {
+        setGlobalResults({ cards: [], sets: [], indices: [], count: 0 });
+        setSearchOpen(false);
+        setSearchLoading(false);
+        return;
+      }
+
+      setSearchLoading(true);
+
+      const res = await globalSearch(q);
+
+      setSearchLoading(false);
+
+      if (res?.success) {
+        setGlobalResults({
+          cards: Array.isArray(res.cards) ? res.cards : [],
+          sets: Array.isArray(res.sets) ? res.sets : [],
+          indices: Array.isArray(res.indices) ? res.indices : [],
+          count: Number(res.count || 0),
+        });
+
+        setSearchOpen(true);
+      } else {
+        setGlobalResults({ cards: [], sets: [], indices: [], count: 0 });
+        setSearchOpen(true);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      if (
+        desktopSearchRef.current &&
+        desktopSearchRef.current.contains(target)
+      ) {
+        return;
+      }
+
+      if (mobileSearchRef.current && mobileSearchRef.current.contains(target)) {
+        return;
+      }
+
+      setSearchOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleShortcut = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toLowerCase().includes("mac");
+      const pressed = isMac ? e.metaKey && e.key === "k" : e.ctrlKey && e.key === "k";
+
+      if (pressed) {
+        e.preventDefault();
+        setIsSearching(true);
+        setSearchOpen(true);
+
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 50);
+      }
+
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setIsSearching(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_data");
@@ -111,18 +282,109 @@ export default function Navbar() {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
-  const handleSearchSubmit = (e?: React.FormEvent) => {
+  const submitSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    if (searchQuery.trim()) {
-      setIsSearching(false);
-      setSearchQuery("");
-    }
+    const q = searchQuery.trim();
+
+    if (!q) return;
+
+    setSearchOpen(false);
+    setIsSearching(false);
+    setSearchQuery("");
+    router.push(`/card-search?q=${encodeURIComponent(q)}`);
+  };
+
+  const handleSelectSearchResult = (url: string) => {
+    setSearchOpen(false);
+    setIsSearching(false);
+    setSearchQuery("");
+    router.push(url);
   };
 
   const getInitials = (name?: string) => {
     const safeName = name || "User";
     return safeName.slice(0, 2).toUpperCase();
+  };
+
+  const SearchDropdown = ({ mobile = false }: { mobile?: boolean }) => {
+    const hasQuery = searchQuery.trim().length >= 2;
+
+    if (!searchOpen || !hasQuery) return null;
+
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+          transition={{ duration: 0.15 }}
+          className={cn(
+            "absolute rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl overflow-hidden z-[100]",
+            mobile
+              ? "left-3 right-3 bottom-[calc(100%+10px)]"
+              : "right-0 top-[calc(100%+10px)] w-[440px]"
+          )}
+        >
+          <div className="p-3 max-h-[520px] overflow-y-auto custom-scrollbar">
+            {searchLoading ? (
+              <div className="py-10 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-[#00BA88]" />
+                <p className="text-xs font-bold text-slate-400">
+                  Searching CardMarketCap...
+                </p>
+              </div>
+            ) : globalResults.count > 0 ? (
+              <div className="space-y-4">
+                <SearchGroup
+                  title="Cards"
+                  icon={Search}
+                  items={globalResults.cards}
+                  onSelect={handleSelectSearchResult}
+                />
+
+                <SearchGroup
+                  title="Sets"
+                  icon={Package}
+                  items={globalResults.sets}
+                  onSelect={handleSelectSearchResult}
+                />
+
+                <SearchGroup
+                  title="Indices"
+                  icon={TrendingUp}
+                  items={globalResults.indices}
+                  onSelect={handleSelectSearchResult}
+                />
+
+                <button
+                  onClick={() => submitSearch()}
+                  className="w-full mt-2 px-4 py-3 rounded-2xl bg-[#00BA88] text-white text-xs font-black uppercase tracking-wider hover:bg-[#00a377] transition"
+                >
+                  View all results
+                </button>
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <p className="text-sm font-black text-slate-900 dark:text-white">
+                  No results found
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Try a card name, set, or index.
+                </p>
+
+                <button
+                  onClick={() => submitSearch()}
+                  className="mt-4 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-black hover:text-[#00BA88] transition"
+                >
+                  Search all cards anyway
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
   };
 
   const MobileTab = ({
@@ -331,20 +593,35 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="relative group hidden lg:block">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#00BA88] transition-colors" />
+            <div ref={desktopSearchRef} className="relative group hidden lg:block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#00BA88] transition-colors z-10" />
 
-              <input
-                type="text"
-                placeholder="Search assets..."
-                className="h-11 w-64 xl:w-80 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 pl-11 pr-12 text-sm outline-none transition-all focus:border-[#00BA88]/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-[#00BA88]/10 dark:text-slate-200"
-              />
+              <form onSubmit={submitSearch}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (searchQuery.trim().length >= 2) {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  placeholder="Search assets..."
+                  className="h-11 w-64 xl:w-96 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 pl-11 pr-12 text-sm outline-none transition-all focus:border-[#00BA88]/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-[#00BA88]/10 dark:text-slate-200"
+                />
 
-              <div className="absolute inset-y-0 right-4 flex items-center">
-                <kbd className="flex h-5 items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 font-mono text-[10px] font-medium text-slate-400">
-                  <Command className="h-2.5 w-2.5" /> K
-                </kbd>
-              </div>
+                <div className="absolute inset-y-0 right-4 flex items-center">
+                  {searchLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-[#00BA88]" />
+                  ) : (
+                    <kbd className="flex h-5 items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 font-mono text-[10px] font-medium text-slate-400">
+                      <Command className="h-2.5 w-2.5" /> K
+                    </kbd>
+                  )}
+                </div>
+              </form>
+
+              <SearchDropdown />
             </div>
 
             <div className="flex items-center gap-2 px-4 border-l border-slate-100 dark:border-slate-800">
@@ -477,7 +754,10 @@ export default function Navbar() {
               <MobileTab href="/portfolio" icon={Briefcase} label="Portfolio" />
 
               <MobileTab
-                onClick={() => setIsSearching(true)}
+                onClick={() => {
+                  setIsSearching(true);
+                  setSearchOpen(false);
+                }}
                 icon={Search}
                 label="Search"
               />
@@ -506,23 +786,27 @@ export default function Navbar() {
           ) : (
             <motion.div
               key="search-input"
+              ref={mobileSearchRef}
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="flex items-center w-full h-full px-4 gap-3"
+              className="relative flex items-center w-full h-full px-4 gap-3"
             >
+              <SearchDropdown mobile />
+
               <button
-                onClick={() => setIsSearching(false)}
+                onClick={() => {
+                  setIsSearching(false);
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }}
                 className="h-10 w-10 flex items-center justify-center shrink-0 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 rounded-xl transition-all active:scale-90"
               >
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </button>
 
-              <form
-                onSubmit={handleSearchSubmit}
-                className="relative flex-1 group h-11"
-              >
+              <form onSubmit={submitSearch} className="relative flex-1 group h-11">
                 <Search
                   size={18}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#00BA88] transition-colors"
@@ -533,11 +817,18 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search cards, sets..."
+                  onFocus={() => {
+                    if (searchQuery.trim().length >= 2) {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  placeholder="Search cards, sets, indices..."
                   className="w-full h-full bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl pl-10 pr-12 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 transition-all outline-none"
                 />
 
-                {searchQuery ? (
+                {searchLoading ? (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[#00BA88]" />
+                ) : searchQuery ? (
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -553,7 +844,10 @@ export default function Navbar() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setIsSearching(false)}
+                    onClick={() => {
+                      setIsSearching(false);
+                      setSearchOpen(false);
+                    }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600"
                   >
                     <X size={16} />
