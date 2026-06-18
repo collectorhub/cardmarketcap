@@ -12,19 +12,25 @@ import {
   TrendingUp,
   BarChart3,
   ExternalLink,
-  ShoppingBag,
   CheckCircle2,
   Plus,
   Loader2,
   X,
+  Megaphone,
+  ImageIcon,
+  CalendarDays,
+  Hash,
+  BadgeDollarSign,
+  Layers,
+  Users,
 } from "lucide-react";
 import { addCardToPortfolio } from "@/lib/queries/portfolio";
 import { addCardToWatchlist } from "@/lib/queries/watchlist";
 import { getCardUserStatus } from "@/lib/queries/status";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "./Navbar";
+import { getActiveAdvert } from "@/lib/queries/admin/adverts";
 import Sidebar from "./Sidebar";
 
 interface CardDetailsProps {
@@ -46,6 +52,28 @@ const ALL_GRADES = [
   "Raw",
 ];
 
+const SALES_GRADES = ["PSA 10", "PSA 9", "PSA 8", "PSA 7"];
+
+function parseMoney(value: any) {
+  return parseFloat(String(value || "0").replace(/[$,]/g, "")) || 0;
+}
+
+function formatMoney(value: number) {
+  return `$${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function cleanDisplay(value: any, fallback = "—") {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+}
+
+function getGradeNumber(grade: string) {
+  return grade.replace(/[^0-9]/g, "");
+}
+
 export default function CardDetails({ card, relatedCards = [] }: CardDetailsProps) {
   const router = useRouter();
 
@@ -56,30 +84,32 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
 
   const [selectedGrade, setSelectedGrade] = useState(initialGrade);
   const [selectedTimeframe, setSelectedTimeframe] = useState("1M");
+  const [salesGrade, setSalesGrade] = useState(
+    SALES_GRADES.includes(initialGrade) ? initialGrade : "PSA 10"
+  );
   const [copied, setCopied] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [portfolioGrade, setPortfolioGrade] = useState(initialGrade);
   const [addingToPortfolio, setAddingToPortfolio] = useState(false);
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
-  const [inPortfolio, setInPortfolio] = useState(false);
-  const [inWatchlist, setInWatchlist] = useState(false);
   const [addMessage, setAddMessage] = useState("");
   const [portfolioGrades, setPortfolioGrades] = useState<any[]>([]);
   const [watchlistGrades, setWatchlistGrades] = useState<any[]>([]);
+  const [sidebarAd, setSidebarAd] = useState<any>(null);
+  const [sidebarAdLoading, setSidebarAdLoading] = useState(false);
 
   const cardName = card.name || "Unknown Card";
   const cardSet = card.expansion_name || card.set || "Unknown Set";
+  const cardSeries = card.series || card.expansion_series || card.game || "Pokémon";
   const cardImage =
     card.imageUrl || card.image || "https://pokecollectorhub.com/assets/placeholder.png";
   const cardType = card.rarity || card.type || "Standard";
   const popData = card.fullPsaPop || {};
 
-  const selectedGradeNumber = selectedGrade.replace(/[^0-9]/g, "");
+  const selectedGradeNumber = getGradeNumber(selectedGrade);
   const selectedPopCount =
-    selectedGrade === "Raw"
-      ? 0
-      : Number(popData?.[`grade_${selectedGradeNumber}`] || 0);
+    selectedGrade === "Raw" ? 0 : Number(popData?.[`grade_${selectedGradeNumber}`] || 0);
 
   const getCurrentUserId = () => {
     const stored = localStorage.getItem("user_data");
@@ -108,13 +138,8 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
 
         const status = await getCardUserStatus(Number(userId), String(cardId));
 
-        const portfolio = status.portfolioGrades || [];
-        const watchlist = status.watchlistGrades || [];
-
-        setPortfolioGrades(portfolio);
-        setWatchlistGrades(watchlist);
-        setInPortfolio(portfolio.length > 0);
-        setInWatchlist(watchlist.length > 0);
+        setPortfolioGrades(status.portfolioGrades || []);
+        setWatchlistGrades(status.watchlistGrades || []);
       } catch (error) {
         console.error("Failed to load card user status:", error);
       }
@@ -123,46 +148,53 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
     loadUserCardStatus();
   }, [card.id, card.source_id]);
 
-  const currentDisplayPrice = useMemo(() => {
-    const gradeKey = selectedGrade.toLowerCase().replace(/\s+/g, "");
+  useEffect(() => {
+    let cancelled = false;
 
-    if (card.prices && card.prices[gradeKey] !== undefined && card.prices[gradeKey] !== null) {
-      const val = card.prices[gradeKey];
-      return typeof val === "number" ? `$${val.toLocaleString()}` : val;
+    async function loadSidebarAd() {
+      try {
+        setSidebarAdLoading(true);
+
+        const res = await getActiveAdvert("card_details_sidebar");
+
+        if (!cancelled && res?.success) {
+          setSidebarAd(res.advert || null);
+        }
+      } catch (error) {
+        console.error("Failed to load sidebar advert:", error);
+        if (!cancelled) setSidebarAd(null);
+      } finally {
+        if (!cancelled) setSidebarAdLoading(false);
+      }
     }
 
-    const currentResolved = card.resolvedGrade?.toLowerCase().replace(/\s+/g, "") || "psa10";
+    loadSidebarAd();
 
-    if (gradeKey === currentResolved && card.price) {
-      return typeof card.price === "number" ? `$${card.price.toLocaleString()}` : card.price;
-    }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    if (selectedGrade === "Raw") return card.rawPrice || "$0.00";
-
-    return card.price || "$0.00";
-  }, [selectedGrade, card]);
-
-  const numericCurrentPrice = useMemo(() => {
-    return parseFloat(String(currentDisplayPrice).replace(/[$,]/g, "")) || 0;
-  }, [currentDisplayPrice]);
+  const salesByGrade = useMemo(() => {
+    return card.historicalSales || card.historical_sales || {};
+  }, [card]);
 
   const activeHistoricalSales = useMemo(() => {
-    const targetSales = card.historicalSales || card.historical_sales || {};
-    if (!targetSales) return [];
+    if (!salesByGrade) return [];
 
     let rawSales: any[] = [];
 
-    if (Array.isArray(targetSales)) {
-      rawSales = targetSales;
+    if (Array.isArray(salesByGrade)) {
+      rawSales = salesByGrade;
     } else if (selectedGrade === "Raw") {
-      rawSales = targetSales.raw || [];
+      rawSales = salesByGrade.raw || [];
     } else {
-      rawSales = targetSales[selectedGradeNumber] || [];
+      rawSales = salesByGrade[selectedGradeNumber] || [];
     }
 
     return rawSales
       .map((sale: any) => {
-        const parsedPrice = parseFloat(String(sale.price || "0").replace(/[$,]/g, "")) || 0;
+        const parsedPrice = parseMoney(sale.price);
         const parsedDate = sale.soldDate || sale.sold_date;
         const parsedDateObj = parsedDate ? new Date(parsedDate) : new Date();
 
@@ -174,11 +206,51 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
         };
       })
       .sort((a: any, b: any) => b.dateObj.getTime() - a.dateObj.getTime());
-  }, [selectedGrade, selectedGradeNumber, card]);
+  }, [salesByGrade, selectedGrade, selectedGradeNumber]);
+
+  const salesTabData = useMemo(() => {
+    const gradeNumber = getGradeNumber(salesGrade);
+    const rawSales = salesByGrade?.[gradeNumber] || [];
+
+    return rawSales
+      .map((sale: any) => {
+        const parsedPrice = parseMoney(sale.price);
+        const parsedDate = sale.soldDate || sale.sold_date;
+        const parsedDateObj = parsedDate ? new Date(parsedDate) : new Date();
+
+        return {
+          ...sale,
+          numericPrice: parsedPrice,
+          dateObj: parsedDateObj,
+          soldDate: sale.soldDate || sale.sold_date || "Recent",
+        };
+      })
+      .sort((a: any, b: any) => b.dateObj.getTime() - a.dateObj.getTime())
+      .slice(0, 50);
+  }, [salesByGrade, salesGrade]);
+
+  const currentDisplayPrice = useMemo(() => {
+    if (activeHistoricalSales.length > 0) {
+      return activeHistoricalSales[0]?.price || formatMoney(activeHistoricalSales[0].numericPrice);
+    }
+
+    const resolvedGradeNumber = String(card.resolvedGrade || "").replace(/[^0-9]/g, "");
+
+    if (selectedGradeNumber === resolvedGradeNumber && card.price) {
+      return card.price;
+    }
+
+    return "$0.00";
+  }, [activeHistoricalSales, selectedGradeNumber, card]);
+
+  const numericCurrentPrice = useMemo(() => {
+    return parseMoney(currentDisplayPrice);
+  }, [currentDisplayPrice]);
 
   const chartData = useMemo(() => {
     if (activeHistoricalSales.length === 0) {
-      const base = numericCurrentPrice || 100;
+      if (!numericCurrentPrice) return [];
+      const base = numericCurrentPrice;
       return [base * 0.92, base * 0.95, base * 0.93, base * 0.97, base * 0.96, base];
     }
 
@@ -231,16 +303,68 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
     const high = Math.max(...chartData);
 
     return {
-      low: `$${low.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
-      high: `$${high.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
+      low: formatMoney(low),
+      high: formatMoney(high),
     };
   }, [chartData]);
+
+  const metricCards = [
+    {
+      label: "Full Name",
+      value: cardName,
+      icon: Info,
+    },
+    {
+      label: "Card Number",
+      value: cleanDisplay(card.number),
+      icon: Hash,
+    },
+    {
+      label: "Rarity",
+      value: cleanDisplay(cardType),
+      icon: Star,
+    },
+    {
+      label: "Release Date",
+      value: cleanDisplay(card.releaseDate),
+      icon: CalendarDays,
+    },
+    {
+      label: "Artist",
+      value: cleanDisplay(card.artist, "Unknown"),
+      icon: Activity,
+    },
+    {
+      label: "Market Cap",
+      value: cleanDisplay(card.marketCap, "$0.00"),
+      icon: BadgeDollarSign,
+    },
+    {
+      label: "Grade Pop",
+      value: selectedGrade === "Raw" ? "0" : selectedPopCount.toLocaleString(),
+      icon: Users,
+    },
+    {
+      label: "Card Set",
+      value: cleanDisplay(cardSet),
+      icon: Layers,
+    },
+    {
+      label: "Series",
+      value: cleanDisplay(cardSeries),
+      icon: ImageIcon,
+    },
+  ];
+
+  const activeAd = sidebarAd || card.ad || card.advert || {
+    title: "Advert Placement",
+    subtitle: "Admin-controlled sponsored card slot",
+    description:
+      "Use this placement for grading partners, marketplace promotions, set launches, or collector campaigns.",
+    cta_label: "Manage in Admin",
+    image_url: "",
+    target_url: "/admin/adverts",
+  };
 
   const handleAddToPortfolio = async () => {
     setAddMessage("");
@@ -282,17 +406,9 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
           );
         }
 
-        return [
-          {
-            grade: portfolioGrade,
-            quantity: 1,
-            purchase_price: 0,
-          },
-          ...prev,
-        ];
+        return [{ grade: portfolioGrade, quantity: 1, purchase_price: 0 }, ...prev];
       });
 
-      setInPortfolio(true);
       setAddMessage(`${portfolioGrade} added to your portfolio.`);
 
       setTimeout(() => {
@@ -329,22 +445,15 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
 
         if (exists) return prev;
 
-        return [
-          {
-            grade: selectedGrade,
-          },
-          ...prev,
-        ];
+        return [{ grade: selectedGrade }, ...prev];
       });
-
-      setInWatchlist(true);
     }
   };
 
   const handleShare = async () => {
     const shareData = {
       title: `${cardName} - ${cardSet}`,
-      text: `Track real-time valuations and population statistics for ${cardName} on TCG Market Index.`,
+      text: `Track real-time valuations and population statistics for ${cardName} on CardMarketCap.`,
       url: typeof window !== "undefined" ? window.location.href : "",
     };
 
@@ -373,6 +482,18 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
     if (path) router.push(path);
   };
 
+  const handleAdClick = () => {
+    const url = activeAd?.target_url || activeAd?.targetUrl || activeAd?.url;
+
+    if (url) {
+      if (String(url).startsWith("http")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        router.push(url);
+      }
+    }
+  };
+
   const columnClass = "lg:h-full lg:overflow-y-auto no-scrollbar lg:pb-10";
 
   const AssetHeader = () => (
@@ -382,6 +503,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
           <span className="bg-emerald-500/10 text-[#00BA88] px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">
             Rank #{card.rank || "124"}
           </span>
+
           <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em]">
             Market Index
           </span>
@@ -391,6 +513,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-sora leading-[0.95] max-w-3xl">
             {cardName}
           </h1>
+
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3">
             {cardSet}
           </p>
@@ -406,7 +529,10 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
             return (
               <button
                 key={g}
-                onClick={() => setSelectedGrade(g)}
+                onClick={() => {
+                  setSelectedGrade(g);
+                  if (SALES_GRADES.includes(g)) setSalesGrade(g);
+                }}
                 className={cn(
                   "shrink-0 px-5 py-3 text-[10px] md:text-[11px] font-black uppercase rounded-xl transition-all cursor-pointer",
                   selectedGrade === g
@@ -459,7 +585,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight hidden sm:inline">
               Vol 30d:{" "}
               <span className="text-slate-900 dark:text-white">
-                {card.sales30d || card.sales30dNum || "N/A"}
+                {card.sales30d || card.sales30dNum || "0"}
               </span>
             </span>
 
@@ -516,35 +642,32 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   <Activity size={14} /> Asset Specs
                 </h3>
 
-                <div className="space-y-4">
-                  {[
-                    { l: "Registry ID", v: card.id || "N/A" },
-                    { l: "Artist", v: card.artist || "Unknown" },
-                    { l: "Rarity", v: cardType },
-                    { l: "Card Number", v: card.number || "N/A" },
-                    { l: "Release", v: card.releaseDate || "N/A" },
-                    { l: "Selected Grade", v: selectedGrade },
-                    {
-                      l: "Grade Pop",
-                      v: selectedGrade === "Raw" ? "N/A" : selectedPopCount.toLocaleString(),
-                    },
-                  ].map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center border-b border-slate-50 dark:border-white/5 pb-3 last:border-0"
-                    >
-                      <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        {row.l}
-                      </span>
-                      <span className="text-[12px] md:text-[13px] font-black tabular-nums text-right">
-                        {row.v}
-                      </span>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-3">
+                  {metricCards.map((item, idx) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <div
+                        key={`${item.label}-${idx}`}
+                        className="rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/60 dark:bg-white/[0.03] p-4"
+                      >
+                        <div className="flex items-center gap-2 mb-2 text-[#00BA88]">
+                          <Icon size={13} />
+                          <span className="text-[9px] font-black uppercase tracking-[0.18em]">
+                            {item.label}
+                          </span>
+                        </div>
+
+                        <p className="text-[12px] md:text-[13px] font-black text-slate-900 dark:text-white leading-snug break-words">
+                          {item.value}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {(portfolioGrades.length > 0 || watchlistGrades.length > 0) && (
+              {/* {(portfolioGrades.length > 0 || watchlistGrades.length > 0) && (
                 <div className="rounded-3xl border border-[#00BA88]/20 bg-[#00BA88]/5 dark:bg-[#00BA88]/10 p-4 space-y-4">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#00BA88] mb-2">
@@ -563,7 +686,9 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] font-bold text-slate-400">Not in portfolio yet.</p>
+                      <p className="text-[11px] font-bold text-slate-400">
+                        Not in portfolio yet.
+                      </p>
                     )}
                   </div>
 
@@ -588,7 +713,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
 
               <div className="space-y-3">
                 <Button
@@ -612,7 +737,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   )}
                 </Button>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => {
                       setPortfolioGrade(selectedGrade);
@@ -639,7 +764,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                       </>
                     )}
                   </Button>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -650,26 +775,21 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
             </div>
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 md:p-8 shadow-sm space-y-8">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-5">
                 <div>
                   <p className="text-[10px] md:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 font-sora">
                     Current Value ({selectedGrade})
                   </p>
 
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex flex-wrap items-baseline gap-4">
                     <span className="text-4xl md:text-5xl font-black tabular-nums tracking-tighter">
                       {currentDisplayPrice}
                     </span>
+
                     <span className="text-[12px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg flex items-center">
                       <TrendingUp size={14} className="mr-1" /> {card.change7dNum || "0.0"}%
                     </span>
                   </div>
-
-                  {activeHistoricalSales.length === 0 && (
-                    <p className="text-[11px] text-slate-400 font-bold mt-3">
-                      No recent structured sales for {selectedGrade}; showing baseline estimate.
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl self-start sm:self-center">
@@ -713,13 +833,16 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                       strokeLinejoin="round"
                     />
 
-                    <path d={`${svgPath} L ${600 - 20} ${240 - 20} L 20 ${240 - 20} Z`} fill="url(#chartGrad)" />
+                    <path
+                      d={`${svgPath} L ${600 - 20} ${240 - 20} L 20 ${240 - 20} Z`}
+                      fill="url(#chartGrad)"
+                    />
                   </svg>
                 ) : (
                   <div className="z-10 flex flex-col items-center gap-2 opacity-50">
                     <BarChart3 size={28} className="text-slate-400" />
                     <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-                      Compiling Metric Stream
+                      No Price Stream
                     </span>
                   </div>
                 )}
@@ -730,6 +853,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   <span className="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wider">
                     Timeframe Low
                   </span>
+
                   <span className="text-[14px] md:text-[16px] font-black tabular-nums">
                     {chartStats.low}
                   </span>
@@ -739,6 +863,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   <span className="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wider">
                     Timeframe High
                   </span>
+
                   <span className="text-[14px] md:text-[16px] font-black tabular-nums">
                     {chartStats.high}
                   </span>
@@ -751,6 +876,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                 <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white font-sora">
                   PSA Population Data
                 </h3>
+
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   Total Pop:{" "}
                   {popData.total ? Number(popData.total).toLocaleString() : card.popTotal || "0"}
@@ -765,7 +891,11 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   return (
                     <button
                       key={grade}
-                      onClick={() => setSelectedGrade(`PSA ${grade}`)}
+                      onClick={() => {
+                        const gradeLabel = `PSA ${grade}`;
+                        setSelectedGrade(gradeLabel);
+                        if (SALES_GRADES.includes(gradeLabel)) setSalesGrade(gradeLabel);
+                      }}
                       className={cn(
                         "bg-slate-50/50 dark:bg-white/[0.03] border rounded-2xl p-4 text-center transition-all cursor-pointer",
                         isActive
@@ -776,6 +906,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                       <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase mb-1">
                         PSA {grade}
                       </p>
+
                       <p className="text-lg md:text-xl font-black tabular-nums">
                         {popCount.toLocaleString()}
                       </p>
@@ -785,20 +916,35 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
               </div>
             </div>
 
-            <Tabs defaultValue="sales" className="w-full">
-              <TabsList className="w-full justify-start h-12 bg-transparent border-b border-slate-200 dark:border-white/5 p-0 gap-8">
-                {["sales", "markets"].map((tab) => (
-                  <TabsTrigger
-                    key={tab}
-                    value={tab}
-                    className="text-[10px] md:text-[11px] font-black uppercase tracking-widest data-[state=active]:text-[#00BA88] border-b-2 border-transparent data-[state=active]:border-[#00BA88] rounded-none px-0 h-full bg-transparent shadow-none cursor-pointer"
-                  >
-                    {tab === "sales" ? `Recent Sales (${activeHistoricalSales.length})` : "Markets"}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <div className="w-full">
+              <div className="w-full flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-white/5 pb-3">
+                {SALES_GRADES.map((grade) => {
+                  const gradeNum = getGradeNumber(grade);
+                  const count = Array.isArray(salesByGrade?.[gradeNum])
+                    ? salesByGrade[gradeNum].length
+                    : 0;
 
-              <TabsContent value="sales" className="pt-6">
+                  return (
+                    <button
+                      key={grade}
+                      onClick={() => {
+                        setSalesGrade(grade);
+                        setSelectedGrade(grade);
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                        salesGrade === grade
+                          ? "bg-[#00BA88] text-white shadow-md"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-[#00BA88]"
+                      )}
+                    >
+                      {grade} Sales ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="pt-6">
                 <div className="border border-slate-100 dark:border-white/5 rounded-[1.5rem] overflow-hidden">
                   <div className="grid grid-cols-4 bg-slate-50/50 dark:bg-white/5 px-6 py-4 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span className="col-span-2">Transaction Details</span>
@@ -806,14 +952,14 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                     <span className="text-right">Price</span>
                   </div>
 
-                  {activeHistoricalSales.length === 0 ? (
+                  {salesTabData.length === 0 ? (
                     <div className="text-center py-10 text-slate-400 text-xs font-medium uppercase tracking-wider">
-                      No structured transactions logged for {selectedGrade}
+                      No structured transactions logged for {salesGrade}
                     </div>
                   ) : (
-                    activeHistoricalSales.slice(0, 15).map((sale: any, idx: number) => (
+                    salesTabData.map((sale: any, idx: number) => (
                       <a
-                        key={idx}
+                        key={`${sale.url || sale.title || "sale"}-${idx}`}
                         href={sale.url || "#"}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -821,8 +967,9 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                       >
                         <span className="col-span-2 pr-4">
                           <span className="text-slate-900 dark:text-white block line-clamp-1 group-hover:text-[#00BA88] transition-colors">
-                            {sale.title || `${cardName} ${selectedGrade}`}
+                            {sale.title || `${cardName} ${salesGrade}`}
                           </span>
+
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight flex items-center gap-1 mt-0.5">
                             <Globe size={10} className="text-[#00BA88]" />{" "}
                             {sale.gradeCompany || "PSA"} Verified Market
@@ -834,7 +981,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                         </span>
 
                         <span className="text-right font-black tabular-nums text-slate-900 dark:text-white flex items-center justify-end gap-1.5">
-                          ${sale.numericPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {formatMoney(sale.numericPrice)}
                           <ExternalLink
                             size={12}
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400"
@@ -844,107 +991,78 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                     ))
                   )}
                 </div>
-              </TabsContent>
-
-              <TabsContent value="markets" className="pt-6">
-                <div className="border border-slate-100 dark:border-white/5 rounded-[1.5rem] overflow-hidden">
-                  <div className="grid grid-cols-3 bg-slate-50/50 dark:bg-white/5 px-6 py-4 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <span>Marketplace Platform</span>
-                    <span>Status Indicator</span>
-                    <span className="text-right">Action</span>
-                  </div>
-
-                  {[
-                    {
-                      name: "eBay Live Integration",
-                      desc: "Transactions Aggregating Live",
-                      active: true,
-                      link: `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(`${cardName} ${cardSet}`)}`,
-                    },
-                    {
-                      name: "TCGplayer Marketplace",
-                      desc: card.setSymbol ? "API Sync Active" : "Alternative Feed Active",
-                      active: true,
-                      link: `https://www.tcgplayer.com/search/all/product?q=${encodeURIComponent(cardName)}`,
-                    },
-                    {
-                      name: "Cardmarket Global",
-                      desc: "Liquidity Buffers Syncing",
-                      active: false,
-                      link: "#",
-                    },
-                  ].map((mkt, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-3 px-6 py-4 text-[12px] md:text-[13px] font-bold border-t border-slate-50 dark:border-white/5 items-center"
-                    >
-                      <span className="flex items-center gap-2 text-slate-900 dark:text-white">
-                        <ShoppingBag size={14} className="text-[#00BA88]" /> {mkt.name}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] uppercase font-black tracking-tight",
-                          mkt.active ? "text-emerald-500" : "text-slate-400"
-                        )}
-                      >
-                        {mkt.desc}
-                      </span>
-                      <span className="text-right">
-                        <Button
-                          asChild={mkt.active}
-                          variant="ghost"
-                          disabled={!mkt.active}
-                          className="h-8 text-[10px] font-black uppercase px-3 rounded-xl cursor-pointer"
-                        >
-                          {mkt.active ? (
-                            <a href={mkt.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                              View Feed <ExternalLink size={10} />
-                            </a>
-                          ) : (
-                            <span>Locked</span>
-                          )}
-                        </Button>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </div>
 
           <div className={cn("lg:col-span-3 space-y-10 flex flex-col pb-15", columnClass)}>
             <div className="space-y-8 flex-1">
-              <h3 className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-[#00BA88] flex items-center gap-2 font-sora">
-                <Info size={14} /> Live Intel
-              </h3>
-
-              <div className="space-y-8">
-                {[
-                  {
-                    t: `Liquidity profiling confirms structural health score of ${card.liquidityScoreNum || "75.2"}/100.`,
-                    d: "Active tracking",
-                  },
-                  {
-                    t: `Total market cap valuation stabilized globally at ${card.marketCap || "N/A"}.`,
-                    d: "Index tracking",
-                  },
-                  {
-                    t: `30 day volume velocity tracking index flags ${card.sales30dNum || "0"} verified acquisitions.`,
-                    d: "Volume update",
-                  },
-                ].map((news, i) => (
-                  <div key={i} className="group">
-                    <p className="text-[13px] md:text-[14px] font-bold leading-relaxed mb-1.5 text-slate-700 dark:text-slate-300">
-                      {news.t}
-                    </p>
-                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                      {news.d}
-                    </p>
+              {sidebarAdLoading ? (
+                <div className="rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 animate-pulse">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-3 w-24 rounded-full bg-slate-200 dark:bg-slate-800" />
                   </div>
-                ))}
-              </div>
 
-              <div className="pt-10 border-t border-slate-100 dark:border-white/5">
+                  <div className="aspect-[16/10] rounded-2xl bg-slate-200 dark:bg-slate-800 mb-5" />
+
+                  <div className="h-6 w-3/4 rounded-full bg-slate-200 dark:bg-slate-800 mb-3" />
+                  <div className="h-3 w-1/2 rounded-full bg-slate-200 dark:bg-slate-800 mb-5" />
+
+                  <div className="space-y-2 mb-5">
+                    <div className="h-3 w-full rounded-full bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-3 w-5/6 rounded-full bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-3 w-2/3 rounded-full bg-slate-200 dark:bg-slate-800" />
+                  </div>
+
+                  <div className="h-9 w-32 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                </div>
+              ) : (
+                <div
+                  onClick={handleAdClick}
+                  className="rounded-[2rem] border border-[#00BA88]/30 bg-[#00BA88]/5 dark:bg-[#00BA88]/10 p-6 cursor-pointer hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#00BA88]/10 transition-all"
+                >
+                  <div className="flex items-center gap-2 text-[#00BA88] mb-5">
+                    <Megaphone size={16} />
+                    <span className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em]">
+                      Sponsored
+                    </span>
+                  </div>
+
+                  {activeAd.image_url || activeAd.imageUrl || activeAd.image ? (
+                    <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-white/50 dark:bg-white/5 mb-5">
+                      <img
+                        src={activeAd.image_url || activeAd.imageUrl || activeAd.image}
+                        alt={activeAd.title || "Advert"}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/10] rounded-2xl bg-white/70 dark:bg-white/5 border border-dashed border-[#00BA88]/30 flex items-center justify-center mb-5">
+                      <ImageIcon className="text-[#00BA88]" size={30} />
+                    </div>
+                  )}
+
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight mb-2">
+                    {activeAd.title}
+                  </h3>
+
+                  <p className="text-[11px] font-black uppercase tracking-widest text-[#00BA88] mb-3">
+                    {activeAd.subtitle || "Sponsored Placement"}
+                  </p>
+
+                  <p className="text-sm text-slate-500 dark:text-slate-300 font-semibold leading-relaxed mb-5">
+                    {activeAd.description}
+                  </p>
+
+                  <span className="inline-flex items-center gap-2 rounded-xl bg-[#00BA88] text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest">
+                    {activeAd.cta_label || activeAd.ctaLabel || activeAd.cta || "Learn More"}{" "}
+                    <ExternalLink size={12} />
+                  </span>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-slate-100 dark:border-white/5">
                 <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 font-sora">
                   More From This Set
                 </h3>
@@ -974,6 +1092,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                               className="w-full h-full object-contain filter drop-shadow-sm"
                             />
                           </div>
+
                           <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight line-clamp-1 mt-3 w-full">
                             {relatedCard.name || "Unknown Asset"}
                           </span>
@@ -996,6 +1115,7 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                 <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
                   Add to Portfolio
                 </h3>
+
                 <p className="text-xs text-slate-500 font-medium mt-1">
                   Choose the grade you own for this card.
                 </p>
@@ -1019,9 +1139,11 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   <h4 className="font-black text-slate-900 dark:text-white text-sm uppercase line-clamp-2">
                     {cardName}
                   </h4>
+
                   <p className="text-[11px] font-bold text-slate-400 uppercase mt-1 line-clamp-1">
                     {cardSet}
                   </p>
+
                   <p className="text-sm font-black text-[#00BA88] mt-2">
                     {currentDisplayPrice}
                   </p>

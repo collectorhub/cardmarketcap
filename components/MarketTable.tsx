@@ -228,15 +228,15 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
       {/* 2. TABLE CONTAINER */}
       <div className="rounded-xl md:rounded-[1.5rem] bg-white dark:bg-slate-900 overflow-hidden border border-slate-100 dark:border-slate-800">
         <div className="overflow-x-auto scrollbar-hide">
-          <table className="w-full text-left border-collapse min-w-[1100px] font-sans">
+          <table className="w-full text-left border-collapse min-w-[1180px] font-sans">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-950/20 text-[9px] md:text-xs uppercase font-black text-slate-400 tracking-widest border-b border-slate-100 dark:border-slate-800">
                 <th className="py-5 px-4 w-10 md:w-16 text-center">#</th>
                 <th className="py-5 px-4">Card</th>
-                <th className="py-5 px-4 w-[120px] md:w-auto">Set</th>
-                <th className="py-5 px-4 text-right">Price ({currentGrade.toUpperCase()})</th>
-                <th className="py-5 px-4 text-right">30D Sales Vol</th>
-                <th className="py-5 px-4 text-right whitespace-nowrap">90D Sales Vol</th>
+                <th className="py-5 px-4 w-[260px]">Set</th>
+                <th className="py-5 px-4 text-right w-[150px]">Price ({currentGrade.toUpperCase()})</th>
+                <th className="py-5 px-3 text-right w-[110px]">30D Sales</th>
+                <th className="py-5 px-3 text-right w-[110px]">90D Sales</th>
                 <th className="py-5 px-4 text-right">Market Cap</th>
                 <th className="py-5 px-4 text-right">Pop Report</th>
                 <th className="py-5 px-4 text-center">Action</th>
@@ -287,7 +287,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                       </div>
                     </td>
 
-                    <td className="py-2 md:py-7 px-4 text-slate-500 dark:text-slate-400 font-bold text-[12px] md:text-xs uppercase truncate max-w-[80px] md:max-w-[180px]">
+                    <td className="py-2 md:py-7 px-4 text-slate-500 dark:text-slate-400 font-bold text-[12px] md:text-xs uppercase leading-snug whitespace-normal break-words max-w-[260px]">
                       {card.set || "—"}
                     </td>
 
