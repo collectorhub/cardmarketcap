@@ -125,7 +125,9 @@ export default function Navbar() {
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const desktopInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
 
@@ -145,6 +147,9 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isMac =
+    typeof navigator !== "undefined" &&
+    navigator.platform.toLowerCase().includes("mac");
 
   useEffect(() => {
     setMounted(true);
@@ -220,10 +225,7 @@ export default function Navbar() {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
 
-      if (
-        desktopSearchRef.current &&
-        desktopSearchRef.current.contains(target)
-      ) {
+      if (desktopSearchRef.current && desktopSearchRef.current.contains(target)) {
         return;
       }
 
@@ -240,20 +242,40 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleShortcut = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toLowerCase().includes("mac");
-      const pressed = isMac ? e.metaKey && e.key === "k" : e.ctrlKey && e.key === "k";
+      const target = e.target as HTMLElement;
+
+      const isTyping =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      const mac = navigator.platform.toLowerCase().includes("mac");
+      const pressed = mac
+        ? e.metaKey && e.key.toLowerCase() === "k"
+        : e.ctrlKey && e.key.toLowerCase() === "k";
 
       if (pressed) {
         e.preventDefault();
+
         setIsSearching(true);
-        setSearchOpen(true);
+        setSearchOpen(searchQuery.trim().length >= 2);
 
         setTimeout(() => {
-          searchInputRef.current?.focus();
+          if (window.innerWidth >= 768) {
+            desktopInputRef.current?.focus();
+          } else {
+            searchInputRef.current?.focus();
+          }
         }, 50);
+
+        return;
       }
 
       if (e.key === "Escape") {
+        if (isTyping) {
+          (target as HTMLInputElement).blur();
+        }
+
         setSearchOpen(false);
         setIsSearching(false);
       }
@@ -261,7 +283,7 @@ export default function Navbar() {
 
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, []);
+  }, [searchQuery]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_token");
@@ -417,18 +439,14 @@ export default function Navbar() {
         <Icon
           className={cn(
             "h-5 w-5 transition-colors",
-            isActive
-              ? "text-[#00BA88]"
-              : "text-slate-500 dark:text-slate-400"
+            isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
           )}
         />
 
         <span
           className={cn(
             "text-[10px] font-bold transition-colors",
-            isActive
-              ? "text-[#00BA88]"
-              : "text-slate-500 dark:text-slate-400"
+            isActive ? "text-[#00BA88]" : "text-slate-500 dark:text-slate-400"
           )}
         >
           {label}
@@ -448,10 +466,7 @@ export default function Navbar() {
     }
 
     return (
-      <Link
-        href={href || "/"}
-        className="flex-1 h-full active:scale-90 transition-transform"
-      >
+      <Link href={href || "/"} className="flex-1 h-full active:scale-90 transition-transform">
         {content}
       </Link>
     );
@@ -552,11 +567,7 @@ export default function Navbar() {
                       <motion.div
                         layoutId="nav-active"
                         className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#00BA88] rounded-full"
-                        transition={{
-                          type: "spring",
-                          stiffness: 380,
-                          damping: 30,
-                        }}
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
                   </Link>
@@ -580,11 +591,7 @@ export default function Navbar() {
                     <motion.div
                       layoutId="nav-active"
                       className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#00BA88] rounded-full"
-                      transition={{
-                        type: "spring",
-                        stiffness: 380,
-                        damping: 30,
-                      }}
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                 </Link>
@@ -598,6 +605,7 @@ export default function Navbar() {
 
               <form onSubmit={submitSearch}>
                 <input
+                  ref={desktopInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -615,7 +623,13 @@ export default function Navbar() {
                     <Loader2 className="h-4 w-4 animate-spin text-[#00BA88]" />
                   ) : (
                     <kbd className="flex h-5 items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 font-mono text-[10px] font-medium text-slate-400">
-                      <Command className="h-2.5 w-2.5" /> K
+                      {isMac ? (
+                        <>
+                          <Command className="h-2.5 w-2.5" /> K
+                        </>
+                      ) : (
+                        <>Ctrl K</>
+                      )}
                     </kbd>
                   )}
                 </div>
@@ -750,13 +764,16 @@ export default function Navbar() {
               className="flex items-center w-full h-full"
             >
               <MobileTab href="/" icon={Home} label="Home" />
-
               <MobileTab href="/portfolio" icon={Briefcase} label="Portfolio" />
 
               <MobileTab
                 onClick={() => {
                   setIsSearching(true);
                   setSearchOpen(false);
+
+                  setTimeout(() => {
+                    searchInputRef.current?.focus();
+                  }, 50);
                 }}
                 icon={Search}
                 label="Search"
@@ -770,11 +787,7 @@ export default function Navbar() {
               ) : (
                 <>
                   {isAdmin ? (
-                    <MobileTab
-                      href="/admin"
-                      icon={ShieldCheck}
-                      label="Admin"
-                    />
+                    <MobileTab href="/admin" icon={ShieldCheck} label="Admin" />
                   ) : (
                     <MobileTab href="/sets" icon={Layers} label="Sets" />
                   )}

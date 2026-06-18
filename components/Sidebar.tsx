@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Star,
   Search,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from "@/context/MobileMenuContext";
@@ -91,6 +92,7 @@ const adminDesktopNavigation = [
     items: [
       { name: "Card Catalogue", href: "/admin/catalogue", icon: PackageSearch },
       { name: "Index Builder", href: "/admin/indices", icon: BarChart3 },
+      { name: "Advert Manager", href: "/admin/adverts", icon: Megaphone },
       { name: "PSA Pop Manager", href: "/admin/psa-pop-manager", icon: Activity },
       { name: "Pricing & Sales", href: "/admin/pricing-sales", icon: Coins },
       { name: "Overrides & Mappings", href: "/admin/overrides-mappings", icon: Settings },
@@ -506,8 +508,8 @@ export default function Sidebar() {
                 Explore
               </p>
 
-              <MobileLink href="/sets" label="Card Sets" icon={PackageSearch} />
-              <MobileLink href="/card-search" label="Card Search" icon={Search} />
+              {/* <MobileLink href="/sets" label="Card Sets" icon={PackageSearch} />
+              <MobileLink href="/card-search" label="Card Search" icon={Search} /> */}
             </div>
           )}
 

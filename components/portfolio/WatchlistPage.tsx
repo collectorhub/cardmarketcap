@@ -131,6 +131,7 @@ export default function WatchlistPage({ data }: { data: any }) {
 
       <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <WatchlistTable
+          userId={activeUserId || 0}
           cards={cards}
           totalRecords={totalCards}
           totalPages={1}

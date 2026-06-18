@@ -141,7 +141,7 @@ function StatCard({
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-1.5 md:gap-3 min-w-0 w-full">
-            <div
+            {/* <div
               className={cn(
                 "hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300",
                 isAd
@@ -157,7 +157,7 @@ function StatCard({
                     : "text-slate-500 dark:text-slate-400 group-hover:text-[#00BA88]"
                 )}
               />
-            </div>
+            </div> */}
 
             <div className="flex flex-col min-w-0 w-full">
               {!isAd && (

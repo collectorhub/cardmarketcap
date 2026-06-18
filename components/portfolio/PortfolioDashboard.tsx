@@ -16,15 +16,33 @@ import {
   DollarSign,
   BarChart3,
   Activity,
+  X,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AllocationCard from "../AllocationCard";
 import { useRouter } from "next/navigation";
 import AddCardModal from "./AddCardModal";
+import { addCardToPortfolio } from "@/lib/queries/portfolio";
 
 type PerformanceRange = "30D" | "90D" | "All";
 
 const PERFORMANCE_TABS: PerformanceRange[] = ["30D", "90D", "All"];
+
+const ALL_GRADES = [
+  "PSA 10",
+  "PSA 9",
+  "PSA 8",
+  "PSA 7",
+  "PSA 6",
+  "PSA 5",
+  "PSA 4",
+  "PSA 3",
+  "PSA 2",
+  "PSA 1",
+  "Raw",
+];
 
 const ALLOCATION = [
   { name: "PSA 10", value: 45.2, color: "#7c3aed" },
@@ -79,16 +97,52 @@ function activityColor(type: string) {
   return "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400";
 }
 
+function normalizeGrade(grade: any) {
+  return String(grade || "Raw").trim();
+}
+
+function sameGrade(a: any, b: any) {
+  return normalizeGrade(a).toLowerCase() === normalizeGrade(b).toLowerCase();
+}
+
+function getPortfolioCardId(card: any) {
+  return (
+    card?.card_id ||
+    card?.cardId ||
+    card?.source_id ||
+    card?.sourceId ||
+    card?.frontend_card_id ||
+    card?.cardFrontendId ||
+    card?.id ||
+    null
+  );
+}
+
+function getEntryId(card: any) {
+  return card?.entryId || card?.entry_id || card?.portfolio_id || card?.portfolioId || card?.id;
+}
+
+function getCardImage(card: any) {
+  return (
+    card?.imageUrl ||
+    card?.image_url ||
+    card?.image ||
+    "https://pokecollectorhub.com/assets/placeholder.png"
+  );
+}
+
 const RowActions = ({
   card,
   gameType,
   onViewDetails,
   onRemove,
+  onAddGrade,
 }: {
   card?: any;
   gameType?: string;
   onViewDetails?: (card?: any) => void;
   onRemove?: (card?: any) => void;
+  onAddGrade?: (card?: any) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,6 +168,10 @@ const RowActions = ({
       router.push(`/card/${card?.card_id || card?.id}?game=${gameType || "pokemon"}`);
     }
 
+    if (actionLabel === "Add Grade") {
+      if (onAddGrade) return onAddGrade(card);
+    }
+
     if (actionLabel === "Remove") {
       if (onRemove) return onRemove(card);
       console.log(`Remove card: ${card?.entryId || card?.id}`);
@@ -128,11 +186,12 @@ const RowActions = ({
             initial={{ opacity: 0, scale: 0.95, x: 10 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95, x: 10 }}
-            className="absolute right-full mr-2 z-50 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden"
+            className="absolute right-full mr-2 z-50 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden"
           >
             <div className="p-1.5">
               {[
                 { label: "View Details", icon: Eye },
+                { label: "Add Grade", icon: Plus },
                 { label: "Remove", icon: Trash2, variant: "danger" },
               ].map((action, idx) => (
                 <button
@@ -172,32 +231,234 @@ const RowActions = ({
   );
 };
 
+const AddGradeModal = ({
+  userId,
+  card,
+  onClose,
+  onAdded,
+}: {
+  userId: number;
+  card: any;
+  onClose: () => void;
+  onAdded: (card: any, grade: string) => void;
+}) => {
+  const [selectedGrade, setSelectedGrade] = useState(normalizeGrade(card?.grade || "PSA 10"));
+  const [isAdding, setIsAdding] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const cardId = getPortfolioCardId(card);
+  const cardImage = getCardImage(card);
+
+  const handleSubmit = async () => {
+    setMessage("");
+    setSuccess(false);
+
+    if (!userId) {
+      setMessage("Please log in to add this grade.");
+      return;
+    }
+
+    if (!cardId) {
+      setMessage("Missing card information.");
+      return;
+    }
+
+    try {
+      setIsAdding(true);
+
+      const result = await addCardToPortfolio({
+        user_id: Number(userId),
+        card_id: String(cardId),
+        grade: selectedGrade,
+      });
+
+      if (result?.success) {
+        setSuccess(true);
+        setMessage(`${selectedGrade} added to your portfolio.`);
+        onAdded(card, selectedGrade);
+
+        setTimeout(() => {
+          onClose();
+        }, 700);
+      } else {
+        setMessage(result?.message || "Could not add this grade.");
+      }
+    } catch (error) {
+      console.error("Failed to add portfolio grade:", error);
+      setMessage("Something went wrong while adding this grade.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.18 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+              Add Graded Card
+            </h3>
+
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Choose another grade of this card to add to your portfolio.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition"
+          >
+            <X size={18} className="text-slate-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-28 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
+              <img src={cardImage} alt={card?.name || "Card"} className="w-full h-full object-contain p-2" />
+            </div>
+
+            <div className="min-w-0">
+              <h4 className="font-black text-slate-900 dark:text-white text-sm uppercase line-clamp-2">
+                {card?.name || "Unknown Card"}
+              </h4>
+
+              <p className="text-[11px] font-bold text-slate-400 uppercase mt-1 line-clamp-1">
+                {card?.setName || card?.set || "Unknown Set"}
+              </p>
+
+              <p className="text-sm font-black text-[#00BA88] mt-2">
+                Current: {normalizeGrade(card?.grade || "Raw")}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              Select Grade
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              {ALL_GRADES.map((grade) => {
+                const isCurrentGrade = sameGrade(grade, card?.grade);
+
+                return (
+                  <button
+                    key={grade}
+                    onClick={() => setSelectedGrade(grade)}
+                    className={cn(
+                      "relative py-3 rounded-xl border text-[11px] font-black uppercase transition-all",
+                      selectedGrade === grade
+                        ? "bg-[#00BA88] border-[#00BA88] text-white shadow-lg shadow-[#00BA88]/20"
+                        : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-[#00BA88]/50",
+                      isCurrentGrade && selectedGrade !== grade
+                        ? "bg-slate-50 dark:bg-white/5"
+                        : ""
+                    )}
+                  >
+                    {grade}
+
+                    {isCurrentGrade && (
+                      <span className="block text-[7px] mt-1 opacity-70">Current</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {message && (
+            <p
+              className={cn(
+                "text-xs font-bold text-center",
+                success ? "text-emerald-500" : "text-slate-500"
+              )}
+            >
+              {message}
+            </p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={isAdding}
+            className="w-full h-12 rounded-2xl bg-[#00BA88] hover:bg-[#00a377] text-white font-black uppercase tracking-widest text-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isAdding ? (
+              <>
+                <Loader2 size={15} className="mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 size={15} className="mr-2" />
+                Added
+              </>
+            ) : (
+              <>
+                <Plus size={15} className="mr-2" />
+                Add {selectedGrade}
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export default function PortfolioDashboard({ data }: { data: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PerformanceRange>("30D");
   const [currentPage, setCurrentPage] = useState(1);
+  const [portfolioCards, setPortfolioCards] = useState<any[]>([]);
+  const [gradeModalCard, setGradeModalCard] = useState<any>(null);
   const router = useRouter();
 
-  const {
-    userId = data?.userId || data?.user?.id || data?.id || data?.user_id || 0,
-    stats = { totalValue: 0, totalCards: 0, totalSets: 0 },
-    performance = {
-      change30D: 0,
-      change30DPct: 0,
-      change90D: 0,
-      change90DPct: 0,
-      changeAll: 0,
-      changeAllPct: 0,
-      allTimeHigh: 0,
-      allTimeLow: 0,
-    },
-    cards = [],
-    allocation = [],
-    activities = [],
-  } = data || {};
+  const rawCards = Array.isArray(data?.cards) ? data.cards : [];
+
+  useEffect(() => {
+    setPortfolioCards(rawCards);
+  }, [data]);
+
+  const cards = portfolioCards;
+
+  const userId =
+    data?.userId || data?.user?.id || data?.id || data?.user_id || 0;
+
+  const stats = data?.stats || { totalValue: 0, totalCards: 0, totalSets: 0 };
+
+  const performance = data?.performance || {
+    change30D: 0,
+    change30DPct: 0,
+    change90D: 0,
+    change90DPct: 0,
+    changeAll: 0,
+    changeAllPct: 0,
+    allTimeHigh: 0,
+    allTimeLow: 0,
+  };
+
+  const allocation = Array.isArray(data?.allocation) ? data.allocation : [];
+  const activities = Array.isArray(data?.activities) ? data.activities : [];
 
   const cardsPerPage = 6;
   const totalPages = Math.max(1, Math.ceil(cards.length / cardsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const paginatedCards = useMemo(() => {
     return cards.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
@@ -320,6 +581,47 @@ export default function PortfolioDashboard({ data }: { data: any }) {
     };
   }, [activeTab, stats.totalValue, performance]);
 
+  const handleAddGradeToLocalState = (baseCard: any, grade: string) => {
+    const baseCardId = String(getPortfolioCardId(baseCard) || "");
+
+    setPortfolioCards((prev) => {
+      const existingIndex = prev.findIndex((item) => {
+        const itemCardId = String(getPortfolioCardId(item) || "");
+        return itemCardId === baseCardId && sameGrade(item.grade, grade);
+      });
+
+      if (existingIndex >= 0) {
+        return prev.map((item, index) => {
+          if (index !== existingIndex) return item;
+
+          const nextQuantity = Number(item.quantity || 1) + 1;
+          const itemValue = Number(item.value || baseCard.value || 0);
+
+          return {
+            ...item,
+            quantity: nextQuantity,
+            lineValue: itemValue * nextQuantity,
+          };
+        });
+      }
+
+      const nextCard = {
+        ...baseCard,
+        id: `${getEntryId(baseCard) || baseCardId}-${grade}-${Date.now()}`,
+        entryId: `${getEntryId(baseCard) || baseCardId}-${grade}-${Date.now()}`,
+        grade,
+        quantity: 1,
+        lineValue: Number(baseCard.value || 0),
+      };
+
+      return [nextCard, ...prev];
+    });
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 700);
+  };
+
   const isEmpty = cards.length === 0;
 
   if (isEmpty) {
@@ -360,6 +662,17 @@ export default function PortfolioDashboard({ data }: { data: any }) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+      <AnimatePresence>
+        {gradeModalCard && (
+          <AddGradeModal
+            userId={Number(userId || 0)}
+            card={gradeModalCard}
+            onClose={() => setGradeModalCard(null)}
+            onAdded={handleAddGradeToLocalState}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group/card">
@@ -587,7 +900,6 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                   {paginatedCards.map((card: any, i: number) => {
                     const lineValue = Number(card.lineValue || Number(card.value || 0) * Number(card.quantity || 1));
                     const isPositive = Number(card.change || 0) >= 0;
-
                     const rawPath = card.canonical_path || card.url || "";
 
                     const handleNavigation = () => {
@@ -601,15 +913,15 @@ export default function PortfolioDashboard({ data }: { data: any }) {
 
                     return (
                       <tr
-                        key={card.entryId || card.id || `${card.card_id}-${i}`}
+                        key={card.entryId || card.id || `${card.card_id}-${card.grade}-${i}`}
                         onClick={handleNavigation}
                         className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all"
                       >
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <div className="relative w-8 h-11 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
-                              {card.imageUrl ? (
-                                <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+                              {getCardImage(card) ? (
+                                <img src={getCardImage(card)} alt={card.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">
                                   NO IMG
@@ -687,6 +999,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                             card={card}
                             gameType={card.game || ""}
                             onViewDetails={handleNavigation}
+                            onAddGrade={() => setGradeModalCard(card)}
                             onRemove={() => console.log("Remove triggered for asset id:", card.entryId || card.id)}
                           />
                         </td>

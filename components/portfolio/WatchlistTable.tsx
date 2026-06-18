@@ -11,9 +11,28 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  X,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { addCardToWatchlist } from "@/lib/queries/watchlist";
+
+const ALL_GRADES = [
+  "PSA 10",
+  "PSA 9",
+  "PSA 8",
+  "PSA 7",
+  "PSA 6",
+  "PSA 5",
+  "PSA 4",
+  "PSA 3",
+  "PSA 2",
+  "PSA 1",
+  "Raw",
+];
 
 function money(value: any) {
   return `$${Number(value || 0).toLocaleString(undefined, {
@@ -35,6 +54,32 @@ function formatDate(dateString?: string | null) {
   });
 }
 
+function normalizeGrade(grade: any) {
+  return String(grade || "Raw").trim();
+}
+
+function getWatchlistCardId(card: any) {
+  return (
+    card?.card_id ||
+    card?.cardId ||
+    card?.source_id ||
+    card?.sourceId ||
+    card?.frontend_card_id ||
+    card?.cardFrontendId ||
+    card?.id ||
+    null
+  );
+}
+
+function getCardImage(card: any) {
+  return (
+    card?.imageUrl ||
+    card?.image_url ||
+    card?.image ||
+    "https://pokecollectorhub.com/assets/placeholder.png"
+  );
+}
+
 function buildSparkPath(change: number) {
   if (change > 0) {
     return "M0,32 Q20,26 40,28 T70,12 T100,6";
@@ -47,13 +92,7 @@ function buildSparkPath(change: number) {
   return "M0,22 Q25,18 50,22 T75,20 T100,22";
 }
 
-const Sparkline = ({
-  change,
-  index,
-}: {
-  change: number;
-  index: number;
-}) => {
+const Sparkline = ({ change, index }: { change: number; index: number }) => {
   const isUp = change >= 0;
   const color = isUp ? "#10b981" : "#ef4444";
   const path = buildSparkPath(change);
@@ -62,11 +101,7 @@ const Sparkline = ({
 
   return (
     <div className="h-10 w-full max-w-[120px] flex items-center">
-      <svg
-        viewBox="0 0 100 40"
-        preserveAspectRatio="none"
-        className="w-full h-full overflow-visible"
-      >
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
         <defs>
           <linearGradient id={`watch-gradient-${index}`} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -101,11 +136,198 @@ const Sparkline = ({
   );
 };
 
+const AddGradeModal = ({
+  userId,
+  card,
+  onClose,
+}: {
+  userId: number;
+  card: any;
+  onClose: () => void;
+}) => {
+  const [selectedGrade, setSelectedGrade] = useState(normalizeGrade(card?.grade || "PSA 10"));
+  const [isAdding, setIsAdding] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const cardId = getWatchlistCardId(card);
+  const cardImage = getCardImage(card);
+
+  const handleSubmit = async () => {
+    setMessage("");
+    setSuccess(false);
+
+    if (!userId) {
+      setMessage("Please log in to add this grade.");
+      return;
+    }
+
+    if (!cardId) {
+      setMessage("Missing card information.");
+      return;
+    }
+
+    try {
+      setIsAdding(true);
+
+      const result = await addCardToWatchlist({
+        user_id: Number(userId),
+        card_id: String(cardId),
+        grade: selectedGrade,
+      });
+
+      if (result?.success) {
+        setSuccess(true);
+        setMessage(`${selectedGrade} added to your watchlist.`);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } else {
+        setMessage(result?.message || "Could not add this grade.");
+      }
+    } catch (error) {
+      console.error("Failed to add watchlist grade:", error);
+      setMessage("Something went wrong while adding this grade.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.18 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+              Add Watchlist Grade
+            </h3>
+
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Choose another grade of this card to track.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition"
+          >
+            <X size={18} className="text-slate-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-28 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
+              <img src={cardImage} alt={card?.name || "Card"} className="w-full h-full object-contain p-2" />
+            </div>
+
+            <div className="min-w-0">
+              <h4 className="font-black text-slate-900 dark:text-white text-sm uppercase line-clamp-2">
+                {card?.name || "Unknown Card"}
+              </h4>
+
+              <p className="text-[11px] font-bold text-slate-400 uppercase mt-1 line-clamp-1">
+                {card?.setName || card?.set || "Unknown Set"}
+              </p>
+
+              <p className="text-sm font-black text-[#00BA88] mt-2">
+                Current: {normalizeGrade(card?.grade || "Raw")}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              Select Grade
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              {ALL_GRADES.map((grade) => {
+                const isCurrentGrade =
+                  normalizeGrade(grade).toLowerCase() === normalizeGrade(card?.grade).toLowerCase();
+
+                return (
+                  <button
+                    key={grade}
+                    onClick={() => setSelectedGrade(grade)}
+                    className={cn(
+                      "relative py-3 rounded-xl border text-[11px] font-black uppercase transition-all cursor-pointer",
+                      selectedGrade === grade
+                        ? "bg-[#00BA88] border-[#00BA88] text-white shadow-lg shadow-[#00BA88]/20"
+                        : "border-slate-200 dark:border-white/10 text-slate-500 hover:border-[#00BA88]/50",
+                      isCurrentGrade && selectedGrade !== grade ? "bg-slate-50 dark:bg-white/5" : ""
+                    )}
+                  >
+                    {grade}
+
+                    {isCurrentGrade && (
+                      <span className="block text-[7px] mt-1 opacity-70">
+                        Current
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {message && (
+            <p
+              className={cn(
+                "text-xs font-bold text-center",
+                success ? "text-emerald-500" : "text-slate-500"
+              )}
+            >
+              {message}
+            </p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={isAdding}
+            className="w-full h-12 rounded-2xl bg-[#00BA88] hover:bg-[#00a377] text-white font-black uppercase tracking-widest text-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isAdding ? (
+              <>
+                <Loader2 size={15} className="mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : success ? (
+              <>
+                <CheckCircle2 size={15} className="mr-2" />
+                Added
+              </>
+            ) : (
+              <>
+                <Plus size={15} className="mr-2" />
+                Add {selectedGrade}
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const RowActions = ({
   onViewDetails,
+  onAddGrade,
   onRemove,
 }: {
   onViewDetails: () => void;
+  onAddGrade: () => void;
   onRemove?: () => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -124,6 +346,7 @@ const RowActions = ({
 
   const actions = [
     { label: "View Details", icon: Eye, action: onViewDetails },
+    { label: "Add Grade", icon: Plus, action: onAddGrade },
     { label: "Remove", icon: Trash2, variant: "danger", action: onRemove },
   ];
 
@@ -181,11 +404,13 @@ const RowActions = ({
 };
 
 export default function WatchlistTable({
+  userId = 0,
   cards = [],
   totalPages = 1,
   currentPage = 1,
   totalRecords = 0,
 }: {
+  userId?: number;
   cards: any[];
   totalPages?: number;
   currentPage?: number;
@@ -193,6 +418,7 @@ export default function WatchlistTable({
 }) {
   const router = useRouter();
   const [page, setPage] = useState(currentPage);
+  const [gradeModalCard, setGradeModalCard] = useState<any>(null);
 
   const pageSize = 8;
   const computedTotalPages = Math.max(1, Math.ceil(cards.length / pageSize));
@@ -228,6 +454,16 @@ export default function WatchlistTable({
 
   return (
     <div className="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+      <AnimatePresence>
+        {gradeModalCard && (
+          <AddGradeModal
+            userId={Number(userId || 0)}
+            card={gradeModalCard}
+            onClose={() => setGradeModalCard(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="px-4 md:px-6 py-4 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
         <div className="lg:hidden">
           <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
@@ -259,20 +495,8 @@ export default function WatchlistTable({
               disabled
             >
               {label}
-              <svg
-                width="10"
-                height="6"
-                viewBox="0 0 10 6"
-                fill="none"
-                className="text-slate-400 dark:text-slate-600 shrink-0"
-              >
-                <path
-                  d="M1 1L5 5L9 1"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-slate-400 dark:text-slate-600 shrink-0">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           ))}
@@ -314,19 +538,15 @@ export default function WatchlistTable({
 
               return (
                 <tr
-                  key={card.watchlist_id || card.id || `${card.card_id}-${i}`}
+                  key={card.watchlist_id || card.id || `${card.card_id}-${card.grade}-${i}`}
                   onClick={handleNavigation}
                   className="group hover:bg-slate-50/50 dark:hover:bg-slate-950/50 transition-all cursor-pointer"
                 >
                   <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-11 md:w-9 md:h-12 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden">
-                        {card.imageUrl ? (
-                          <img
-                            src={card.imageUrl}
-                            alt={card.name || "Card"}
-                            className="w-full h-full object-cover"
-                          />
+                        {getCardImage(card) ? (
+                          <img src={getCardImage(card)} alt={card.name || "Card"} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[8px] text-slate-400 font-bold">
                             NO IMG
@@ -365,11 +585,7 @@ export default function WatchlistTable({
                         isUp30 ? "text-emerald-500" : "text-red-500"
                       )}
                     >
-                      {isUp30 ? (
-                        <TrendingUp size={10} strokeWidth={3} />
-                      ) : (
-                        <TrendingDown size={10} strokeWidth={3} />
-                      )}
+                      {isUp30 ? <TrendingUp size={10} strokeWidth={3} /> : <TrendingDown size={10} strokeWidth={3} />}
                       {isUp30 ? "+" : ""}
                       {change30.toFixed(2)}%
                     </p>
@@ -401,12 +617,11 @@ export default function WatchlistTable({
                     </button>
                   </td>
 
-                  <td className="px-4 md:px-6 py-4 text-right">
+                  <td className="px-4 md:px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <RowActions
                       onViewDetails={handleNavigation}
-                      onRemove={() =>
-                        console.log("Remove triggered for item id:", card.watchlist_id || card.id)
-                      }
+                      onAddGrade={() => setGradeModalCard(card)}
+                      onRemove={() => console.log("Remove triggered for item id:", card.watchlist_id || card.id)}
                     />
                   </td>
                 </tr>
