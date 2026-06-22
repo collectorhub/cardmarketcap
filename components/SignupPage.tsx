@@ -53,14 +53,16 @@ function SignupPageFunc() {
   };
 
   const handleSocialLogin = async (provider: string) => {
-    // window.location.origin dynamically handles localhost, vercel, or cardmarketcap.io
-    const callbackUrl = `${window.location.origin}/api/auth/callback/${provider}`;
-    
+    const callbackUrl =
+      provider === "apple"
+        ? "https://collectorhub.vercel.app/api/auth/callback/apple"
+        : `${window.location.origin}/api/auth/callback/${provider}`;
+
     let rootUrl = "";
     let options: Record<string, string> = {};
 
     switch (provider) {
-      case 'google':
+      case "google":
         rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
         options = {
           redirect_uri: callbackUrl,
@@ -68,15 +70,16 @@ function SignupPageFunc() {
           access_type: "offline",
           response_type: "code",
           prompt: "consent",
-          scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+          scope:
+            "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
           state: provider,
         };
         break;
 
-      case 'discord':
+      case "discord":
         rootUrl = "https://discord.com/api/oauth2/authorize";
         options = {
-          client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!, // Add this to your .env
+          client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
           redirect_uri: callbackUrl,
           response_type: "code",
           scope: "identify email",
@@ -84,36 +87,49 @@ function SignupPageFunc() {
         };
         break;
 
-      case 'twitter':
+      case "twitter":
         rootUrl = "https://twitter.com/i/oauth2/authorize";
 
-        // Generate a proper PKCE code_verifier (43-128 chars, URL-safe)
         const array = new Uint8Array(32);
         crypto.getRandomValues(array);
         const verifier = btoa(String.fromCharCode(...array))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=/g, '');
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
 
-        // Generate code_challenge = BASE64URL(SHA-256(verifier))
         const encoder = new TextEncoder();
         const data = encoder.encode(verifier);
-        const digest = await crypto.subtle.digest('SHA-256', data);
+        const digest = await crypto.subtle.digest("SHA-256", data);
         const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=/g, '');
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
 
-        Cookies.set('twitter_code_verifier', verifier, { expires: 1, path: '/' });
+        Cookies.set("twitter_code_verifier", verifier, {
+          expires: 1,
+          path: "/",
+        });
 
         options = {
           response_type: "code",
           client_id: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!,
           redirect_uri: callbackUrl,
-          scope: "users.read tweet.read",  // ⚠️ remove email.read — not a valid Twitter scope
+          scope: "users.read tweet.read",
           state: provider,
-          code_challenge: challenge,        // hashed challenge, not the verifier
+          code_challenge: challenge,
           code_challenge_method: "S256",
+        };
+        break;
+
+      case "apple":
+        rootUrl = "https://appleid.apple.com/auth/authorize";
+        options = {
+          client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!,
+          redirect_uri: callbackUrl,
+          response_type: "code id_token",
+          response_mode: "form_post",
+          scope: "name email",
+          state: provider,
         };
         break;
     }
