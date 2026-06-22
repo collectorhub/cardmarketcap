@@ -85,11 +85,11 @@ async function handleOAuthLogic(
       const responseUrl = new URL('/auth/success', origin);
       responseUrl.searchParams.set('token', result.token);
       responseUrl.searchParams.set('user', JSON.stringify(result.user));
-      return NextResponse.redirect(responseUrl);
+      return NextResponse.redirect(responseUrl, 303);
     } else {
       const signupUrl = new URL('/sign-up', origin);
       signupUrl.searchParams.set('error', result.message || 'auth_failed');
-      return NextResponse.redirect(signupUrl);
+      return NextResponse.redirect(signupUrl, 303);
     }
   } catch (error) {
     console.error("Auth Fetch Error:", error);
