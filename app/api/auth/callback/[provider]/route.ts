@@ -21,20 +21,32 @@ export async function POST(
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider } = await params;
-  
-  // Apple sends data as form-urlencoded in a POST body
+
   const formData = await request.formData();
-  const code = formData.get('code') as string;
-  const user = formData.get('user') as string; // Apple sends name/email here ONCE
+
+  const code = formData.get("code") as string;
+  const idToken = formData.get("id_token") as string;
+  const user = formData.get("user") as string;
 
   const requestUrl = new URL(request.url);
-  
-  // We pass the 'user' data to PHP as well so it can create the account
-  return handleOAuthLogic(code, provider, requestUrl.origin, user);
+
+  return handleOAuthLogic(
+    code,
+    provider,
+    requestUrl.origin,
+    user,
+    idToken
+  );
 }
 
 // SHARED LOGIC
-async function handleOAuthLogic(code: string | null, provider: string, origin: string, appleUser?: string) {
+async function handleOAuthLogic(
+  code: string | null,
+  provider: string,
+  origin: string,
+  appleUser?: string,
+  appleIdToken?: string
+) {
   if (!code) {
     return NextResponse.redirect(new URL('/sign-in?error=no_code', origin));
   }
@@ -49,12 +61,13 @@ async function handleOAuthLogic(code: string | null, provider: string, origin: s
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth_handler.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        code, 
-        provider, 
+      body: JSON.stringify({
+        code,
+        provider,
         redirect_uri,
-        code_verifier: provider === 'twitter' ? twitterVerifier : undefined, // Send verifier if provider is X
-        apple_user: appleUser 
+        code_verifier: provider === "twitter" ? twitterVerifier : undefined,
+        apple_user: appleUser,
+        apple_id_token: appleIdToken,
       }),
     });
 

@@ -152,8 +152,6 @@ export default async function Page({
         <Newsletter />
       </div>
 
-      <Footer />
-
       <MarketTicker 
         totalCards={globalTotalCount} 
         psa10Pop={psa10Value}

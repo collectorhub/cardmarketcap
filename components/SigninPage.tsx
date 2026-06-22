@@ -90,6 +90,18 @@ function SignInPageContent() {
         code_challenge_method: "S256",
       };
       break;
+
+    case "apple":
+      rootUrl = "https://appleid.apple.com/auth/authorize";
+      options = {
+        client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID!,
+        redirect_uri: callbackUrl,
+        response_type: "code id_token",
+        response_mode: "form_post",
+        scope: "name email",
+        state: provider,
+      };
+      break;
   }
 
   if (rootUrl) {
