@@ -310,39 +310,14 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
 
   const metricCards = [
     {
-      label: "Full Name",
-      value: cardName,
-      icon: Info,
-    },
-    {
-      label: "Card Number",
-      value: cleanDisplay(card.number),
-      icon: Hash,
-    },
-    {
-      label: "Rarity",
-      value: cleanDisplay(cardType),
-      icon: Star,
-    },
-    {
-      label: "Release Date",
-      value: cleanDisplay(card.releaseDate),
-      icon: CalendarDays,
-    },
-    {
       label: "Artist",
       value: cleanDisplay(card.artist, "Unknown"),
       icon: Activity,
     },
     {
-      label: "Market Cap",
-      value: cleanDisplay(card.marketCap, "$0.00"),
-      icon: BadgeDollarSign,
-    },
-    {
-      label: "Grade Pop",
-      value: selectedGrade === "Raw" ? "0" : selectedPopCount.toLocaleString(),
-      icon: Users,
+      label: "Series",
+      value: cleanDisplay(cardSeries),
+      icon: ImageIcon,
     },
     {
       label: "Card Set",
@@ -350,9 +325,34 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
       icon: Layers,
     },
     {
-      label: "Series",
-      value: cleanDisplay(cardSeries),
-      icon: ImageIcon,
+      label: "Type",
+      value: cleanDisplay(card.type || card.supertype || "Pokémon"),
+      icon: BadgeDollarSign,
+    },
+    {
+      label: "Subtypes",
+      value: cleanDisplay(card.subtypes || card.subtype || "Basic"),
+      icon: TrendingUp,
+    },
+    {
+      label: "Rarity",
+      value: cleanDisplay(cardType),
+      icon: Star,
+    },
+    {
+      label: "HP",
+      value: cleanDisplay(card.hp),
+      icon: Info,
+    },
+    {
+      label: "Retreat Cost",
+      value: cleanDisplay(card.retreatCost || card.retreat_cost || "—"),
+      icon: BadgeDollarSign,
+    },
+    {
+      label: "Card Number",
+      value: cleanDisplay(card.number),
+      icon: Hash,
     },
   ];
 
@@ -550,6 +550,66 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
     </div>
   );
 
+  const MobileAssetHero = () => (
+    <div className="lg:hidden pt-5 space-y-5">
+      <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-4 items-start">
+        <div className="rounded-2xl border border-[#00BA88]/25 bg-slate-50/50 dark:bg-white/5 p-2.5 shadow-sm">
+          <img
+            src={cardImage}
+            alt={cardName}
+            className="w-full h-auto object-contain"
+          />
+        </div>
+
+        <div className="min-w-0 pt-1">
+          <h1 className="text-[21px] leading-[1.12] font-black tracking-tight text-slate-900 dark:text-white font-sora mb-3">
+            {cardName}
+          </h1>
+
+          <div className="grid grid-cols-1 gap-2 mb-4">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="shrink-0 rounded-xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-[10px] font-black text-slate-900 dark:text-white">
+                #{cleanDisplay(card.number)}
+              </span>
+
+              <span className="shrink-0 rounded-xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-[10px] font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Star size={12} className="text-[#00BA88]" />
+                {cleanDisplay(cardType)}
+              </span>
+            </div>
+
+            <span className="w-fit rounded-xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-[10px] font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+              <CalendarDays size={12} className="text-[#00BA88]" />
+              {cleanDisplay(card.releaseDate)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-white/10 pt-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                <BadgeDollarSign size={13} className="text-[#00BA88]" />
+                <span className="text-[9px] font-black">Market Cap</span>
+              </div>
+              <p className="text-[17px] font-black text-slate-900 dark:text-white">
+                {cleanDisplay(card.marketCap, "$0.00")}
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                <Users size={13} className="text-[#00BA88]" />
+                <span className="text-[9px] font-black">Grade Pop</span>
+              </div>
+              <p className="text-[17px] font-black text-slate-900 dark:text-white">
+                {selectedGrade === "Raw" ? "0" : selectedPopCount.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen lg:h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 font-inter selection:bg-[#00BA88]/30">
       <Navbar />
@@ -602,13 +662,11 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
       </div>
 
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-6 overflow-x-hidden lg:overflow-hidden">
-        <div className="block lg:hidden pt-6">
-          <AssetHeader />
-        </div>
+        <MobileAssetHero />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 h-full py-6 md:py-8">
           <div className={cn("lg:col-span-3 space-y-8", columnClass)}>
-            <div className="rounded-3xl border border-[#00BA88]/30 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-4 shadow-sm flex items-center justify-center">
+            <div className="hidden lg:flex rounded-3xl border border-[#00BA88]/30 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-4 shadow-sm items-center justify-center">
               <img
                 src={cardImage}
                 alt={cardName}
@@ -642,14 +700,14 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                   <Activity size={14} /> Asset Specs
                 </h3>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3">
                   {metricCards.map((item, idx) => {
                     const Icon = item.icon;
 
                     return (
                       <div
                         key={`${item.label}-${idx}`}
-                        className="rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/60 dark:bg-white/[0.03] p-4"
+                        className="rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/60 dark:bg-white/[0.03] p-4" 
                       >
                         <div className="flex items-center gap-2 mb-2 text-[#00BA88]">
                           <Icon size={13} />
