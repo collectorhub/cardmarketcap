@@ -310,11 +310,6 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
 
   const metricCards = [
     {
-      label: "Artist",
-      value: cleanDisplay(card.artist, "Unknown"),
-      icon: Activity,
-    },
-    {
       label: "Series",
       value: cleanDisplay(cardSeries),
       icon: ImageIcon,
@@ -338,16 +333,6 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
       label: "Rarity",
       value: cleanDisplay(cardType),
       icon: Star,
-    },
-    {
-      label: "HP",
-      value: cleanDisplay(card.hp),
-      icon: Info,
-    },
-    {
-      label: "Retreat Cost",
-      value: cleanDisplay(card.retreatCost || card.retreat_cost || "—"),
-      icon: BadgeDollarSign,
     },
     {
       label: "Card Number",
@@ -584,13 +569,14 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-white/10 pt-4">
+          <div className="border-t border-slate-100 dark:border-white/10 pt-4 space-y-3">
             <div>
               <div className="flex items-center gap-1.5 text-slate-400 mb-1">
                 <BadgeDollarSign size={13} className="text-[#00BA88]" />
                 <span className="text-[9px] font-black">Market Cap</span>
               </div>
-              <p className="text-[17px] font-black text-slate-900 dark:text-white">
+
+              <p className="text-[17px] font-black text-slate-900 dark:text-white leading-tight break-words">
                 {cleanDisplay(card.marketCap, "$0.00")}
               </p>
             </div>
@@ -600,7 +586,8 @@ export default function CardDetails({ card, relatedCards = [] }: CardDetailsProp
                 <Users size={13} className="text-[#00BA88]" />
                 <span className="text-[9px] font-black">Grade Pop</span>
               </div>
-              <p className="text-[17px] font-black text-slate-900 dark:text-white">
+
+              <p className="text-[17px] font-black text-slate-900 dark:text-white leading-tight">
                 {selectedGrade === "Raw" ? "0" : selectedPopCount.toLocaleString()}
               </p>
             </div>
