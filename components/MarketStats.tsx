@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -33,6 +33,9 @@ interface StatCardProps {
   advert?: any;
   adLoading?: boolean;
 }
+
+const CARD_SIZE =
+  "shrink-0 w-[31.5%] md:w-full h-[115px] md:h-[150px]";
 
 const getPath = (data: number[], width: number, height: number) => {
   const step = width / (data.length - 1);
@@ -87,15 +90,27 @@ function StatCard({
   if (isAd && adLoading) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
-        className="group relative flex flex-col overflow-hidden rounded-xl md:rounded-[1.5rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 md:shadow-sm shrink-0 w-[31.5%] md:w-full min-h-[115px] md:min-h-[150px] p-3 md:p-6 animate-pulse"
+        transition={{ delay: index * 0.08, duration: 0.35, ease: "easeOut" }}
+        className={cn(
+          CARD_SIZE,
+          "relative overflow-hidden rounded-xl md:rounded-[1.5rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-6 md:shadow-sm"
+        )}
       >
-        <div className="hidden md:flex h-10 w-10 rounded-xl bg-slate-200 dark:bg-slate-800 mb-5" />
-        <div className="h-3 w-24 rounded-full bg-slate-200 dark:bg-slate-800 mb-4" />
-        <div className="h-6 w-28 rounded-full bg-slate-200 dark:bg-slate-800 mb-3" />
-        <div className="h-3 w-20 rounded-full bg-slate-200 dark:bg-slate-800" />
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900" />
+
+        <div className="relative z-10 h-full flex flex-col justify-between">
+          <div>
+            <div className="hidden md:block h-10 w-10 rounded-xl bg-slate-200/80 dark:bg-slate-800/80 mb-5" />
+            <div className="h-3 w-28 rounded-full bg-slate-200/80 dark:bg-slate-800/80 mb-4" />
+          </div>
+
+          <div>
+            <div className="h-7 w-32 rounded-xl bg-slate-200/80 dark:bg-slate-800/80 mb-3" />
+            <div className="h-5 w-20 rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+          </div>
+        </div>
       </motion.div>
     );
   }
@@ -103,12 +118,12 @@ function StatCard({
   return (
     <motion.div
       onClick={isAd ? handleAdClick : undefined}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
+      transition={{ delay: index * 0.08, duration: 0.35, ease: "easeOut" }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl md:rounded-[1.5rem] border transition-all duration-300 md:shadow-sm shrink-0",
-        "w-[31.5%] md:w-full min-h-[115px] md:min-h-[150px]",
+        CARD_SIZE,
+        "group relative flex flex-col overflow-hidden rounded-xl md:rounded-[1.5rem] border transition-all duration-300 md:shadow-sm",
         isAd ? "p-2 md:p-6" : "p-3 md:p-6",
         isAd
           ? "cursor-pointer border-emerald-200 dark:border-emerald-900/50 bg-slate-900 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/10"
@@ -126,7 +141,6 @@ function StatCard({
       {isAd && (
         <>
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all duration-300" />
-
           <div className="absolute top-2 left-2 md:top-3 md:left-3 z-20 rounded-full bg-white/90 dark:bg-slate-950/80 backdrop-blur px-2 py-1 md:px-2.5 md:py-1 text-[6px] md:text-[9px] font-black uppercase tracking-[0.12em] md:tracking-widest text-[#00BA88] whitespace-nowrap">
             Promoted Ad
           </div>
@@ -140,38 +154,18 @@ function StatCard({
         )}
       >
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-1.5 md:gap-3 min-w-0 w-full">
-            {/* <div
-              className={cn(
-                "hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300",
-                isAd
-                  ? "bg-emerald-500 text-white border-emerald-400"
-                  : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 group-hover:bg-[#00BA88]/10 group-hover:border-[#00BA88]/30"
-              )}
-            >
-              <Icon
-                className={cn(
-                  "h-5 w-5",
-                  isAd
-                    ? "text-white"
-                    : "text-slate-500 dark:text-slate-400 group-hover:text-[#00BA88]"
-                )}
-              />
-            </div> */}
+          <div className="flex flex-col min-w-0 w-full">
+            {!isAd && (
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider block w-full leading-tight md:leading-none md:tracking-[0.15em] text-slate-400 dark:text-slate-500">
+                {label}
+              </span>
+            )}
 
-            <div className="flex flex-col min-w-0 w-full">
-              {!isAd && (
-                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider block w-full leading-tight md:leading-none md:tracking-[0.15em] text-slate-400 dark:text-slate-500">
-                  {label}
-                </span>
-              )}
-
-              {subtext && (
-                <span className="hidden md:block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter mt-1 opacity-80">
-                  {subtext}
-                </span>
-              )}
-            </div>
+            {subtext && (
+              <span className="hidden md:block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter mt-1 opacity-80">
+                {subtext}
+              </span>
+            )}
           </div>
 
           {!isAd && (
@@ -200,7 +194,7 @@ function StatCard({
             <div
               className={cn(
                 isAd
-                  ? "flex items-center gap-0.5 md:gap-1 text-[5px] sm:text-[6px] md:text-[11px] font-black mt-1 md:mt-1 px-1 md:px-2 py-[2px] md:py-0.5 rounded-full w-fit shrink-0 whitespace-nowrap"
+                  ? "flex items-center gap-0.5 md:gap-1 text-[5px] sm:text-[6px] md:text-[11px] font-black mt-1 px-1 md:px-2 py-[2px] md:py-0.5 rounded-full w-fit shrink-0 whitespace-nowrap"
                   : "flex items-center gap-0.5 md:gap-1 text-[9px] md:text-[11px] font-black mt-1.5 md:mt-1 px-2 py-0.5 rounded-full w-fit shrink-0",
                 isAd
                   ? "text-white bg-white/20"
@@ -278,7 +272,6 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
     async function loadHomepageAd() {
       try {
         setHomepageAdLoading(true);
-
         const res = await getActiveAdvert("homepage_stats_card");
 
         if (!cancelled && res?.success) {
@@ -286,14 +279,9 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
         }
       } catch (error) {
         console.error("Failed to load homepage advert:", error);
-
-        if (!cancelled) {
-          setHomepageAd(null);
-        }
+        if (!cancelled) setHomepageAd(null);
       } finally {
-        if (!cancelled) {
-          setHomepageAdLoading(false);
-        }
+        if (!cancelled) setHomepageAdLoading(false);
       }
     }
 
@@ -307,17 +295,24 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
   const iconMap: Record<string, any> = {
     "TOTAL MARKET CAP": Activity,
     "TRACKED CARDS": Zap,
-    "AVG CARD (24H)": BarChart3,
-    "PSA 10 INDEX": TrendingUp,
-    "MODERN 100": BarChart3,
+    "TOP 20 INDEX": TrendingUp,
+    "TOP 50 INDEX": BarChart3,
+
     "Total Market Cap": Activity,
     "Tracked Cards": Zap,
-    "Avg Card (24h)": BarChart3,
-    "PSA 10 Index": TrendingUp,
-    "Modern 100": BarChart3,
+    "Top 20 Index": TrendingUp,
+    "Top 50 Index": BarChart3,
   };
 
   const displayStats = (initialStats || []).slice(0, 4);
+
+  const sparklineData = useMemo(
+    () =>
+      displayStats.map(() =>
+        Array.from({ length: 8 }, () => Math.floor(Math.random() * 50) + 30)
+      ),
+    [displayStats.length]
+  );
 
   return (
     <div className="w-full">
@@ -331,12 +326,12 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
             change={s.change}
             isPositive={s.trend === "up"}
             icon={iconMap[s.label] || Activity}
-            data={Array.from({ length: 8 }, () => Math.floor(Math.random() * 50) + 30)}
+            data={sparklineData[i]}
           />
         ))}
 
         <StatCard
-          index={4}
+          index={displayStats.length}
           label="Promoted Ad"
           value={homepageAd?.title || "Grading"}
           icon={Megaphone}

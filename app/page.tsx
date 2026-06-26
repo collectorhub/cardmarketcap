@@ -73,7 +73,9 @@ export default async function Page({
     {
       label: "TOTAL MARKET CAP",
       value: currentMarketCap,
-      change: apiStats.find((s: any) => s.label === "Total Market Cap")?.change || "+2.1%",
+      change:
+        apiStats.find((s: any) => s.label === "Total Market Cap")?.change ||
+        "+2.1%",
       trend: "up",
     },
     {
@@ -83,17 +85,25 @@ export default async function Page({
       trend: "up",
     },
     {
-      label: "PSA 10 INDEX",
-      value: psa10Value,
-      change: apiStats.find((s: any) => s.label === "PSA 10 Index")?.change || "+0.6%",
+      label: "TOP 20 INDEX",
+      value:
+        apiStats.find((s: any) => s.label === "Top 20 Index")?.value ||
+        "2,396",
+      change:
+        apiStats.find((s: any) => s.label === "Top 20 Index")?.change ||
+        "+0.6%",
       trend: "up",
     },
     {
-      label: "MODERN 100",
-      value: apiStats.find((s: any) => s.label === "Modern 100")?.value || "1,720",
-      change: apiStats.find((s: any) => s.label === "Modern 100")?.change || "-1.1%",
+      label: "TOP 50 INDEX",
+      value:
+        apiStats.find((s: any) => s.label === "Top 50 Index")?.value ||
+        "1,720",
+      change:
+        apiStats.find((s: any) => s.label === "Top 50 Index")?.change ||
+        "-1.1%",
       trend: "down",
-    }
+    },
   ];
 
   return (
