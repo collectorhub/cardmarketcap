@@ -24,9 +24,12 @@ export const metadata: Metadata = {
   title: "CardMarketCap | Professional Card Analytics",
   description: "Real-time view of the Pokémon card market",
   icons: {
-    icon: "/logo.png"
-  }
-};
+    icon: "/logo.png",
+  },
+  other: {
+    "impact-site-verification": "708a84cc-07c0-4613-b55a-dfbef23c9d06",
+  },
+}; 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
