@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, Check, Search, X, Inbox } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { ExternalLink } from "lucide-react";
+import { getCardPurchaseLinks } from "@/lib/affiliate-links";
 
 const FILTER_OPTIONS = ["Top", "Trending", "Gainers", "Lossers"];
 const SUBCAT_OPTIONS = ["All", "Modern", "Japanese", "Promos", "Common", "Sealed"];
@@ -76,6 +78,84 @@ const CustomDropdown = ({ label, value, options, onChange }: { label: string, va
                 >
                   {opt}
                   {value.toLowerCase() === opt.toLowerCase() && <Check size={12} strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const BuyDropdown = ({ card }: { card: any }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const links = getCardPurchaseLinks(card);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (!links.length) {
+    return (
+      <button
+        disabled
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 mx-auto px-4 md:px-6 py-1.5 md:py-2 border-2 border-slate-300 text-slate-400 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase cursor-not-allowed"
+      >
+        Buy
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative inline-flex" ref={containerRef}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+
+          if (links.length === 1) {
+            window.open(links[0].url, "_blank", "noopener,noreferrer");
+            return;
+          }
+
+          setIsOpen((prev) => !prev);
+        }}
+        className="relative z-10 mx-auto flex items-center gap-1.5 px-4 md:px-6 py-1.5 md:py-2 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
+      >
+        Buy
+        {links.length > 1 && <ChevronDown size={13} />}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && links.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute right-0 top-full z-[200] mt-2 w-48 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden"
+          >
+            <div className="p-1">
+              {links.map((link: any) => (
+                <button
+                  key={link.marketplace}
+                  onClick={() => {
+                    window.open(link.url, "_blank", "noopener,noreferrer");
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  {link.label}
+                  <ExternalLink size={12} />
                 </button>
               ))}
             </div>
@@ -317,17 +397,7 @@ export function MarketTable({ initialCards = [], totalRecords = 0, totalPages = 
                     </td>
 
                     <td className="py-2 md:py-7 px-4 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (card.buy_url || card.buyUrl) {
-                            window.open(card.buy_url || card.buyUrl, '_blank');
-                          }
-                        }}
-                        className="relative z-10 mx-auto px-4 md:px-6 py-1.5 md:py-2 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
-                      >
-                        Buy
-                      </button>
+                      <BuyDropdown card={card} />
                     </td>
                   </motion.tr>
                 );
