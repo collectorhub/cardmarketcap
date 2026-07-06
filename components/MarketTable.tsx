@@ -129,7 +129,7 @@ const BuyDropdown = ({ card }: { card: any }) => {
 
           setIsOpen((prev) => !prev);
         }}
-        className="relative z-10 mx-auto flex items-center gap-1.5 px-4 md:px-6 py-1.5 md:py-2 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
+        className="relative z-10 mx-auto cursor-pointer flex items-center gap-1.5 px-4 md:px-6 py-1.5 md:py-2 border-2 border-[#00BA88] text-[#00BA88] hover:bg-[#00BA88] hover:text-white rounded-lg md:rounded-xl text-[9px] md:text-xs font-black uppercase transition-all"
       >
         Buy
         {links.length > 1 && <ChevronDown size={13} />}
