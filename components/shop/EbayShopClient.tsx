@@ -221,7 +221,7 @@ export default function EbayShopClient({
 
   return (
     <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700">
-      <header className="flex flex-col items-center text-center space-y-2 md:space-y-3">
+      <header className="flex flex-col items-center text-center space-y-5 md:space-y-3">
         <ShoppingCart
           className="h-9 w-9 md:h-11 md:w-11 text-[#00BA88] drop-shadow-[0_0_24px_rgba(0,186,136,0.35)]"
           strokeWidth={1.9}
@@ -428,7 +428,7 @@ export default function EbayShopClient({
           )}
       </form>
 
-      <section className="flex lg:justify-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <section className="flex lg:justify-center gap-2 overflow-x-auto pb-8 lg:pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {SHOP_SECTIONS.map((item) => {
           const Icon = item.icon;
           const isActive = section === item.id;

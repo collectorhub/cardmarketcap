@@ -20,7 +20,7 @@ export default async function ShopPage() {
         <Sidebar />
       </div>
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-24 lg:pt-12 pb-16">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-20 lg:pt-12 pb-16">
         <EbayShopClient
           initialSection="graded"
           initialListings={initialListings}
