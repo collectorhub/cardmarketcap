@@ -28,6 +28,7 @@ import {
   Star,
   Search,
   Megaphone,
+  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from "@/context/MobileMenuContext";
@@ -240,6 +241,7 @@ export default function Sidebar() {
           { name: "Market Overview", href: "/overview", icon: Activity },
           { name: "Card Sets", href: "/sets", icon: PackageSearch },
           { name: "Card Search", href: "/card-search", icon: Search },
+          { name: "Shop", href: "/shop", icon: ShoppingCart },
         ],
       },
     ];

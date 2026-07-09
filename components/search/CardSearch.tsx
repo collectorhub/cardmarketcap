@@ -14,6 +14,7 @@ import {
   FlameIcon,
   Clock,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
@@ -23,7 +24,10 @@ import {
   fetchTrendingCards,
   fetchExpansions,
 } from "@/lib/queries/market";
-import { fetchUniversalSearch } from "@/lib/queries/search";
+import {
+  fetchUniversalSearch,
+  fetchSearchSuggestions,
+} from "@/lib/queries/search";
 import { SearchResult } from "@/types/search";
 import { RandomSetScroller } from "@/components/search/RandomSetScroller";
 
@@ -63,6 +67,10 @@ export default function CardSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentDropdown, setShowRecentDropdown] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
@@ -157,6 +165,7 @@ export default function CardSearch() {
   const selectRecentSearch = useCallback((value: string) => {
     setQuery(value);
     setShowRecentDropdown(false);
+    setShowSuggestions(false);
     inputRef.current?.focus();
   }, []);
 
@@ -196,42 +205,6 @@ export default function CardSearch() {
     [normalizeData]
   );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const saved = localStorage.getItem(RECENT_SEARCH_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setRecentSearches(parsed.filter((item) => typeof item === "string"));
-        }
-      }
-    } catch {
-      setRecentSearches([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchBoxRef.current &&
-        !searchBoxRef.current.contains(event.target as Node)
-      ) {
-        setShowRecentDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (query.length < 2) {
-      loadInitialData(selectedCategory);
-    }
-  }, [selectedCategory, query.length, loadInitialData]);
-
   const performSearch = useCallback(
     async (searchQuery: string, categoryId: string | null) => {
       const trimmedQuery = searchQuery.trim();
@@ -263,6 +236,100 @@ export default function CardSearch() {
     [normalizeData, saveRecentSearch]
   );
 
+  const selectSuggestion = useCallback(
+    (suggestion: any) => {
+      const value = suggestion.label || suggestion.name || "";
+      setQuery(value);
+      setShowSuggestions(false);
+      setShowRecentDropdown(false);
+      saveRecentSearch(value);
+      performSearch(value, selectedCategory);
+      inputRef.current?.blur();
+    },
+    [performSearch, saveRecentSearch, selectedCategory]
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const saved = localStorage.getItem(RECENT_SEARCH_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.filter((item) => typeof item === "string"));
+        }
+      }
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchBoxRef.current &&
+        !searchBoxRef.current.contains(event.target as Node)
+      ) {
+        setShowRecentDropdown(false);
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (query.length < 2) {
+      loadInitialData(selectedCategory);
+    }
+  }, [selectedCategory, query.length, loadInitialData]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setIsLoadingSuggestions(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      setIsLoadingSuggestions(true);
+
+      try {
+        const data = await fetchSearchSuggestions(
+          trimmed,
+          selectedCategory,
+          8
+        );
+
+        if (!cancelled) {
+          setSuggestions(data);
+          setShowSuggestions(true);
+          setShowRecentDropdown(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, selectedCategory]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       performSearch(query, selectedCategory);
@@ -291,7 +358,13 @@ export default function CardSearch() {
     : "Trending Cards";
 
   const shouldShowRecentDropdown =
-    showRecentDropdown && isFocused && recentSearches.length > 0 && query.trim().length < 2;
+    showRecentDropdown &&
+    isFocused &&
+    recentSearches.length > 0 &&
+    query.trim().length < 2;
+
+  const shouldShowSuggestions =
+    showSuggestions && isFocused && query.trim().length >= 2;
 
   return (
     <div className="space-y-1 md:space-y-20 animate-in fade-in duration-1000 pt-23 md:pt-15 pb-20">
@@ -343,14 +416,19 @@ export default function CardSearch() {
                 value={query}
                 onFocus={() => {
                   setIsFocused(true);
-                  setShowRecentDropdown(true);
+                  if (query.trim().length < 2) {
+                    setShowRecentDropdown(true);
+                  } else {
+                    setShowSuggestions(true);
+                  }
                 }}
                 onBlur={() => setIsFocused(false)}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setShowRecentDropdown(e.target.value.trim().length < 2);
+                  setShowSuggestions(e.target.value.trim().length >= 2);
                 }}
-                placeholder='Try: "Gouging Fire Ex"'
+                placeholder='Try: "Charizard #4" or "Base Set"'
                 className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white text-base md:text-lg font-bold py-2 px-3 outline-none"
               />
             </div>
@@ -361,6 +439,8 @@ export default function CardSearch() {
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setQuery("");
+                    setSuggestions([]);
+                    setShowSuggestions(false);
                     setShowRecentDropdown(true);
                     inputRef.current?.focus();
                   }}
@@ -378,6 +458,7 @@ export default function CardSearch() {
                     saveRecentSearch(query);
                     performSearch(query, selectedCategory);
                     setShowRecentDropdown(false);
+                    setShowSuggestions(false);
                   }
                 }}
                 className="bg-[#00BA88] hover:bg-[#00a377] text-white p-3 md:px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-[#00BA88]/20"
@@ -389,6 +470,55 @@ export default function CardSearch() {
               </button>
             </div>
           </div>
+
+          {shouldShowSuggestions && (
+            <div className="absolute left-4 right-4 top-full z-[90] mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 text-left animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Search size={15} className="text-[#00BA88]" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Search Suggestions
+                  </span>
+                </div>
+
+                {isLoadingSuggestions && (
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <Loader2 size={12} className="animate-spin" />
+                    Loading
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2 max-h-80 overflow-y-auto">
+                {suggestions.length > 0 ? (
+                  suggestions.map((item) => (
+                    <button
+                      key={`${item.id}-${item.label}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectSuggestion(item);
+                      }}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group"
+                    >
+                      <span className="truncate text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 group-hover:text-[#00BA88] transition-colors">
+                        {item.label}
+                      </span>
+
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 group-hover:text-[#00BA88] transition-colors">
+                        Search
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      No suggestions found.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {shouldShowRecentDropdown && (
             <div className="absolute left-4 right-4 top-full z-[80] mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 text-left animate-in fade-in slide-in-from-top-2 duration-200">

@@ -545,6 +545,7 @@ export default function Navbar() {
                 { href: "/overview", label: "Market Overview" },
                 { href: "/sets", label: "Card Sets" },
                 { href: "/card-search", label: "Card Search" },
+                { href: "/shop", label: "Shop" },
               ].map((link) => {
                 const isActive =
                   pathname === link.href ||

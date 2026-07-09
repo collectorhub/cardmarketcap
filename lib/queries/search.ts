@@ -92,3 +92,44 @@ export async function fetchUniversalSearch(
     return [];
   }
 }
+
+export async function fetchSearchSuggestions(
+  q: string,
+  game: string | null = null,
+  limit = 8
+) {
+  try {
+    const cleanQuery = q.trim();
+
+    if (cleanQuery.length < 2) return [];
+
+    const params = new URLSearchParams({
+      q: cleanQuery,
+      limit: limit.toString(),
+    });
+
+    if (game && game !== "all") {
+      let targetGame = game.toLowerCase();
+      if (targetGame === "magic") targetGame = "mtg";
+      params.append("game", targetGame);
+    }
+
+    const response = await fetch(
+      `${API_BASE}/cmc_search_suggestions.php?${params.toString()}`,
+      {
+        next: { revalidate: 30 },
+      }
+    );
+
+    if (!response.ok) throw new Error("Suggestion request failed");
+
+    const data = await response.json();
+
+    if (!data.success || !Array.isArray(data.suggestions)) return [];
+
+    return data.suggestions;
+  } catch (error) {
+    console.error("PHP Suggestion Fetch Error:", error);
+    return [];
+  }
+}
