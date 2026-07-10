@@ -57,7 +57,7 @@ const LoadingGrid = () => (
 
 export default function CardSearch() {
   const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>("pokemon");
   const [isFocused, setIsFocused] = useState(false);
   const [trendingAssets, setTrendingAssets] = useState<any[]>([]);
   const [popularAssets, setPopularAssets] = useState<any[]>([]);
@@ -355,7 +355,7 @@ export default function CardSearch() {
     ? `${currentCategoryName || "Universal"} Results`
     : selectedCategory
     ? `Trending ${currentCategoryName}`
-    : "Trending Cards";
+    : "Trending Pokémon";
 
   const shouldShowRecentDropdown =
     showRecentDropdown &&
