@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useMemo, useState, useTransition, useEffect } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+
 import {
   Search,
   ShoppingBag,
@@ -10,17 +17,19 @@ import {
   Clock,
   SparklesIcon,
   X,
-  ArrowUpRight,
   Loader2,
   Trash2,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import CustomDropdown from "@/components/CustomDropdown";
+
 import {
   EbayShopSection,
   EbayShopSort,
   fetchEbayShopListings,
 } from "@/lib/queries/ebay";
+
 import { fetchSearchSuggestions } from "@/lib/queries/search";
 
 const SHOP_RECENT_SEARCH_KEY = "cmc_shop_recent_searches";
@@ -31,10 +40,30 @@ const SHOP_SECTIONS: {
   description: string;
   icon: any;
 }[] = [
-  { id: "graded", label: "Graded", description: "PSA, CGC and graded cards.", icon: ShieldCheck },
-  { id: "raw", label: "Raw", description: "Ungraded singles.", icon: ShoppingBag },
-  { id: "sealed", label: "Sealed", description: "Boxes, packs and ETBs.", icon: Package },
-  { id: "auction", label: "Auctions", description: "Ending soon.", icon: Clock },
+  {
+    id: "graded",
+    label: "Graded",
+    description: "PSA, CGC and graded cards.",
+    icon: ShieldCheck,
+  },
+  {
+    id: "raw",
+    label: "Singles",
+    description: "Ungraded singles.",
+    icon: ShoppingBag,
+  },
+  {
+    id: "sealed",
+    label: "Sealed",
+    description: "Boxes, packs and ETBs.",
+    icon: Package,
+  },
+  {
+    id: "auction",
+    label: "Auctions",
+    description: "Ending soon.",
+    icon: Clock,
+  },
 ];
 
 const SORT_LABELS: Record<EbayShopSort, string> = {
@@ -47,28 +76,192 @@ const SORT_LABELS: Record<EbayShopSort, string> = {
 
 const SORT_OPTIONS = Object.values(SORT_LABELS);
 
-const getSortIdFromLabel = (label: string): EbayShopSort => {
-  const found = Object.entries(SORT_LABELS).find(([, value]) => value === label);
+type ListingsBySection = Record<EbayShopSection, any>;
+
+type LoadingBySection = Record<EbayShopSection, boolean>;
+
+const createEmptyListings = () => ({
+  results: [],
+  total: 0,
+  resolvedQuery: "",
+});
+
+const createInitialListingsMap = (
+  initialSection: EbayShopSection,
+  initialListings: any
+): ListingsBySection => ({
+  graded:
+    initialSection === "graded"
+      ? initialListings
+      : createEmptyListings(),
+
+  raw:
+    initialSection === "raw"
+      ? initialListings
+      : createEmptyListings(),
+
+  sealed:
+    initialSection === "sealed"
+      ? initialListings
+      : createEmptyListings(),
+
+  auction:
+    initialSection === "auction"
+      ? initialListings
+      : createEmptyListings(),
+});
+
+const createInitialLoadingMap = (): LoadingBySection => ({
+  graded: false,
+  raw: false,
+  sealed: false,
+  auction: false,
+});
+
+const createAllLoadingMap = (): LoadingBySection => ({
+  graded: true,
+  raw: true,
+  sealed: true,
+  auction: true,
+});
+
+const getSortIdFromLabel = (
+  label: string
+): EbayShopSort => {
+  const found = Object.entries(SORT_LABELS).find(
+    ([, value]) => value === label
+  );
+
   return (found?.[0] as EbayShopSort) || "best_match";
 };
 
+const formatPrice = (formattedPrice?: string) => {
+  if (!formattedPrice) {
+    return "N/A";
+  }
+
+  return formattedPrice.replace(/^USD\s*/i, "$");
+};
+
+/**
+ * Inline eBay wordmark.
+ *
+ * This avoids needing an image file, external asset or
+ * additional package while remaining sharp on every screen.
+ */
+const EbayLogo = ({
+  className,
+}: {
+  className?: string;
+}) => (
+  <span
+    className={cn(
+      "inline-flex shrink-0 items-baseline font-black leading-none tracking-[-0.08em]",
+      className
+    )}
+    aria-label="eBay"
+    title="View on eBay"
+  >
+    <span className="text-[#E53238]">e</span>
+    <span className="text-[#0064D2]">b</span>
+    <span className="text-[#F5AF02]">a</span>
+    <span className="text-[#86B817]">y</span>
+  </span>
+);
+
 const ListingSkeleton = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 items-stretch">
     {[...Array(12)].map((_, index) => (
       <div
         key={index}
-        className="rounded-[1.25rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-5 shadow-sm animate-pulse"
+        className="h-full rounded-[1.25rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-5 shadow-sm animate-pulse"
       >
         <div className="aspect-[4/3] rounded-[1rem] md:rounded-[1.5rem] bg-slate-100 dark:bg-slate-950/40" />
+
         <div className="mt-4 space-y-2">
           <div className="h-3 w-4/5 rounded bg-slate-100 dark:bg-slate-800" />
+          <div className="h-3 w-3/5 rounded bg-slate-100 dark:bg-slate-800" />
           <div className="h-3 w-2/5 rounded bg-slate-100 dark:bg-slate-800" />
-          <div className="h-8 w-full rounded-xl bg-slate-100 dark:bg-slate-800" />
+
+          <div className="pt-3">
+            <div className="h-7 w-full rounded bg-slate-100 dark:bg-slate-800" />
+          </div>
         </div>
       </div>
     ))}
   </div>
 );
+
+function ListingCard({ item }: { item: any }) {
+  const listingUrl =
+    typeof item?.url === "string"
+      ? item.url.trim()
+      : "";
+
+  const title =
+    typeof item?.title === "string" && item.title.trim()
+      ? item.title.trim()
+      : "eBay trading card listing";
+
+  const image =
+    typeof item?.image === "string"
+      ? item.image.trim()
+      : "";
+
+  if (!listingUrl) {
+    return null;
+  }
+
+  return (
+    <a
+      href={listingUrl}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      className="group block h-full min-w-0"
+      aria-label={`View ${title} on eBay`}
+    >
+      <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-[#00BA88]/40 hover:shadow-2xl hover:shadow-[#00BA88]/10 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 md:rounded-[2rem] md:p-5">
+        <div className="relative mb-3 flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-slate-100 bg-slate-50 p-2 dark:border-slate-800/50 dark:bg-slate-950/40 md:mb-5 md:rounded-[1.5rem] md:p-3">
+          {image ? (
+            <img
+              src={image}
+              alt={title}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain drop-shadow-sm transition-transform duration-500 ease-out group-hover:scale-110"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-black text-slate-400">
+              No Image
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <h3
+            className={cn(
+              "line-clamp-3 text-[12px] font-bold leading-snug text-slate-900 transition-colors group-hover:text-[#00BA88] dark:text-white md:text-sm",
+              "min-h-[3.75rem] md:min-h-[4.125rem]"
+            )}
+            title={title}
+          >
+            {title}
+          </h3>
+
+          <div className="mt-auto pt-3 md:pt-4">
+            <div className="flex min-h-9 items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <p className="min-w-0 truncate text-[13px] font-extrabold text-slate-900 dark:text-white md:text-[15px]">
+                {formatPrice(item?.formattedPrice)}
+              </p>
+
+              <EbayLogo className="text-[18px] transition-transform duration-300 group-hover:scale-105 md:text-[21px]" />
+            </div>
+          </div>
+        </div>
+      </article>
+    </a>
+  );
+}
 
 export default function EbayShopClient({
   initialSection,
@@ -77,110 +270,305 @@ export default function EbayShopClient({
   initialSection: EbayShopSection;
   initialListings: any;
 }) {
-  const [section, setSection] = useState<EbayShopSection>(initialSection);
+  const [section, setSection] =
+    useState<EbayShopSection>(initialSection);
+
   const [sort, setSort] = useState<EbayShopSort>(
-    initialSection === "auction" ? "ending_soon" : "best_match"
+    initialSection === "auction"
+      ? "ending_soon"
+      : "best_match"
   );
+
   const [search, setSearch] = useState("");
-  const [listings, setListings] = useState(initialListings);
+
+  const [listingsBySection, setListingsBySection] =
+    useState<ListingsBySection>(() =>
+      createInitialListingsMap(
+        initialSection,
+        initialListings
+      )
+    );
+
+  const [loadingBySection, setLoadingBySection] =
+    useState<LoadingBySection>(
+      createInitialLoadingMap
+    );
+
   const [isFocused, setIsFocused] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [, startTransition] = useTransition();
 
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [showRecentDropdown, setShowRecentDropdown] = useState(false);
-
-  const items = listings?.results || [];
-
-  const activeSection = useMemo(
-    () => SHOP_SECTIONS.find((item) => item.id === section) || SHOP_SECTIONS[0],
-    [section]
+  const [suggestions, setSuggestions] = useState<any[]>(
+    []
   );
+
+  const [
+    isLoadingSuggestions,
+    setIsLoadingSuggestions,
+  ] = useState(false);
+
+  const [showSuggestions, setShowSuggestions] =
+    useState(false);
+
+  const [recentSearches, setRecentSearches] =
+    useState<string[]>([]);
+
+  const [
+    showRecentDropdown,
+    setShowRecentDropdown,
+  ] = useState(false);
+
+  const requestIdRef = useRef(0);
+  const hasLoadedAllSectionsRef = useRef(false);
+
+  /**
+   * The selected category is moved to the top.
+   * Every other category remains rendered underneath.
+   */
+  const orderedSections = useMemo(() => {
+    const selectedSection = SHOP_SECTIONS.find(
+      (item) => item.id === section
+    );
+
+    const remainingSections = SHOP_SECTIONS.filter(
+      (item) => item.id !== section
+    );
+
+    return selectedSection
+      ? [selectedSection, ...remainingSections]
+      : SHOP_SECTIONS;
+  }, [section]);
 
   const saveRecentSearch = (value: string) => {
     const cleanValue = value.trim();
-    if (cleanValue.length < 2) return;
 
-    setRecentSearches((prev) => {
-      const next = [
+    if (cleanValue.length < 2) {
+      return;
+    }
+
+    setRecentSearches((previousSearches) => {
+      const nextSearches = [
         cleanValue,
-        ...prev.filter((item) => item.toLowerCase() !== cleanValue.toLowerCase()),
+        ...previousSearches.filter(
+          (item) =>
+            item.toLowerCase() !==
+            cleanValue.toLowerCase()
+        ),
       ].slice(0, 8);
 
-      localStorage.setItem(SHOP_RECENT_SEARCH_KEY, JSON.stringify(next));
-      return next;
+      try {
+        localStorage.setItem(
+          SHOP_RECENT_SEARCH_KEY,
+          JSON.stringify(nextSearches)
+        );
+      } catch {
+        // Local storage can be unavailable in some browsers.
+      }
+
+      return nextSearches;
     });
   };
 
   const clearRecentSearches = () => {
     setRecentSearches([]);
-    localStorage.removeItem(SHOP_RECENT_SEARCH_KEY);
+
+    try {
+      localStorage.removeItem(
+        SHOP_RECENT_SEARCH_KEY
+      );
+    } catch {
+      // Local storage can be unavailable in some browsers.
+    }
   };
 
-  const loadListings = ({
-    nextSection = section,
+  const loadAllListings = ({
     nextSearch = search,
     nextSort = sort,
   }: {
-    nextSection?: EbayShopSection;
     nextSearch?: string;
     nextSort?: EbayShopSort;
-  }) => {
+  } = {}) => {
+    const cleanSearch = nextSearch.trim();
+    const currentRequestId = ++requestIdRef.current;
+
+    setLoadingBySection(createAllLoadingMap());
+
     startTransition(async () => {
-      const data = await fetchEbayShopListings({
-        section: nextSection,
-        search: nextSearch,
-        sort: nextSection === "auction" ? "ending_soon" : nextSort,
-        limit: 24,
-        offset: 0,
+      const requests = SHOP_SECTIONS.map(
+        async (shopSection) => {
+          const sectionSort: EbayShopSort =
+            shopSection.id === "auction"
+              ? "ending_soon"
+              : nextSort;
+
+          try {
+            const data =
+              await fetchEbayShopListings({
+                section: shopSection.id,
+                search: cleanSearch,
+                sort: sectionSort,
+                limit: 24,
+                offset: 0,
+              });
+
+            return {
+              sectionId: shopSection.id,
+              data:
+                data || createEmptyListings(),
+            };
+          } catch (error) {
+            console.error(
+              `Failed to load ${shopSection.id} listings:`,
+              error
+            );
+
+            return {
+              sectionId: shopSection.id,
+              data: createEmptyListings(),
+            };
+          }
+        }
+      );
+
+      const results = await Promise.all(requests);
+
+      if (
+        currentRequestId !== requestIdRef.current
+      ) {
+        return;
+      }
+
+      setListingsBySection((previous) => {
+        const next = { ...previous };
+
+        results.forEach((result) => {
+          next[result.sectionId] = result.data;
+        });
+
+        return next;
       });
 
-      setListings(data);
+      setLoadingBySection(
+        createInitialLoadingMap()
+      );
+
+      hasLoadedAllSectionsRef.current = true;
     });
   };
 
   const runShopSearch = (value: string) => {
     const cleanValue = value.trim();
-    if (cleanValue.length >= 2) saveRecentSearch(cleanValue);
 
+    if (cleanValue.length >= 2) {
+      saveRecentSearch(cleanValue);
+    }
+
+    setSearch(cleanValue);
     setShowSuggestions(false);
     setShowRecentDropdown(false);
-    loadListings({ nextSearch: cleanValue });
+
+    loadAllListings({
+      nextSearch: cleanValue,
+      nextSort: sort,
+    });
   };
 
-  const handleSectionChange = (nextSection: EbayShopSection) => {
-    const nextSort = nextSection === "auction" ? "ending_soon" : sort;
+  const handleSectionChange = (
+    nextSection: EbayShopSection
+  ) => {
     setSection(nextSection);
-    setSort(nextSort);
-    loadListings({ nextSection, nextSort });
+
+    /**
+     * Allow React to reorder the sections before scrolling
+     * the product container back into view.
+     */
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const productsContainer =
+          document.getElementById(
+            "shop-products-container"
+          );
+
+        productsContainer?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
     runShopSearch(search);
   };
 
   const handleSortChange = (label: string) => {
-    const nextSort = getSortIdFromLabel(label);
+    const nextSort =
+      getSortIdFromLabel(label);
+
     setSort(nextSort);
-    loadListings({ nextSort });
+
+    loadAllListings({
+      nextSearch: search,
+      nextSort,
+    });
+  };
+
+  const handleClearSearch = () => {
+    setSearch("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setShowRecentDropdown(true);
+
+    loadAllListings({
+      nextSearch: "",
+      nextSort: sort,
+    });
   };
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(SHOP_RECENT_SEARCH_KEY);
+      const saved = localStorage.getItem(
+        SHOP_RECENT_SEARCH_KEY
+      );
+
       if (saved) {
         const parsed = JSON.parse(saved);
+
         if (Array.isArray(parsed)) {
-          setRecentSearches(parsed.filter((item) => typeof item === "string"));
+          setRecentSearches(
+            parsed
+              .filter(
+                (item): item is string =>
+                  typeof item === "string"
+              )
+              .slice(0, 8)
+          );
         }
       }
     } catch {
       setRecentSearches([]);
     }
+  }, []);
+
+  /**
+   * Load all shop sections after the server-provided
+   * initial section has rendered.
+   */
+  useEffect(() => {
+    if (hasLoadedAllSectionsRef.current) {
+      return;
+    }
+
+    loadAllListings({
+      nextSearch: "",
+      nextSort: "best_match",
+    });
+
+    // Initial all-section load only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -195,27 +583,39 @@ export default function EbayShopClient({
 
     let cancelled = false;
 
-    const timer = setTimeout(async () => {
+    const timer = window.setTimeout(async () => {
       setIsLoadingSuggestions(true);
 
       try {
-        const data = await fetchSearchSuggestions(trimmed, "pokemon", 8);
+        const data =
+          await fetchSearchSuggestions(
+            trimmed,
+            "pokemon",
+            8
+          );
 
         if (!cancelled) {
-          setSuggestions(data);
+          setSuggestions(
+            Array.isArray(data) ? data : []
+          );
+
           setShowSuggestions(true);
           setShowRecentDropdown(false);
         }
       } catch {
-        if (!cancelled) setSuggestions([]);
+        if (!cancelled) {
+          setSuggestions([]);
+        }
       } finally {
-        if (!cancelled) setIsLoadingSuggestions(false);
+        if (!cancelled) {
+          setIsLoadingSuggestions(false);
+        }
       }
     }, 220);
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
+      window.clearTimeout(timer);
     };
   }, [search]);
 
@@ -228,20 +628,30 @@ export default function EbayShopClient({
         />
 
         <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-          CardMarketCap <span className="text-[#00BA88]">Shop</span>
+          CardMarketCap{" "}
+          <span className="text-[#00BA88]">
+            Shop
+          </span>
         </h1>
 
         <p className="text-slate-500 dark:text-slate-400 text-xs md:text-base max-w-2xl">
-          Browse live listings across graded cards, raw cards, sealed products and auctions ending soon.
+          Browse live listings across graded cards,
+          singles, sealed products and auctions ending
+          soon.
         </p>
       </header>
 
-      <form onSubmit={handleSearch} className="relative w-full max-w-3xl mx-auto group">
+      <form
+        onSubmit={handleSearch}
+        className="relative w-full max-w-3xl mx-auto group"
+      >
         <div
           className={cn(
             "absolute -inset-2 bg-[#00BA88]/10 rounded-[2rem] blur-xl transition-all duration-500",
             "dark:opacity-100",
-            isFocused ? "opacity-100" : "opacity-0"
+            isFocused
+              ? "opacity-100"
+              : "opacity-0"
           )}
         />
 
@@ -258,18 +668,27 @@ export default function EbayShopClient({
               size={22}
               className={cn(
                 "shrink-0",
-                isFocused ? "text-[#00BA88]" : "text-slate-400"
+                isFocused
+                  ? "text-[#00BA88]"
+                  : "text-slate-400"
               )}
             />
 
             <input
               type="text"
               value={search}
-              onBlur={() => setIsFocused(false)}
+              autoComplete="off"
+              onBlur={() => {
+                window.setTimeout(() => {
+                  setIsFocused(false);
+                }, 150);
+              }}
               onFocus={() => {
                 setIsFocused(true);
 
-                if (search.trim().length >= 2) {
+                if (
+                  search.trim().length >= 2
+                ) {
                   setShowSuggestions(true);
                   setShowRecentDropdown(false);
                 } else {
@@ -277,11 +696,15 @@ export default function EbayShopClient({
                   setShowSuggestions(false);
                 }
               }}
-              onChange={(e) => {
-                const value = e.target.value;
+              onChange={(event) => {
+                const value =
+                  event.target.value;
+
                 setSearch(value);
 
-                if (value.trim().length >= 2) {
+                if (
+                  value.trim().length >= 2
+                ) {
                   setShowSuggestions(true);
                   setShowRecentDropdown(false);
                 } else {
@@ -298,13 +721,7 @@ export default function EbayShopClient({
             {search && (
               <button
                 type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                  setShowRecentDropdown(true);
-                  loadListings({ nextSearch: "" });
-                }}
+                onClick={handleClearSearch}
                 className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 aria-label="Clear search"
               >
@@ -316,7 +733,11 @@ export default function EbayShopClient({
               type="submit"
               className="bg-[#00BA88] hover:bg-[#00a377] text-white p-3 md:px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-[#00BA88]/20"
             >
-              <Search size={18} strokeWidth={3} />
+              <Search
+                size={18}
+                strokeWidth={3}
+              />
+
               <span className="hidden md:block font-black text-xs uppercase tracking-wider">
                 Search
               </span>
@@ -324,57 +745,84 @@ export default function EbayShopClient({
           </div>
         </div>
 
-        {showSuggestions && isFocused && search.trim().length >= 2 && (
-          <div className="absolute left-0 right-0 top-full z-[90] mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 text-left animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <Search size={15} className="text-[#00BA88]" />
-                <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                  Search Suggestions
-                </span>
+        {showSuggestions &&
+          isFocused &&
+          search.trim().length >= 2 && (
+            <div className="absolute left-0 right-0 top-full z-[90] mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 text-left animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Search
+                    size={15}
+                    className="text-[#00BA88]"
+                  />
+
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Search Suggestions
+                  </span>
+                </div>
+
+                {isLoadingSuggestions && (
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <Loader2
+                      size={12}
+                      className="animate-spin"
+                    />
+
+                    Loading
+                  </div>
+                )}
               </div>
 
-              {isLoadingSuggestions && (
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  <Loader2 size={12} className="animate-spin" />
-                  Loading
-                </div>
-              )}
-            </div>
+              <div className="p-2 max-h-72 overflow-y-auto">
+                {suggestions.length > 0 ? (
+                  suggestions.map(
+                    (item, index) => {
+                      const value =
+                        item?.label ||
+                        item?.name ||
+                        "";
 
-            <div className="p-2 max-h-72 overflow-y-auto">
-              {suggestions.length > 0 ? (
-                suggestions.map((item) => (
-                  <button
-                    key={`${item.id}-${item.label}`}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      const value = item.label || item.name || "";
-                      setSearch(value);
-                      runShopSearch(value);
-                    }}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group"
-                  >
-                    <span className="truncate text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 group-hover:text-[#00BA88] transition-colors">
-                      {item.label}
-                    </span>
+                      if (!value) {
+                        return null;
+                      }
 
-                    <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 group-hover:text-[#00BA88] transition-colors">
-                      Search
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-8 text-center">
-                  <p className="text-sm font-bold text-slate-500">
-                    No suggestions found.
-                  </p>
-                </div>
-              )}
+                      return (
+                        <button
+                          key={`${
+                            item?.id || index
+                          }-${value}`}
+                          type="button"
+                          onMouseDown={(
+                            event
+                          ) => {
+                            event.preventDefault();
+
+                            setSearch(value);
+                            runShopSearch(value);
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group"
+                        >
+                          <span className="truncate text-sm md:text-base font-bold text-slate-700 dark:text-slate-200 group-hover:text-[#00BA88] transition-colors">
+                            {value}
+                          </span>
+
+                          <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 group-hover:text-[#00BA88] transition-colors">
+                            Search
+                          </span>
+                        </button>
+                      );
+                    }
+                  )
+                ) : !isLoadingSuggestions ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      No suggestions found.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {showRecentDropdown &&
           isFocused &&
@@ -383,7 +831,11 @@ export default function EbayShopClient({
             <div className="absolute left-0 right-0 top-full z-[80] mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 text-left animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Clock size={15} className="text-[#00BA88]" />
+                  <Clock
+                    size={15}
+                    className="text-[#00BA88]"
+                  />
+
                   <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     Previous Searches
                   </span>
@@ -391,8 +843,8 @@ export default function EbayShopClient({
 
                 <button
                   type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
+                  onMouseDown={(event) => {
+                    event.preventDefault();
                     clearRecentSearches();
                   }}
                   className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors"
@@ -407,8 +859,9 @@ export default function EbayShopClient({
                   <button
                     key={item}
                     type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+
                       setSearch(item);
                       runShopSearch(item);
                     }}
@@ -431,12 +884,16 @@ export default function EbayShopClient({
       <section className="flex lg:justify-center gap-2 overflow-x-auto pb-8 lg:pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {SHOP_SECTIONS.map((item) => {
           const Icon = item.icon;
-          const isActive = section === item.id;
+          const isActive =
+            section === item.id;
 
           return (
             <button
               key={item.id}
-              onClick={() => handleSectionChange(item.id)}
+              type="button"
+              onClick={() =>
+                handleSectionChange(item.id)
+              }
               className={cn(
                 "shrink-0 flex items-center gap-2 rounded-full border px-4 py-2.5 transition-all",
                 isActive
@@ -445,90 +902,112 @@ export default function EbayShopClient({
               )}
             >
               <Icon size={15} />
-              <span className="text-xs font-black">{item.label}</span>
+
+              <span className="text-xs font-black">
+                {item.label}
+              </span>
             </button>
           );
         })}
       </section>
 
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-xl md:text-3xl font-black text-slate-950 dark:text-white flex items-center gap-2">
-            <SparklesIcon className="h-5 w-5 text-[#00BA88]" />
-            {activeSection.label}
-          </h2>
+      <div
+        id="shop-products-container"
+        className="space-y-14 md:space-y-20 scroll-mt-24"
+      >
+        {orderedSections.map(
+          (shopSection, sectionIndex) => {
+            const Icon = shopSection.icon;
 
-          <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 md:pl-7">
-            {listings?.resolvedQuery
-              ? `Showing results for "${listings.resolvedQuery}"`
-              : activeSection.description}
-          </p>
-        </div>
+            const listings =
+              listingsBySection[
+                shopSection.id
+              ] || createEmptyListings();
 
-        <CustomDropdown
-          value={SORT_LABELS[sort]}
-          options={SORT_OPTIONS}
-          onChange={handleSortChange}
-          className="md:w-[180px]"
-        />
-      </section>
+            const items = Array.isArray(
+              listings?.results
+            )
+              ? listings.results
+              : [];
 
-      {isPending ? (
-        <ListingSkeleton />
-      ) : items.length > 0 ? (
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
-          {items.map((item: any) => (
-            <a
-              key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block group"
-            >
-              <div className="relative overflow-hidden rounded-[1.25rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:p-5 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-[#00BA88]/10 hover:-translate-y-2 active:scale-[0.98]">
-                <div className="relative aspect-[4/3] w-full mb-3 md:mb-5 flex items-center justify-center bg-slate-50 dark:bg-slate-950/40 rounded-[1rem] md:rounded-[1.5rem] overflow-hidden border border-slate-100 dark:border-slate-800/50 p-2 md:p-3">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform duration-500 ease-out"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-xs font-black text-slate-400">
-                      No Image
-                    </div>
-                  )}
-                </div>
+            const isLoading =
+              loadingBySection[
+                shopSection.id
+              ];
 
-                <div className="space-y-2.5 md:space-y-3">
-                  <h3 className="text-[12px] md:text-sm font-bold text-slate-900 dark:text-white leading-snug group-hover:text-[#00BA88] transition-colors">
-                  {item.title}
-                </h3>
+            return (
+              <section
+                key={shopSection.id}
+                id={`shop-section-${shopSection.id}`}
+                className="space-y-5 md:space-y-8"
+              >
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
+                  <div className="space-y-1">
+                    <h2 className="text-xl md:text-3xl font-black text-slate-950 dark:text-white flex items-center gap-2">
+                      {sectionIndex === 0 ? (
+                        <SparklesIcon className="h-5 w-5 text-[#00BA88]" />
+                      ) : (
+                        <Icon className="h-5 w-5 text-[#00BA88]" />
+                      )}
 
-                  <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                    <p className="text-[13px] md:text-[15px] font-extrabold text-slate-900 dark:text-white">
-                      {item.formattedPrice
-                        ? item.formattedPrice.replace(/^USD\s*/i, "$")
-                        : "N/A"}
+                      {shopSection.label}
+                    </h2>
+
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 md:pl-7">
+                      {listings?.resolvedQuery
+                        ? `Showing results for "${listings.resolvedQuery}"`
+                        : shopSection.description}
                     </p>
                   </div>
 
-                  <div className="pt-1">
-                    <div className="w-full py-2 md:py-2.5 text-white rounded-lg md:rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-[#00BA88] dark:hover:text-white transition-colors">
-                      Buy on eBay
-                      <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" strokeWidth={3} />
-                    </div>
-                  </div>
+                  {sectionIndex === 0 && (
+                    <CustomDropdown
+                      value={
+                        SORT_LABELS[sort]
+                      }
+                      options={SORT_OPTIONS}
+                      onChange={
+                        handleSortChange
+                      }
+                      className="md:w-[180px]"
+                    />
+                  )}
                 </div>
-              </div>
-            </a>
-          ))}
-        </section>
-      ) : (
-        <div className="py-24 text-center rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-          <p className="text-sm font-black text-slate-500">No listings found.</p>
-        </div>
-      )}
+
+                {isLoading ? (
+                  <ListingSkeleton />
+                ) : items.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 items-stretch">
+                    {items.map(
+                      (
+                        item: any,
+                        itemIndex: number
+                      ) => (
+                        <ListingCard
+                          key={
+                            item?.id ||
+                            item?.itemId ||
+                            `${shopSection.id}-${itemIndex}`
+                          }
+                          item={item}
+                        />
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-24 text-center rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <p className="text-sm font-black text-slate-500">
+                      No{" "}
+                      {shopSection.label.toLowerCase()}{" "}
+                      listings found.
+                    </p>
+                  </div>
+                )}
+              </section>
+            );
+          }
+        )}
+      </div>
     </div>
   );
 }
