@@ -19,77 +19,6 @@ type TrustDocument = {
 
 const TRUST_DOCUMENTS: TrustDocument[] = [
   {
-    id: "about",
-    title: "About CardMarketCap",
-    shortTitle: "About",
-    description:
-      "Our story, mission, principles and long-term vision for CardMarketCap.",
-    sections: [
-      {
-        heading: "Our Story",
-        paragraphs: [
-          'CardMarketCap (the "Platform") is owned and operated by Lowbridge Media Ventures Ltd ("Lowbridge", "we", "our", or "us"). We created CardMarketCap because we believe collectors deserve better market information.',
-          "The trading card hobby has grown into a global market, yet reliable data often remains fragmented across multiple marketplaces, grading companies and independent resources.",
-        ],
-      },
-      {
-        heading: "Our Mission",
-        paragraphs: [
-          "Our mission is to build the world's most trusted market intelligence platform for trading cards and collectibles.",
-          "We aim to provide collectors, retailers, investors, researchers and enthusiasts with transparent information that helps them better understand the market.",
-        ],
-      },
-      {
-        heading: "What We Build",
-        paragraphs: [
-          "CardMarketCap is more than a price guide. The Platform brings together market prices, historical sales, grading information, catalogue data, analytics and research tools into a single experience designed to help users make informed decisions.",
-        ],
-      },
-      {
-        heading: "Our Principles",
-        paragraphs: [
-          "Everything we build is guided by five principles: transparency, accuracy, independence, consistency and continuous improvement.",
-          "We believe users should understand where data comes from, how it is processed and the limitations that may affect it.",
-        ],
-      },
-      {
-        heading: "Independent by Design",
-        paragraphs: [
-          "Lowbridge develops the Platform independently. Our methodologies, analytics and research are created without influence from card manufacturers, grading companies, marketplaces or advertisers.",
-          "Where third-party information is used, it is incorporated to provide broader market context rather than to favour any organisation.",
-        ],
-      },
-      {
-        heading: "Continuous Improvement",
-        paragraphs: [
-          "Building a comprehensive market intelligence platform is an ongoing process.",
-          "We continually refine our catalogue, improve our matching systems, expand market coverage, enhance analytics and respond to feedback from the collecting community.",
-        ],
-      },
-      {
-        heading: "Built with the Community",
-        paragraphs: [
-          "Constructive feedback from collectors, retailers and researchers helps improve the Platform every day.",
-          "We welcome thoughtful suggestions and data corrections because they help make CardMarketCap more accurate and valuable for everyone.",
-        ],
-      },
-      {
-        heading: "Looking Ahead",
-        paragraphs: [
-          "Our ambition extends beyond displaying prices.",
-          "As CardMarketCap evolves, Lowbridge intends to continue investing in richer market intelligence, transparency, research tools and analytical features that help users better understand the trading card market.",
-        ],
-      },
-      {
-        heading: "Thank You",
-        paragraphs: [
-          "Whether you visit the Platform occasionally or rely on it every day, thank you for being part of the CardMarketCap community.",
-          "We appreciate your trust and remain committed to earning it through the quality of our work.",
-        ],
-      },
-    ],
-  },
-  {
     id: "data-sources-methodology",
     title: "Data Sources & Methodology",
     shortTitle: "Data & Methodology",
@@ -802,7 +731,6 @@ const TRUST_DOCUMENTS: TrustDocument[] = [
 ];
 
 export default function TrustCentre() {
-
   const [activeDocumentId, setActiveDocumentId] = useState(
     TRUST_DOCUMENTS[0]?.id || ""
   );
@@ -901,7 +829,7 @@ export default function TrustCentre() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[480px] max-w-full bg-[radial-gradient(circle_at_top,rgba(0,186,136,0.09),transparent_70%)] sm:h-[560px]"
       />
 
-      <div className="relative mx-auto w-full max-w-[1600px] px-4 pb-10 pt-24 lg:pt-15 sm:px-5 sm:pt-28 md:px-8 md:pb-16 md:pt-32">
+      <div className="relative mx-auto w-full max-w-[1600px] px-4 pb-10 pt-24 sm:px-5 sm:pt-28 md:px-8 md:pb-16 md:pt-32 lg:pt-24">
         <header className="w-full min-w-0 max-w-full border-b border-slate-200 pb-12 dark:border-slate-800 sm:pb-16 md:pb-20">
           <nav className="mb-5 flex min-w-0 max-w-full flex-wrap items-center gap-2">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#00BA88] sm:text-[10px]">
@@ -919,17 +847,16 @@ export default function TrustCentre() {
 
           <div className="grid w-full min-w-0 max-w-full gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">
             <div className="w-full min-w-0 max-w-full">
-              <h1 className="w-full max-w-5xl break-words text-[2.35rem] font-black leading-[1.04] tracking-[-0.04em] text-slate-950 [overflow-wrap:anywhere] dark:text-white sm:text-5xl md:text-6xl lg:text-[3.6rem]">
-                Transparency and trust at the centre of{" "}
+              <h1 className="w-full max-w-5xl text-[2.55rem] font-black leading-[1.03] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-5xl md:text-6xl lg:text-[3.7rem]">
+                Trust,{" "}
                 <span className="text-[#00BA88]">
-                  CardMarketCap.
+                  clearly explained.
                 </span>
               </h1>
 
-              <p className="mt-6 w-full max-w-4xl break-words text-[15px] font-medium leading-7 text-slate-600 [overflow-wrap:anywhere] dark:text-slate-400 sm:text-base sm:leading-8 md:text-lg">
-                Explore how CardMarketCap operates, where our data comes
-                from, how information is processed and the policies that
-                govern the Platform.
+              <p className="mt-6 w-full max-w-4xl text-[15px] font-medium leading-7 text-slate-600 dark:text-slate-400 sm:text-base sm:leading-8 md:text-lg">
+                Review our data methodology, policies, disclosures and the
+                standards that govern CardMarketCap.
               </p>
             </div>
 
@@ -939,7 +866,7 @@ export default function TrustCentre() {
               </p>
 
               <p className="mt-1 text-sm font-bold text-slate-800 dark:text-slate-200">
-                July 9, 2026
+                July 17, 2026
               </p>
             </div>
           </div>
@@ -1069,7 +996,7 @@ export default function TrustCentre() {
                     </p>
 
                     <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300">
-                      July 9, 2026
+                      July 17, 2026
                     </p>
                   </div>
                 </div>

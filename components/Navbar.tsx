@@ -486,39 +486,23 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-1">
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "rounded-xl h-9 w-9",
-                pathname.startsWith("/admin")
-                  ? "text-[#00BA88] bg-[#00BA88]/10"
-                  : "text-slate-500"
-              )}
-              asChild
-            >
-              <Link href="/admin">
-                <ShieldCheck className="h-5 w-5" />
-              </Link>
-            </Button>
-          )}
-
+        {isAdmin && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={toggleTheme}
-            className="text-slate-500 rounded-xl h-9 w-9"
+            className={cn(
+              "rounded-xl h-9 w-9",
+              pathname.startsWith("/admin")
+                ? "text-[#00BA88] bg-[#00BA88]/10"
+                : "text-slate-500"
+            )}
+            asChild
           >
-            {mounted &&
-              (resolvedTheme === "dark" ? (
-                <Sun className="h-5 w-5 text-yellow-500" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              ))}
+            <Link href="/admin" aria-label="Open admin dashboard">
+              <ShieldCheck className="h-5 w-5" />
+            </Link>
           </Button>
-        </div>
+        )}
       </div>
 
       {/* DESKTOP HEADER */}

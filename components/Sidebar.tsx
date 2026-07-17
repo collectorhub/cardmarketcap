@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
@@ -29,6 +30,9 @@ import {
   Search,
   Megaphone,
   ShoppingCart,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMobileMenu } from "@/context/MobileMenuContext";
@@ -133,6 +137,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isOpen, closeMenu } = useMobileMenu();
+  const { theme, setTheme } = useTheme();
 
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -531,19 +536,20 @@ export default function Sidebar() {
           )}
         </nav>
 
-        <div className="mt-auto p-4 border-t border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
+        <div className="mt-auto border-t border-slate-200/60 bg-white/40 p-4 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/40">
           {user ? (
-            <div className="flex items-center justify-between px-3 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl transition-all hover:shadow-sm">
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white px-3 py-3 transition-all hover:shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-[#00BA88] flex items-center justify-center text-white text-xs font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BA88] text-xs font-bold text-white">
                   {getInitials(user.username)}
                 </div>
 
                 <div className="flex flex-col overflow-hidden">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[100px]">
+                  <p className="max-w-[100px] truncate text-xs font-bold text-slate-900 dark:text-white">
                     {user.username}
                   </p>
-                  <p className="text-[10px] text-[#00BA88] font-bold uppercase tracking-wider">
+
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#00BA88]">
                     {user.role || "Member"}
                   </p>
                 </div>
@@ -551,8 +557,9 @@ export default function Sidebar() {
 
               <button
                 onClick={handleLogout}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                 title="Logout"
+                aria-label="Sign out"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -563,7 +570,7 @@ export default function Sidebar() {
                 <Link
                   href="/sign-in"
                   onClick={closeMenu}
-                  className="flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-[#00BA88] text-white transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-3 rounded-xl bg-[#00BA88] px-4 py-3 text-white transition-all active:scale-[0.98]"
                 >
                   <LogIn className="h-4 w-4" />
                   <span className="text-sm font-bold">Sign in</span>
@@ -572,25 +579,97 @@ export default function Sidebar() {
                 <Link
                   href="/sign-up"
                   onClick={closeMenu}
-                  className="flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-[#00BA88]/50 text-[#00BA88] transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-3 rounded-xl border border-[#00BA88]/50 px-4 py-3 text-[#00BA88] transition-all active:scale-[0.98]"
                 >
                   <UserRoundPlus className="h-4 w-4" />
                   <span className="text-sm font-bold">Sign up</span>
                 </Link>
               </div>
+            </div>
+          ) : null}
 
-              <div className="flex items-center justify-between text-[12px] text-slate-400 font-medium">
+          {isMobile && (
+            <div className={cn("mt-4", user && "pt-1")}>
+              {/* <p className="mb-2 px-1 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Appearance
+              </p> */}
+
+              <div
+                className="grid grid-cols-3 rounded-xl bg-slate-100/90 p-1 dark:bg-slate-950/80"
+                role="group"
+                aria-label="Appearance"
+              >
+                {[
+                  {
+                    value: "light",
+                    label: "Light",
+                    icon: Sun,
+                  },
+                  {
+                    value: "dark",
+                    label: "Dark",
+                    icon: Moon,
+                  },
+                  {
+                    value: "system",
+                    label: "System",
+                    icon: Monitor,
+                  },
+                ].map((option) => {
+                  const Icon = option.icon;
+                  const isActive = theme === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTheme(option.value)}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-black transition-all",
+                        isActive
+                          ? "bg-white text-[#00BA88] shadow-sm dark:bg-slate-800"
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between px-1 text-[11px] font-medium text-slate-400">
                 <div className="flex items-center gap-2">
-                  <span>About</span>
+                  <Link
+                    href="/about-us"
+                    onClick={closeMenu}
+                    className="transition-colors hover:text-[#00BA88]"
+                  >
+                    About
+                  </Link>
                   <span>•</span>
-                  <span>Support</span>
+                  <Link
+                    href="/help-center"
+                    onClick={closeMenu}
+                    className="transition-colors hover:text-[#00BA88]"
+                  >
+                    Support
+                  </Link>
                   <span>•</span>
-                  <span>Privacy</span>
+                  <Link
+                    href="/trust-centre#privacy-policy"
+                    onClick={closeMenu}
+                    className="transition-colors hover:text-[#00BA88]"
+                  >
+                    Privacy
+                  </Link>
                 </div>
+
                 <span>v1.0.0</span>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </motion.aside>
     </>

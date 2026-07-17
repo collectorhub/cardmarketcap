@@ -1,32 +1,33 @@
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import { Footer } from "@/components/Footer";
 import EbayShopClient from "@/components/shop/EbayShopClient";
 import { fetchEbayShopListings } from "@/lib/queries/ebay";
 
 export default async function ShopPage() {
-  const initialListings = await fetchEbayShopListings({
-    section: "graded",
-    sort: "best_match",
-    limit: 24,
-    offset: 0,
-  });
+  const initialListings =
+    await fetchEbayShopListings({
+      section: "graded",
+      sort: "best_match",
+      limit: 24,
+      offset: 0,
+    });
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F9FAFB] dark:bg-[#020617] transition-colors duration-300">
+    <div className="flex min-h-screen flex-col bg-[#F9FAFB] transition-colors duration-300 dark:bg-[#020617]">
       <Navbar />
 
       <div className="lg:hidden">
         <Sidebar />
       </div>
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-20 lg:pt-12 pb-16">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 pb-16 pt-20 md:px-8 lg:pt-12">
         <EbayShopClient
           initialSection="graded"
-          initialListings={initialListings}
+          initialListings={
+            initialListings
+          }
         />
       </main>
-
     </div>
   );
 }

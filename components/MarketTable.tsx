@@ -74,6 +74,55 @@ const normalizeSearchText = (
   value: string
 ) => value.trim().replace(/\s+/g, " ");
 
+/**
+ * Resolve the card classification shown beneath the card name.
+ *
+ * The API has used several field names over time, so we check the
+ * explicit rarity/type fields first and ignore values that are only
+ * numbers. This keeps labels such as "Promo", "Holo Rare" and
+ * "Illustration Rare" visible while still showing the card number.
+ */
+const getCardClassification = (card: any): string => {
+  const candidates: unknown[] = [
+    card?.rarity,
+    card?.cardRarity,
+    card?.card_rarity,
+    card?.variant,
+    card?.finish,
+    card?.cardType,
+    card?.card_type,
+    card?.type,
+    ...(Array.isArray(card?.subtypes)
+      ? card.subtypes
+      : []),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      candidate === null ||
+      candidate === undefined
+    ) {
+      continue;
+    }
+
+    const value = String(candidate)
+      .trim()
+      .replace(/\s+/g, " ");
+
+    if (
+      !value ||
+      /^\d+(?:[./-]\d+)*$/.test(value) ||
+      value.toLowerCase() === "standard"
+    ) {
+      continue;
+    }
+
+    return value;
+  }
+
+  return "Standard";
+};
+
 const BuyDropdown = ({
   card,
 }: {
@@ -930,6 +979,16 @@ export function MarketTable({
                           card.total
                       );
 
+                    const cardClassification =
+                      getCardClassification(card);
+
+                    const cardNumber =
+                      card.number !== null &&
+                      card.number !== undefined &&
+                      String(card.number).trim() !== ""
+                        ? String(card.number).trim()
+                        : "";
+
                     return (
                       <motion.tr
                         key={
@@ -988,12 +1047,28 @@ export function MarketTable({
                                 {card.name}
                               </div>
 
-                              <div className="text-[9px] font-black uppercase tracking-wider text-[#00BA88] md:text-[12px]">
-                                {card.number
-                                  ? `#${card.number}`
-                                  : card.rarity ||
-                                    card.type ||
-                                    "Standard"}
+                              <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[6px] font-black uppercase tracking-wider md:text-[9px]">
+                                <span
+                                  className="truncate text-[#00BA88]"
+                                  title={cardClassification}
+                                >
+                                  {cardClassification}
+                                </span>
+
+                                {/* {cardNumber && (
+                                  <>
+                                    <span
+                                      className="text-slate-300 dark:text-slate-600"
+                                      aria-hidden="true"
+                                    >
+                                      •
+                                    </span>
+
+                                    <span className="shrink-0 text-slate-400 dark:text-slate-500">
+                                      #{cardNumber}
+                                    </span>
+                                  </>
+                                )} */}
                               </div>
                             </div>
                           </div>

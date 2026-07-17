@@ -46,27 +46,27 @@ const footerSections: FooterSection[] = [
         name: "Contact us",
         href: "/contact",
       },
-      {
-        name: "Request form",
-        href: "/request",
-      },
+      // {
+      //   name: "Request form",
+      //   href: "/request",
+      // },
       {
         name: "API Documentation",
-        href: "/api-docs",
+        href: "/api-doc",
       },
       {
         name: "Help Center",
-        href: "/help",
+        href: "/help-center",
       },
     ],
   },
   {
     title: "Company",
     links: [
-      // {
-      //   name: "About us",
-      //   href: "/about-us",
-      // },
+      {
+        name: "About us",
+        href: "/about-us",
+      },
       {
         name: "Trust Centre",
         href: "/trust-centre",
