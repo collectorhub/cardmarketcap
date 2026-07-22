@@ -509,16 +509,16 @@ export default function Sidebar() {
             })
           )}
 
-          {isMobile && !showAdminMenu && (
+          {/* {isMobile && !showAdminMenu && (
             <div className="space-y-1.5">
               <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 font-heading">
                 Explore
               </p>
 
-              {/* <MobileLink href="/sets" label="Card Sets" icon={PackageSearch} />
-              <MobileLink href="/card-search" label="Card Search" icon={Search} /> */}
+              <MobileLink href="/sets" label="Card Sets" icon={PackageSearch} />
+              <MobileLink href="/card-search" label="Card Search" icon={Search} />
             </div>
-          )}
+          )} */}
 
           {isMobile && user && (
             <div className="space-y-1.5">

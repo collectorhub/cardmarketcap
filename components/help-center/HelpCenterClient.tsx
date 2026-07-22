@@ -237,14 +237,14 @@ function ArticleRow({
   onToggle: () => void;
 }) {
   return (
-    <article className="border-b border-slate-200 dark:border-slate-800">
+    <article className="w-full min-w-0 max-w-full border-b border-slate-200 dark:border-slate-800">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="group flex w-full items-start justify-between gap-5 py-5 text-left sm:py-6"
+        className="group flex w-full min-w-0 max-w-full items-start justify-between gap-4 py-5 text-left sm:gap-5 sm:py-6"
       >
-        <span className="text-sm font-black leading-6 text-slate-950 transition-colors group-hover:text-[#00BA88] dark:text-white sm:text-base">
+        <span className="min-w-0 max-w-full flex-1 whitespace-normal break-words text-sm font-black leading-6 text-slate-950 [overflow-wrap:anywhere] [word-break:normal] transition-colors group-hover:text-[#00BA88] dark:text-white sm:text-base">
           {article.question}
         </span>
 
@@ -258,21 +258,21 @@ function ArticleRow({
 
       <div
         className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-200",
+          "grid w-full min-w-0 max-w-full transition-[grid-template-rows,opacity] duration-200",
           isOpen
             ? "grid-rows-[1fr] pb-6 opacity-100"
             : "grid-rows-[0fr] opacity-0"
         )}
       >
-        <div className="overflow-hidden">
-          <p className="max-w-4xl text-sm font-medium leading-7 text-slate-600 dark:text-slate-400 sm:text-[15px]">
+        <div className="w-full min-w-0 max-w-full overflow-hidden">
+          <p className="block w-full min-w-0 max-w-full whitespace-normal break-words text-sm font-medium leading-7 text-slate-600 [overflow-wrap:anywhere] [word-break:normal] dark:text-slate-400 sm:max-w-4xl sm:text-[15px]">
             {article.answer}
           </p>
 
           {article.relatedHref && article.relatedLabel && (
             <Link
               href={article.relatedHref}
-              className="group mt-4 inline-flex items-center gap-2 text-xs font-black text-[#00BA88] transition-colors hover:text-[#00d69d] sm:text-sm"
+              className="group mt-4 inline-flex max-w-full min-w-0 items-center gap-2 break-words text-xs font-black text-[#00BA88] [overflow-wrap:anywhere] transition-colors hover:text-[#00d69d] sm:text-sm"
             >
               {article.relatedLabel}
 
@@ -318,13 +318,13 @@ export default function HelpCenterClient() {
   );
 
   return (
-    <div className="relative isolate overflow-hidden">
+    <div className="relative isolate w-full min-w-0 max-w-full overflow-x-clip">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top,rgba(0,186,136,0.1),transparent_70%)]"
       />
 
-      <div className="relative mx-auto w-full max-w-[1600px] px-4 pb-12 pt-24 sm:px-5 sm:pt-28 md:px-8 md:pb-20 md:pt-32 lg:pt-24">
+      <div className="relative mx-auto w-full min-w-0 max-w-[1600px] px-4 pb-12 pt-24 sm:px-5 sm:pt-28 md:px-8 md:pb-20 md:pt-32 lg:pt-24">
         <header className="border-b border-slate-200 pb-12 dark:border-slate-800 sm:pb-16 md:pb-20">
           <nav className="mb-5 flex items-center gap-2">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#00BA88] sm:text-[10px]">
@@ -341,7 +341,7 @@ export default function HelpCenterClient() {
           </nav>
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end lg:gap-16">
-            <div className="min-w-0">
+            <div className="min-w-0 w-full overflow-hidden">
               <h1 className="max-w-5xl text-[2.55rem] font-black leading-[1.03] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-5xl md:text-6xl lg:text-[3.7rem]">
                 How can we{" "}
                 <span className="text-[#00BA88]">
@@ -395,15 +395,15 @@ export default function HelpCenterClient() {
           </div>
         </header>
 
-        <section className="grid items-start gap-10 py-12 sm:py-14 md:py-20 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="w-full self-start lg:sticky lg:top-28 lg:z-20 lg:h-fit">
-            <div className="lg:hidden">
+        <section className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] items-start gap-10 py-12 sm:py-14 md:py-20 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="w-full min-w-0 max-w-full self-start lg:sticky lg:top-28 lg:z-20 lg:h-fit">
+            <div className="w-full min-w-0 max-w-full lg:hidden">
               <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">
                 Browse topics
               </p>
 
-              <div className="overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex w-max min-w-full gap-2 pr-1">
+              <div className="w-full min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-3 pr-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+                <div className="inline-flex min-w-max gap-2">
                   {CATEGORIES.map((item) => {
                     const isActive = category === item.id;
 
@@ -416,7 +416,7 @@ export default function HelpCenterClient() {
                           setOpenArticleId(null);
                         }}
                         className={cn(
-                          "shrink-0 whitespace-nowrap rounded-full border px-4 py-2.5 text-xs font-black transition-all duration-300",
+                          "shrink-0 snap-start whitespace-nowrap rounded-full border px-4 py-2.5 text-xs font-black transition-all duration-300",
                           isActive
                             ? "border-[#00BA88] bg-[#00BA88]/10 text-[#00BA88] shadow-sm shadow-[#00BA88]/10"
                             : "border-slate-200 bg-white text-slate-600 hover:border-[#00BA88] hover:text-[#00BA88] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
@@ -496,14 +496,14 @@ export default function HelpCenterClient() {
             </nav>
           </aside>
 
-          <div className="min-w-0">
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="w-full min-w-0 max-w-full overflow-visible">
+            <div className="mb-6 flex min-w-0 max-w-full flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00BA88]">
                   {activeCategory?.label || "Help articles"}
                 </p>
 
-                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white sm:text-3xl">
+                <h2 className="mt-2 max-w-full break-words text-2xl font-black tracking-[-0.03em] text-slate-950 [overflow-wrap:anywhere] dark:text-white sm:text-3xl">
                   {query
                     ? `Results for “${query.trim()}”`
                     : "Frequently asked questions"}
@@ -517,7 +517,7 @@ export default function HelpCenterClient() {
             </div>
 
             {filteredArticles.length > 0 ? (
-              <div className="border-t border-slate-200 dark:border-slate-800">
+              <div className="w-full min-w-0 max-w-full border-t border-slate-200 dark:border-slate-800">
                 {filteredArticles.map((article) => (
                   <ArticleRow
                     key={article.id}
