@@ -14,7 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getActiveAdvert } from "@/lib/queries/admin/adverts";
+import { useAdvertRotation } from "@/hooks/useAdvertRotation";
 
 interface MarketStatsProps {
   initialStats: any[];
@@ -142,7 +142,11 @@ function StatCard({
         <>
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all duration-300" />
           <div className="absolute top-2 left-2 md:top-3 md:left-3 z-20 rounded-full bg-white/90 dark:bg-slate-950/80 backdrop-blur px-2 py-1 md:px-2.5 md:py-1 text-[6px] md:text-[9px] font-black uppercase tracking-[0.12em] md:tracking-widest text-[#00BA88] whitespace-nowrap">
-            Promoted Ad
+            {advert?.disclosure ||
+              (advert?.provider ===
+              "internal"
+                ? "Promoted Ad"
+                : "Sponsored")}
           </div>
         </>
       )}
@@ -263,34 +267,14 @@ function StatCard({
 }
 
 export function MarketStats({ initialStats }: MarketStatsProps) {
-  const [homepageAd, setHomepageAd] = useState<any>(null);
-  const [homepageAdLoading, setHomepageAdLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadHomepageAd() {
-      try {
-        setHomepageAdLoading(true);
-        const res = await getActiveAdvert("homepage_stats_card");
-
-        if (!cancelled && res?.success) {
-          setHomepageAd(res.advert || null);
-        }
-      } catch (error) {
-        console.error("Failed to load homepage advert:", error);
-        if (!cancelled) setHomepageAd(null);
-      } finally {
-        if (!cancelled) setHomepageAdLoading(false);
-      }
-    }
-
-    loadHomepageAd();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const {
+    activeAdvert: homepageAd,
+    loading: homepageAdLoading,
+  } = useAdvertRotation({
+    placement:
+      "homepage_stats_card",
+    limit: 20,
+  });
 
   const iconMap: Record<string, any> = {
     "TOTAL MARKET CAP": Activity,
@@ -331,6 +315,11 @@ export function MarketStats({ initialStats }: MarketStatsProps) {
         ))}
 
         <StatCard
+          key={
+            homepageAd
+              ? `${homepageAd.provider}-${homepageAd.id}`
+              : "homepage-ad"
+          }
           index={displayStats.length}
           label="Promoted Ad"
           value={homepageAd?.title || "Grading"}

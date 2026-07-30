@@ -15,11 +15,15 @@ import {
   ShieldCheck,
   LayoutGrid,
   Activity,
+  BadgeDollarSign,
+  Link2,
+  RotateCw,
 } from "lucide-react";
 import {
   deleteAdvert,
   getAdminAdverts,
   saveAdvert,
+  syncTcgplayerAdverts,
 } from "@/lib/queries/admin/adverts";
 import CustomDropdown from "@/components/CustomDropdown";
 import MetricCard from "@/components/admin/MetricCard";
@@ -27,6 +31,8 @@ import { cn } from "@/lib/utils";
 
 const EMPTY_FORM = {
   id: 0,
+  provider: "internal",
+  external_id: "",
   placement: "homepage_stats_card",
   title: "",
   subtitle: "",
@@ -34,8 +40,10 @@ const EMPTY_FORM = {
   image_url: "",
   target_url: "",
   cta_label: "Learn More",
+  disclosure: "",
   status: "active",
   priority: 0,
+  weight: 1,
   starts_at: "",
   ends_at: "",
 };
@@ -52,6 +60,30 @@ const PLACEMENTS = [
     description: "Sponsored block on the right side of card details pages.",
   },
 ];
+
+
+const PROVIDERS = [
+  {
+    label: "CardMarketCap",
+    value: "internal",
+  },
+  {
+    label: "TCGplayer",
+    value: "tcgplayer",
+  },
+  {
+    label: "eBay",
+    value: "ebay",
+  },
+];
+
+function getProviderLabel(value: string) {
+  return (
+    PROVIDERS.find(
+      (item) => item.value === value
+    )?.label || value
+  );
+}
 
 function getPlacementLabel(value: string) {
   return PLACEMENTS.find((item) => item.value === value)?.label || value;
@@ -78,6 +110,7 @@ export default function AdminAdvertsPage() {
   const [placementFilter, setPlacementFilter] = useState("all");
 
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [advertsLoading, setAdvertsLoading] = useState(false);
   const [adminUserId, setAdminUserId] = useState(0);
 
@@ -121,7 +154,17 @@ export default function AdminAdvertsPage() {
       total: adverts.length,
       active: adverts.filter((item) => item.status === "active").length,
       homepage: adverts.filter((item) => item.placement === "homepage_stats_card").length,
-      details: adverts.filter((item) => item.placement === "card_details_sidebar").length,
+      details: adverts.filter(
+        (item) =>
+          item.placement ===
+          "card_details_sidebar"
+      ).length,
+      affiliate: adverts.filter(
+        (item) =>
+          item.provider &&
+          item.provider !==
+            "internal"
+      ).length,
     };
   }, [adverts]);
 
@@ -135,17 +178,53 @@ export default function AdminAdvertsPage() {
 
     setForm({
       id: Number(item.id || 0),
-      placement: item.placement || "homepage_stats_card",
+      provider: item.provider || "internal",
+      external_id:
+        item.external_id ||
+        item.externalId ||
+        "",
+      placement:
+        item.placement ||
+        "homepage_stats_card",
       title: item.title || "",
       subtitle: item.subtitle || "",
-      description: item.description || "",
-      image_url: item.image_url || item.imageUrl || "",
-      target_url: item.target_url || item.targetUrl || "",
-      cta_label: item.cta_label || item.ctaLabel || "Learn More",
-      status: item.status || "inactive",
-      priority: Number(item.priority || 0),
-      starts_at: toInputDateTime(item.starts_at),
-      ends_at: toInputDateTime(item.ends_at),
+      description:
+        item.description || "",
+      image_url:
+        item.image_url ||
+        item.imageUrl ||
+        "",
+      target_url:
+        item.target_url ||
+        item.targetUrl ||
+        "",
+      cta_label:
+        item.cta_label ||
+        item.ctaLabel ||
+        "Learn More",
+      disclosure:
+        item.disclosure ||
+        (item.provider &&
+        item.provider !== "internal"
+          ? "Sponsored"
+          : ""),
+      status:
+        item.status || "inactive",
+      priority: Number(
+        item.priority || 0
+      ),
+      weight: Math.max(
+        1,
+        Number(item.weight || 1)
+      ),
+      starts_at:
+        toInputDateTime(
+          item.starts_at
+        ),
+      ends_at:
+        toInputDateTime(
+          item.ends_at
+        ),
     });
   };
 
@@ -195,6 +274,67 @@ export default function AdminAdvertsPage() {
     }
   };
 
+
+  const handleSyncTcgplayer = async () => {
+    if (syncing) return;
+
+    setSyncing(true);
+
+    try {
+      const res =
+        await syncTcgplayerAdverts();
+
+      if (!res.success) {
+        alert(
+          res.message ||
+            "Failed to sync TCGplayer adverts."
+        );
+        return;
+      }
+
+      const stats = res.stats || {};
+      const usableCount =
+        Number(stats.inserted || 0) +
+        Number(stats.updated || 0) +
+        Number(stats.unchanged || 0);
+
+      /*
+       * A successful API request can still produce zero usable creatives.
+       * Treat that as an actionable sync problem instead of silently
+       * pretending the advert import succeeded.
+       */
+      if (
+        Number(stats.matched || 0) > 0 &&
+        usableCount === 0
+      ) {
+        alert(
+          "Impact was reached successfully, but none of the matched " +
+            "TCGplayer creatives contained a usable image and tracking URL. " +
+            "Please run the Impact advert diagnostic endpoint so we can map " +
+            "the exact fields returned by this account."
+        );
+        return;
+      }
+
+      /*
+       * No success popup. Refreshing the list is enough confirmation:
+       * newly imported/updated adverts appear automatically.
+       */
+      await loadAdverts();
+    } catch (error) {
+      console.error(
+        "TCGplayer sync error:",
+        error
+      );
+
+      alert(
+        "Failed to sync TCGplayer adverts."
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleFilterChange = async (label: string) => {
     const next =
       label === "All Placements"
@@ -232,6 +372,25 @@ export default function AdminAdvertsPage() {
             New Advert
           </button>
 
+          <button
+            onClick={handleSyncTcgplayer}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-[#00BA88]/50 hover:text-[#00BA88] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          >
+            {syncing ? (
+              <Loader2
+                size={14}
+                className="animate-spin"
+              />
+            ) : (
+              <RotateCw size={14} />
+            )}
+
+            {syncing
+              ? "Syncing..."
+              : "Sync TCGplayer"}
+          </button>
+
           <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00BA88]/5 dark:bg-[#00BA88]/10 text-[#00BA88] border border-[#00BA88]/10 text-xs font-bold">
             <ShieldCheck size={14} />
             <span>Admin Controlled Ads</span>
@@ -240,7 +399,7 @@ export default function AdminAdvertsPage() {
       </div>
 
       <section className="w-full overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-        <div className="flex md:grid md:grid-cols-4 gap-4 min-w-max md:min-w-0 pb-2">
+        <div className="flex md:grid md:grid-cols-5 gap-4 min-w-max md:min-w-0 pb-2">
           {[
             {
               label: "Total Adverts",
@@ -270,6 +429,13 @@ export default function AdminAdvertsPage() {
               icon: ImageIcon,
               color: "text-orange-600 bg-orange-50 dark:bg-orange-500/10",
             },
+            {
+              label: "Affiliate Ads",
+              value: String(stats.affiliate),
+              sub: "TCGplayer + eBay",
+              icon: BadgeDollarSign,
+              color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-500/10",
+            },
           ].map((metric, idx) => (
             <div
               key={metric.label}
@@ -288,12 +454,21 @@ export default function AdminAdvertsPage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <section className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:items-start">
         <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-[24px] md:rounded-[28px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
           <div className="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-black">Adverts</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-black">
+                    Adverts
+                  </h2>
+
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                    {adverts.length}
+                  </span>
+                </div>
+
                 <p className="text-[11px] text-slate-400 font-bold mt-0.5">
                   Active, inactive, and scheduled campaigns
                 </p>
@@ -316,22 +491,22 @@ export default function AdminAdvertsPage() {
             />
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[520px] xl:max-h-[720px] overflow-y-auto scrollbar-hide">
+          <div className="admin-advert-list divide-y divide-slate-100 dark:divide-slate-800 max-h-[720px] xl:max-h-[1188px] overflow-y-auto">
             {adverts.length > 0 ? (
               adverts.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleSelect(item)}
                   className={cn(
-                    "w-full text-left p-4 md:p-5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950 transition",
+                    "w-full text-left p-4 md:p-5 xl:h-[108px] xl:min-h-[108px] flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-950 transition",
                     selectedId === Number(item.id) && "bg-[#00BA88]/10"
                   )}
                 >
                   <div className="min-w-0 flex items-center gap-3">
                     <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
-                      {item.image_url ? (
+                      {item.image_url || item.imageUrl ? (
                         <img
-                          src={item.image_url}
+                          src={item.image_url || item.imageUrl}
                           alt={item.title}
                           className="h-full w-full object-cover"
                         />
@@ -349,9 +524,32 @@ export default function AdminAdvertsPage() {
                         {getPlacementLabel(item.placement)}
                       </p>
 
-                      <p className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase mt-1">
-                        Priority {item.priority || 0}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-[#00BA88]">
+                          {getProviderLabel(
+                            item.provider ||
+                              "internal"
+                          )}
+                        </span>
+
+                        {item.provider ===
+                          "tcgplayer" &&
+                        item.external_id ? (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-blue-500">
+                            Synced from Impact
+                          </span>
+                        ) : null}
+
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          Priority{" "}
+                          {item.priority || 0}
+                        </span>
+
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          Weight{" "}
+                          {item.weight || 1}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -386,7 +584,7 @@ export default function AdminAdvertsPage() {
                 <h2 className="text-sm font-black">Advert Configuration</h2>
 
                 <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                  Control placement, content, destination, schedule, and priority.
+                  Control provider, placement, creative, destination, schedule, and rotation weight.
                 </p>
               </div>
 
@@ -413,6 +611,34 @@ export default function AdminAdvertsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CustomDropdown
+                value={getProviderLabel(
+                  form.provider
+                )}
+                options={PROVIDERS.map(
+                  (item) => item.label
+                )}
+                onChange={(label) => {
+                  const provider =
+                    PROVIDERS.find(
+                      (item) =>
+                        item.label === label
+                    )?.value ||
+                    "internal";
+
+                  setForm({
+                    ...form,
+                    provider,
+                    disclosure:
+                      provider === "internal"
+                        ? ""
+                        : form.disclosure ||
+                          "Sponsored",
+                  });
+                }}
+                className="w-full md:w-full"
+              />
+
               <CustomDropdown
                 value={getPlacementLabel(form.placement)}
                 options={PLACEMENTS.map((item) => item.label)}
@@ -458,6 +684,44 @@ export default function AdminAdvertsPage() {
                 className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88]"
               />
 
+              <div className="relative">
+                <Link2
+                  size={14}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+
+                <input
+                  value={form.external_id}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      external_id:
+                        e.target.value,
+                    })
+                  }
+                  placeholder="External creative ID (optional)"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-bold outline-none focus:border-[#00BA88] dark:border-slate-800 dark:bg-slate-950"
+                />
+              </div>
+
+              <input
+                value={form.disclosure}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    disclosure:
+                      e.target.value,
+                  })
+                }
+                placeholder={
+                  form.provider ===
+                  "internal"
+                    ? "Disclosure (optional)"
+                    : "Disclosure e.g. Sponsored"
+                }
+                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-[#00BA88] dark:border-slate-800 dark:bg-slate-950"
+              />
+
               <input
                 value={form.image_url}
                 onChange={(e) => setForm({ ...form, image_url: e.target.value })}
@@ -479,15 +743,60 @@ export default function AdminAdvertsPage() {
                 className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88]"
               />
 
-              <input
-                type="number"
-                value={form.priority}
-                onChange={(e) =>
-                  setForm({ ...form, priority: Number(e.target.value || 0) })
-                }
-                placeholder="Priority"
-                className="h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:border-[#00BA88]"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1.5">
+                  <span className="flex items-center gap-1.5 px-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                    Priority
+                  </span>
+
+                  <input
+                    type="number"
+                    value={form.priority}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        priority: Number(
+                          e.target.value ||
+                            0
+                        ),
+                      })
+                    }
+                    min={0}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-[#00BA88] dark:border-slate-800 dark:bg-slate-950"
+                  />
+                </label>
+
+                <label className="space-y-1.5">
+                  <span className="flex items-center gap-1.5 px-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                    <RotateCw size={11} />
+                    Rotation Weight
+                  </span>
+
+                  <input
+                    type="number"
+                    value={form.weight}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        weight: Math.max(
+                          1,
+                          Math.min(
+                            10,
+                            Number(
+                              e.target
+                                .value ||
+                                1
+                            )
+                          )
+                        ),
+                      })
+                    }
+                    min={1}
+                    max={10}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-[#00BA88] dark:border-slate-800 dark:bg-slate-950"
+                  />
+                </label>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <input
@@ -503,6 +812,12 @@ export default function AdminAdvertsPage() {
                   onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
                   className="h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold outline-none focus:border-[#00BA88]"
                 />
+              </div>
+
+              <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+                <p className="text-[10px] font-bold leading-relaxed text-slate-500 dark:text-slate-400">
+                  Rotation weight controls frequency among adverts with the same placement. Use 1 for equal rotation, 2 to show this advert about twice as often, up to 10.
+                </p>
               </div>
 
               <textarea
@@ -551,10 +866,20 @@ export default function AdminAdvertsPage() {
             </div>
 
             <div className="max-w-md rounded-[2rem] border border-[#00BA88]/30 bg-[#00BA88]/5 dark:bg-[#00BA88]/10 p-6">
-              <div className="flex items-center gap-2 text-[#00BA88] mb-5">
+              <div className="flex items-center justify-between gap-3 text-[#00BA88] mb-5">
                 <Megaphone size={16} />
                 <span className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em]">
-                  Sponsored
+                  {form.disclosure ||
+                    (form.provider ===
+                    "internal"
+                      ? "Promotion"
+                      : "Sponsored")}
+                </span>
+
+                <span className="rounded-full bg-white/70 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                  {getProviderLabel(
+                    form.provider
+                  )}
                 </span>
               </div>
 
@@ -601,6 +926,29 @@ export default function AdminAdvertsPage() {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+
+        .admin-advert-list {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148, 163, 184, 0.42) transparent;
+          overscroll-behavior: contain;
+        }
+
+        .admin-advert-list::-webkit-scrollbar {
+          width: 7px;
+        }
+
+        .admin-advert-list::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .admin-advert-list::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.34);
+          border-radius: 999px;
+        }
+
+        .admin-advert-list::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 186, 136, 0.55);
         }
       `}</style>
     </div>

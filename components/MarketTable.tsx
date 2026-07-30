@@ -15,12 +15,10 @@ import {
   motion,
 } from "framer-motion";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ExternalLink,
   Inbox,
   Loader2,
   Search,
@@ -28,10 +26,11 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getCardPurchaseLinks } from "@/lib/affiliate-links";
+import BuyOptionsModal from "@/components/BuyOptionsModal";
 import { fetchUniversalSearch } from "@/lib/queries/search";
 
 const SEARCH_DEBOUNCE_MS = 400;
+const DEFAULT_PAGE_SIZE = 100;
 const PLACEHOLDER_IMAGE =
   "https://pokecollectorhub.com/assets/placeholder.png";
 
@@ -40,6 +39,8 @@ interface MarketTableProps {
   totalRecords?: number;
   totalPages?: number;
   currentPage?: number;
+  pageSize?: number;
+  recordOffset?: number;
 }
 
 const safeParseNumber = (
@@ -123,160 +124,10 @@ const getCardClassification = (card: any): string => {
   return "Standard";
 };
 
-const BuyDropdown = ({
-  card,
-}: {
-  card: any;
-}) => {
-  const [isOpen, setIsOpen] =
-    useState(false);
-
-  const containerRef =
-    useRef<HTMLDivElement>(null);
-
-  const links =
-    getCardPurchaseLinks(card);
-
-  useEffect(() => {
-    const handleClickOutside = (
-      event: MouseEvent
-    ) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(
-          event.target as Node
-        )
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-    };
-  }, []);
-
-  if (!links.length) {
-    return (
-      <button
-        type="button"
-        disabled
-        onClick={(event) =>
-          event.stopPropagation()
-        }
-        className="relative z-10 mx-auto cursor-not-allowed rounded-lg border-2 border-slate-300 px-4 py-1.5 text-[9px] font-black uppercase text-slate-400 md:rounded-xl md:px-6 md:py-2 md:text-xs"
-      >
-        Buy
-      </button>
-    );
-  }
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative inline-flex"
-    >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-
-          if (links.length === 1) {
-            window.open(
-              links[0].url,
-              "_blank",
-              "noopener,noreferrer"
-            );
-
-            return;
-          }
-
-          setIsOpen(
-            (previous) => !previous
-          );
-        }}
-        className="relative z-10 mx-auto flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-[#00BA88] px-4 py-1.5 text-[9px] font-black uppercase text-[#00BA88] transition-all hover:bg-[#00BA88] hover:text-white md:rounded-xl md:px-6 md:py-2 md:text-xs"
-      >
-        Buy
-
-        {links.length > 1 && (
-          <ChevronDown size={13} />
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isOpen && links.length > 1 && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 4,
-              scale: 0.98,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-            }}
-            exit={{
-              opacity: 0,
-              y: 4,
-              scale: 0.98,
-            }}
-            transition={{
-              duration: 0.12,
-            }}
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-            className="absolute right-0 top-full z-[200] mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="p-1">
-              {links.map(
-                (link: any) => (
-                  <button
-                    key={
-                      link.marketplace
-                    }
-                    type="button"
-                    onClick={() => {
-                      window.open(
-                        link.url,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-
-                      setIsOpen(false);
-                    }}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-black text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    {link.label}
-
-                    <ExternalLink
-                      size={12}
-                    />
-                  </button>
-                )
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
 const TableSkeleton = () => (
   <>
     {Array.from({
-      length: 8,
+      length: 12,
     }).map((_, index) => (
       <tr
         key={index}
@@ -335,6 +186,8 @@ export function MarketTable({
   totalRecords = 0,
   totalPages = 0,
   currentPage = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  recordOffset,
 }: MarketTableProps) {
   const router = useRouter();
   const searchParams =
@@ -377,9 +230,40 @@ export function MarketTable({
     setIsSearchFocused,
   ] = useState(false);
 
+  const [
+    purchaseCard,
+    setPurchaseCard,
+  ] = useState<any | null>(null);
+
   const currentGrade =
     searchParams.get("grade") ||
     "psa 10";
+
+  const normalizedPageSize =
+    Number.isFinite(pageSize) &&
+    pageSize > 0
+      ? Math.floor(pageSize)
+      : DEFAULT_PAGE_SIZE;
+
+  const effectiveTotalPages =
+    totalPages > 0
+      ? totalPages
+      : Math.max(
+          1,
+          Math.ceil(
+            totalRecords /
+              normalizedPageSize
+          )
+        );
+
+  const effectiveRecordOffset =
+    Number.isFinite(recordOffset) &&
+    Number(recordOffset) >= 0
+      ? Math.floor(
+          Number(recordOffset)
+        )
+      : (currentPage - 1) *
+        normalizedPageSize;
 
   const normalizedSearchQuery =
     normalizeSearchText(searchQuery);
@@ -654,7 +538,7 @@ export function MarketTable({
     (page: number) => {
       if (
         page < 1 ||
-        page > totalPages ||
+        page > effectiveTotalPages ||
         isPageLoading
       ) {
         return;
@@ -683,7 +567,7 @@ export function MarketTable({
       isPageLoading,
       router,
       searchParams,
-      totalPages,
+      effectiveTotalPages,
     ]
   );
 
@@ -1006,14 +890,18 @@ export function MarketTable({
                             card
                           )
                         }
-                        className="group cursor-pointer transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                        style={{
+                          contentVisibility:
+                            "auto",
+                          containIntrinsicSize:
+                            "74px",
+                        }}
+                        className="group cursor-pointer transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
                       >
                         <td className="px-4 py-2 text-center text-[12px] font-bold text-slate-400 md:py-3 md:text-sm">
                           {isUniversalSearchActive
                             ? index + 1
-                            : (currentPage -
-                                1) *
-                                50 +
+                            : effectiveRecordOffset +
                               index +
                               1}
                         </td>
@@ -1109,9 +997,17 @@ export function MarketTable({
                         </td>
 
                         <td className="px-4 py-2 text-center md:py-7">
-                          <BuyDropdown
-                            card={card}
-                          />
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setPurchaseCard(card);
+                            }}
+                            className="relative z-10 mx-auto flex cursor-pointer items-center justify-center rounded-lg border-2 border-[#00BA88] px-4 py-1.5 text-[9px] font-black uppercase text-[#00BA88] transition-all hover:bg-[#00BA88] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#00BA88]/30 focus:ring-offset-2 dark:focus:ring-offset-slate-900 md:rounded-xl md:px-6 md:py-2 md:text-xs"
+                            aria-label={`Choose where to buy ${card.name || "this card"}`}
+                          >
+                            Buy
+                          </button>
                         </td>
                       </motion.tr>
                     );
@@ -1182,12 +1078,18 @@ export function MarketTable({
 
         {!isUniversalSearchActive &&
           initialCards.length > 0 &&
-          totalPages > 0 && (
+          effectiveTotalPages > 0 && (
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-950/20 md:p-6">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 md:text-xs">
-                Page {currentPage} /{" "}
-                {totalPages}
-              </p>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 md:text-xs">
+                  Page {currentPage} /{" "}
+                  {effectiveTotalPages}
+                </p>
+
+                <p className="mt-1 text-[8px] font-bold uppercase tracking-wider text-slate-300 dark:text-slate-600 md:text-[10px]">
+                  {normalizedPageSize} cards per page
+                </p>
+              </div>
 
               <div className="flex items-center gap-2 md:gap-3">
                 <button
@@ -1226,7 +1128,7 @@ export function MarketTable({
                   {Array.from({
                     length: Math.min(
                       5,
-                      totalPages
+                      effectiveTotalPages
                     ),
                   }).map(
                     (_, index) => {
@@ -1238,12 +1140,12 @@ export function MarketTable({
 
                       if (
                         startPage + 4 >
-                        totalPages
+                        effectiveTotalPages
                       ) {
                         startPage =
                           Math.max(
                             1,
-                            totalPages -
+                            effectiveTotalPages -
                               4
                           );
                       }
@@ -1254,7 +1156,7 @@ export function MarketTable({
 
                       if (
                         pageNumber >
-                        totalPages
+                        effectiveTotalPages
                       ) {
                         return null;
                       }
@@ -1292,7 +1194,7 @@ export function MarketTable({
                   type="button"
                   disabled={
                     currentPage >=
-                      totalPages ||
+                      effectiveTotalPages ||
                     isPageLoading
                   }
                   onClick={() =>
@@ -1310,12 +1212,12 @@ export function MarketTable({
                   type="button"
                   disabled={
                     currentPage >=
-                      totalPages ||
+                      effectiveTotalPages ||
                     isPageLoading
                   }
                   onClick={() =>
                     updatePage(
-                      totalPages
+                      effectiveTotalPages
                     )
                   }
                   className="cursor-pointer rounded-lg border border-slate-200 p-2 transition-all hover:bg-white disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-800 dark:hover:bg-slate-800"
@@ -1327,6 +1229,15 @@ export function MarketTable({
             </div>
           )}
       </div>
+
+      <BuyOptionsModal
+        card={purchaseCard}
+        open={Boolean(purchaseCard)}
+        onClose={() =>
+          setPurchaseCard(null)
+        }
+        placement="market_table"
+      />
 
       <div className="flex flex-wrap items-center gap-4 px-1 text-[9px] font-black uppercase tracking-widest text-slate-400 md:text-xs">
         <div className="flex items-center gap-1.5">
@@ -1340,6 +1251,26 @@ export function MarketTable({
             {displayedTotalRecords.toLocaleString()}
           </span>
         </div>
+
+        {!isUniversalSearchActive && (
+          <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4 dark:border-slate-800">
+            <span>Showing:</span>
+
+            <span className="font-black text-slate-900 dark:text-white">
+              {Math.min(
+                effectiveRecordOffset +
+                  1,
+                totalRecords
+              ).toLocaleString()}
+              {" – "}
+              {Math.min(
+                effectiveRecordOffset +
+                  initialCards.length,
+                totalRecords
+              ).toLocaleString()}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4 dark:border-slate-800">
           <span>Current Grade:</span>

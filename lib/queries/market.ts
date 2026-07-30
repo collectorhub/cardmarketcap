@@ -55,73 +55,372 @@ export async function fetchTrendingCards() {
 }
 
 export async function fetchCMCCards(
-  page = 1, 
-  search = "", 
-  sort = "top", 
-  category = "all", 
+  page = 1,
+  search = "",
+  sort = "top",
+  category = "all",
   grade = "psa 10",
-  game = "pokemon"
+  game = "pokemon",
+  limit = 100
 ) {
   try {
-    const baseUrl = `${API_BASE}/cmc_cards.php`;
-    const queryParams = new URLSearchParams({
-      game: game,
-      page: page.toString(),
-      search: search || "",
-      sort: sort || "top",
-      category: category || "all",
-      grade: grade || "psa 10"
-    });
+    const normalizedPage =
+      Number.isFinite(page) &&
+      page > 0
+        ? Math.floor(page)
+        : 1;
 
-    const response = await fetch(`${baseUrl}?${queryParams.toString()}`, {
-      next: { revalidate: 60, tags: ['cards'] } 
-    });
+    const normalizedLimit =
+      Number.isFinite(limit) &&
+      limit > 0
+        ? Math.min(
+            250,
+            Math.floor(limit)
+          )
+        : 100;
 
-    if (!response.ok) return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
-    
-    const result = await response.json();
-    if (!result.success) return { data: [], metadata: result.metadata || {} };
+    const offset =
+      (normalizedPage - 1) *
+      normalizedLimit;
 
-    const formattedData = result.data.map((card: any) => ({
-      ...card,
-      image: card.imageUrl || "https://pokecollectorhub.com/assets/placeholder.png",
-      
-      // ✨ SAFELY CAPTURE CANONICAL ROUTE FROM THE UPDATED PHP PAYLOAD
-      canonicalUrl: card.canonical_path || card.canonicalUrl || "",
-      
-      // EXPLICIT RARITY FETCHING
-      rarity: card.rarity || card.type || "Standard", 
-      
-      // EXPANSION ASSETS
-      setLogo: card.setLogo || null,
-      setSymbol: card.setSymbol || null,
+    const baseUrl =
+      `${API_BASE}/cmc_cards.php`;
 
-      // ✨ ROBUST NUMBER PARSING (Stripping commas globally from prices to handle values > $999.99)
-      priceNum: parseFloat(String(card.price || "0").replace(/[$,]/g, '') || "0"),
-      popTotalNum: parseInt(String(card.popTotal || "0").replace(/,/g, '') || "0"),
-      gradeCountNum: parseInt(String(card.gradeCount || "0").replace(/,/g, '') || "0"),
-      marketCapNum: parseFloat(String(card.marketCap || "0").replace(/[$,]/g, '') || "0"),
-      
-      // 📊 NEW TRANSACTION AND METRIC FIELD PARSING MAP
-      sales30dNum: parseInt(String(card.sales30d || "0").replace(/,/g, '') || "0"),
-      sales90dNum: parseInt(String(card.sales90d || "0").replace(/,/g, '') || "0"),
-      avgPrice30dNum: parseFloat(String(card.avgPrice30d || "0").replace(/[$,]/g, '') || "0"),
-      avgPrice90dNum: parseFloat(String(card.avgPrice90d || "0").replace(/[$,]/g, '') || "0"),
-      liquidityScoreNum: parseFloat(String(card.liquidityScore || "0").replace(/,/g, '') || "0"),
+    const queryParams =
+      new URLSearchParams({
+        game,
+        page:
+          normalizedPage.toString(),
+        search: search || "",
+        sort: sort || "top",
+        category:
+          category || "all",
+        grade:
+          grade || "psa 10",
 
-      // Backward fallback structural fields matching old properties to keep your rendering intact
-      change7dNum: parseFloat(String(card.change_7d || card.change || "0").replace(/[%\s]/g, '') || "0"),
-      change30dNum: parseFloat(String(card.change_30d || "0").replace(/[%\s]/g, '') || "0"),
+        /*
+         * Send both common names so the request remains compatible
+         * with either backend convention.
+         */
+        limit:
+          normalizedLimit.toString(),
+        per_page:
+          normalizedLimit.toString(),
+        offset:
+          offset.toString(),
+      });
 
-      // 🎯 FULL PSA POPULATION PASS THROUGH
-      fullPsaPop: card.full_psa_pop || result.full_psa_pop || null
-    }));
+    const response =
+      await fetch(
+        `${baseUrl}?${queryParams.toString()}`,
+        {
+          next: {
+            revalidate: 60,
+            tags: ["cards"],
+          },
+        }
+      );
 
-    // Note: result.metadata naturally contains the new set_summary object now
-    return { data: formattedData, metadata: result.metadata };
+    if (!response.ok) {
+      return {
+        data: [],
+        metadata: {
+          total_records: 0,
+          total_pages: 0,
+          current_page:
+            normalizedPage,
+          per_page:
+            normalizedLimit,
+          limit:
+            normalizedLimit,
+          offset,
+        },
+      };
+    }
+
+    const result =
+      await response.json();
+
+    if (
+      !result.success ||
+      !Array.isArray(
+        result.data
+      )
+    ) {
+      return {
+        data: [],
+        metadata: {
+          ...(result.metadata ||
+            {}),
+          current_page:
+            normalizedPage,
+          per_page:
+            normalizedLimit,
+          limit:
+            normalizedLimit,
+          offset,
+        },
+      };
+    }
+
+    const formattedData =
+      result.data.map(
+        (card: any) => ({
+          ...card,
+
+          image:
+            card.imageUrl ||
+            "https://pokecollectorhub.com/assets/placeholder.png",
+
+          canonicalUrl:
+            card.canonical_path ||
+            card.canonicalUrl ||
+            "",
+
+          rarity:
+            card.rarity ||
+            card.type ||
+            "Standard",
+
+          setLogo:
+            card.setLogo ||
+            null,
+
+          setSymbol:
+            card.setSymbol ||
+            null,
+
+          priceNum:
+            parseFloat(
+              String(
+                card.price ||
+                  "0"
+              ).replace(
+                /[$,]/g,
+                ""
+              ) || "0"
+            ),
+
+          popTotalNum:
+            parseInt(
+              String(
+                card.popTotal ||
+                  "0"
+              ).replace(
+                /,/g,
+                ""
+              ) || "0"
+            ),
+
+          gradeCountNum:
+            parseInt(
+              String(
+                card.gradeCount ||
+                  "0"
+              ).replace(
+                /,/g,
+                ""
+              ) || "0"
+            ),
+
+          marketCapNum:
+            parseFloat(
+              String(
+                card.marketCap ||
+                  "0"
+              ).replace(
+                /[$,]/g,
+                ""
+              ) || "0"
+            ),
+
+          sales30dNum:
+            parseInt(
+              String(
+                card.sales30d ||
+                  "0"
+              ).replace(
+                /,/g,
+                ""
+              ) || "0"
+            ),
+
+          sales90dNum:
+            parseInt(
+              String(
+                card.sales90d ||
+                  "0"
+              ).replace(
+                /,/g,
+                ""
+              ) || "0"
+            ),
+
+          avgPrice30dNum:
+            parseFloat(
+              String(
+                card.avgPrice30d ||
+                  "0"
+              ).replace(
+                /[$,]/g,
+                ""
+              ) || "0"
+            ),
+
+          avgPrice90dNum:
+            parseFloat(
+              String(
+                card.avgPrice90d ||
+                  "0"
+              ).replace(
+                /[$,]/g,
+                ""
+              ) || "0"
+            ),
+
+          liquidityScoreNum:
+            parseFloat(
+              String(
+                card.liquidityScore ||
+                  "0"
+              ).replace(
+                /,/g,
+                ""
+              ) || "0"
+            ),
+
+          change7dNum:
+            parseFloat(
+              String(
+                card.change_7d ||
+                  card.change ||
+                  "0"
+              ).replace(
+                /[%\s]/g,
+                ""
+              ) || "0"
+            ),
+
+          change30dNum:
+            parseFloat(
+              String(
+                card.change_30d ||
+                  "0"
+              ).replace(
+                /[%\s]/g,
+                ""
+              ) || "0"
+            ),
+
+          fullPsaPop:
+            card.full_psa_pop ||
+            result.full_psa_pop ||
+            null,
+        })
+      );
+
+    const backendMetadata =
+      result.metadata || {};
+
+    const backendLimit =
+      Number(
+        backendMetadata.per_page ??
+          backendMetadata.page_size ??
+          backendMetadata.limit
+      );
+
+    const resolvedLimit =
+      Number.isFinite(
+        backendLimit
+      ) &&
+      backendLimit > 0
+        ? Math.floor(
+            backendLimit
+          )
+        : normalizedLimit;
+
+    const backendOffset =
+      Number(
+        backendMetadata.offset
+      );
+
+    const resolvedOffset =
+      Number.isFinite(
+        backendOffset
+      ) &&
+      backendOffset >= 0
+        ? Math.floor(
+            backendOffset
+          )
+        : (normalizedPage - 1) *
+          resolvedLimit;
+
+    const totalRecords =
+      Number(
+        backendMetadata.total_records ||
+          0
+      );
+
+    const totalPages =
+      Number(
+        backendMetadata.total_pages
+      );
+
+    return {
+      data: formattedData,
+      metadata: {
+        ...backendMetadata,
+        current_page:
+          normalizedPage,
+        per_page:
+          resolvedLimit,
+        page_size:
+          resolvedLimit,
+        limit:
+          resolvedLimit,
+        offset:
+          resolvedOffset,
+        total_pages:
+          Number.isFinite(
+            totalPages
+          ) &&
+          totalPages > 0
+            ? Math.floor(
+                totalPages
+              )
+            : totalRecords > 0
+              ? Math.ceil(
+                  totalRecords /
+                    resolvedLimit
+                )
+              : 0,
+      },
+    };
   } catch (error) {
-    console.error("Fetch error:", error);
-    return { data: [], metadata: { total_records: 0, total_pages: 0, current_page: 1 } };
+    console.error(
+      "Fetch error:",
+      error
+    );
+
+    return {
+      data: [],
+      metadata: {
+        total_records: 0,
+        total_pages: 0,
+        current_page:
+          page,
+        per_page:
+          limit,
+        limit,
+        offset:
+          (Math.max(
+            1,
+            page
+          ) -
+            1) *
+          limit,
+      },
+    };
   }
 }
 
