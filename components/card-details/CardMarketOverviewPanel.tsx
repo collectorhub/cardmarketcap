@@ -1,10 +1,15 @@
 "use client";
 
 import React, {
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -60,7 +65,9 @@ function ChartSummary({
           positive === true &&
             "text-emerald-500 dark:text-emerald-400",
           positive === false &&
-            "text-rose-500 dark:text-rose-400"
+            "text-rose-500 dark:text-rose-400",
+          align === "center" &&
+            "text-[14px] md:text-[15px]"
         )}
       >
         {value}
@@ -119,6 +126,85 @@ export default function CardMarketOverviewPanel({
     value === ""
       ? fallback
       : String(value);
+
+  const gradeScrollerRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+  const [
+    gradeScrollState,
+    setGradeScrollState,
+  ] = useState({
+    canLeft: false,
+    canRight: false,
+  });
+
+  useEffect(() => {
+    const node =
+      gradeScrollerRef.current;
+
+    if (!node) return;
+
+    const update = () => {
+      setGradeScrollState({
+        canLeft:
+          node.scrollLeft > 4,
+        canRight:
+          node.scrollLeft +
+            node.clientWidth <
+          node.scrollWidth - 4,
+      });
+    };
+
+    update();
+    node.addEventListener(
+      "scroll",
+      update,
+      { passive: true }
+    );
+    window.addEventListener(
+      "resize",
+      update
+    );
+
+    return () => {
+      node.removeEventListener(
+        "scroll",
+        update
+      );
+      window.removeEventListener(
+        "resize",
+        update
+      );
+    };
+  }, [grades]);
+
+  const scrollGrades =
+    (
+      direction:
+        | "left"
+        | "right"
+    ) => {
+      const node =
+        gradeScrollerRef.current;
+
+      if (!node) return;
+
+      const distance =
+        Math.max(
+          180,
+          node.clientWidth * 0.62
+        );
+
+      node.scrollBy({
+        left:
+          direction === "right"
+            ? distance
+            : -distance,
+        behavior: "smooth",
+      });
+    };
 
   const axis = useMemo(() => {
     if (!chartData.length) {
@@ -239,31 +325,74 @@ export default function CardMarketOverviewPanel({
           </span>
         </div>
 
-        <div className="cmc-tab-scroll mt-5 overflow-x-auto rounded-[15px] border border-slate-200/80 bg-[#f8fafc] p-1 dark:border-white/5 dark:bg-white/[0.03]">
-          <div className="flex min-w-max gap-1">
-            {grades.map(
-              (grade) => (
-                <button
-                  key={grade}
-                  type="button"
-                  onClick={() =>
-                    onGradeChange(
-                      grade
-                    )
-                  }
-                  className={cn(
-                    "min-w-[66px] rounded-[11px] px-3 py-2.5 text-[9px] font-black uppercase transition",
-                    selectedGrade ===
-                      grade
-                      ? "bg-white text-[#00BA88] ring-1 ring-slate-200/90 dark:bg-slate-800 dark:ring-white/10"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  {grade}
-                </button>
-              )
-            )}
+        <div className="relative mt-5">
+          <div
+            ref={gradeScrollerRef}
+            className="cmc-tab-scroll overflow-x-auto rounded-[15px] border border-slate-200/80 bg-[#f8fafc] px-1 py-1 dark:border-white/5 dark:bg-white/[0.03]"
+          >
+            <div className="flex min-w-max items-center gap-1">
+              {grades.map(
+                (grade) => (
+                  <button
+                    key={grade}
+                    type="button"
+                    onClick={() =>
+                      onGradeChange(
+                        grade
+                      )
+                    }
+                    className={cn(
+                      "min-w-[66px] rounded-[11px] px-3 py-2.5 text-[9px] font-black uppercase transition",
+                      selectedGrade ===
+                        grade
+                        ? "bg-white text-[#00BA88] ring-1 ring-slate-200/90 dark:bg-slate-800 dark:ring-white/10"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    )}
+                  >
+                    {grade}
+                  </button>
+                )
+              )}
+            </div>
           </div>
+
+          {gradeScrollState.canLeft ? (
+            <>
+              <div className="pointer-events-none absolute inset-y-[1px] left-[1px] w-11 rounded-l-[14px] bg-gradient-to-r from-[#f8fafc] via-[#f8fafc]/96 to-transparent dark:from-slate-900 dark:via-slate-900/96" />
+
+              <button
+                type="button"
+                onClick={() =>
+                  scrollGrades(
+                    "left"
+                  )
+                }
+                className="absolute inset-y-[1px] left-[1px] z-10 flex w-9 items-center justify-center rounded-l-[14px] rounded-r-[9px] border-r border-slate-200/80 bg-white/95 text-slate-500 shadow-[6px_0_12px_-10px_rgba(15,23,42,0.45)] transition-colors hover:bg-slate-50 hover:text-[#00BA88] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#00BA88]/30 dark:border-white/10 dark:bg-slate-800/95 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-[#00E0A4]"
+                aria-label="Show previous PSA grades"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : null}
+
+          {gradeScrollState.canRight ? (
+            <>
+              <div className="pointer-events-none absolute inset-y-[1px] right-[1px] w-11 rounded-r-[14px] bg-gradient-to-l from-[#f8fafc] via-[#f8fafc]/96 to-transparent dark:from-slate-900 dark:via-slate-900/96" />
+
+              <button
+                type="button"
+                onClick={() =>
+                  scrollGrades(
+                    "right"
+                  )
+                }
+                className="absolute inset-y-[1px] right-[1px] z-10 flex w-9 items-center justify-center rounded-r-[14px] rounded-l-[9px] border-l border-slate-200/80 bg-white/95 text-slate-500 shadow-[-6px_0_12px_-10px_rgba(15,23,42,0.45)] transition-colors hover:bg-slate-50 hover:text-[#00BA88] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#00BA88]/30 dark:border-white/10 dark:bg-slate-800/95 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-[#00E0A4]"
+                aria-label="Show more PSA grades"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </>
+          ) : null}
         </div>
       </header>
 
@@ -299,7 +428,7 @@ export default function CardMarketOverviewPanel({
             </div>
           </div>
 
-          <div className="cmc-tab-scroll flex max-w-full gap-1 overflow-x-auto rounded-xl bg-slate-100/90 p-1 dark:bg-white/5">
+          <div className="cmc-tab-scroll flex max-w-full gap-1.5 overflow-x-auto rounded-xl bg-slate-100/80 p-[3px] dark:bg-white/5">
             {timeframes.map(
               (timeframe) => (
                 <button
@@ -311,7 +440,7 @@ export default function CardMarketOverviewPanel({
                     )
                   }
                   className={cn(
-                    "shrink-0 rounded-lg px-3 py-2 text-[9px] font-black uppercase transition",
+                    "shrink-0 rounded-[9px] px-3 py-[7px] text-[8px] font-black uppercase leading-none transition",
                     selectedTimeframe ===
                       timeframe
                       ? "bg-[#00BA88] text-white"

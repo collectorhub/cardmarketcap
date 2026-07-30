@@ -15,6 +15,8 @@ import {
   Clock,
   Trash2,
   Loader2,
+  ArrowUpRight,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetCard } from "@/components/sets/AssetCard";
@@ -55,6 +57,207 @@ const LoadingGrid = () => (
   </div>
 );
 
+
+type SearchPageAdvert = {
+  id?: number | string;
+  provider?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  disclosure?: string;
+  image_url?: string;
+  imageUrl?: string;
+  target_url?: string;
+  targetUrl?: string;
+  cta_label?: string;
+  ctaLabel?: string;
+};
+
+type AdvertApiResponse = {
+  success?: boolean;
+  advert?: SearchPageAdvert | null;
+  adverts?: SearchPageAdvert[];
+  rotationInterval?: number;
+  rotation_interval?: number;
+};
+
+const ADVERT_PRIMARY_PLACEMENT =
+  "card_search_bottom";
+
+const ADVERT_FALLBACK_PLACEMENT =
+  "homepage_stats_card";
+
+const DEFAULT_AD_ROTATION_MS = 10000;
+
+function normalizeAdvertList(
+  payload: AdvertApiResponse
+): SearchPageAdvert[] {
+  const candidates = Array.isArray(
+    payload?.adverts
+  )
+    ? payload.adverts
+    : payload?.advert
+      ? [payload.advert]
+      : [];
+
+  const seen = new Set<string>();
+
+  return candidates.filter((advert) => {
+    if (!advert) return false;
+
+    const image =
+      advert.image_url ||
+      advert.imageUrl ||
+      "";
+
+    const target =
+      advert.target_url ||
+      advert.targetUrl ||
+      "";
+
+    if (!image && !target) {
+      return false;
+    }
+
+    const identity = String(
+      advert.id ||
+        `${advert.title || ""}-${image}-${target}`
+    );
+
+    if (seen.has(identity)) {
+      return false;
+    }
+
+    seen.add(identity);
+    return true;
+  });
+}
+
+function SearchBottomAdvert({
+  advert,
+  isLoading,
+}: {
+  advert: SearchPageAdvert | null;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <section
+        aria-label="Loading sponsored promotion"
+        className="mx-4 mt-8 overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-3 dark:border-white/10 dark:bg-slate-950 md:mx-0"
+      >
+        <Skeleton className="h-[150px] w-full rounded-[16px] md:h-[180px]" />
+      </section>
+    );
+  }
+
+  if (!advert) {
+    return null;
+  }
+
+  const image =
+    advert.image_url ||
+    advert.imageUrl ||
+    "";
+
+  const targetUrl =
+    advert.target_url ||
+    advert.targetUrl ||
+    "";
+
+  const title =
+    advert.title ||
+    "Featured marketplace promotion";
+
+  const subtitle =
+    advert.subtitle ||
+    advert.description ||
+    "";
+
+  const provider =
+    advert.provider &&
+    advert.provider !== "internal"
+      ? advert.provider
+      : "Partner";
+
+  const cta =
+    advert.cta_label ||
+    advert.ctaLabel ||
+    "Explore offer";
+
+  const content = (
+    <>
+      {image ? (
+        <img
+          src={image}
+          alt={title}
+          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.015]"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(0,186,136,0.32),transparent_40%),linear-gradient(110deg,#06111f_0%,#0c2732_55%,#064e3b_100%)]" />
+      )}
+
+      <div className="absolute inset-0 bg-gradient-to-r from-[#020b16]/95 via-[#020b16]/72 to-[#020b16]/15" />
+
+      <div className="relative z-10 flex h-full max-w-3xl flex-col justify-center px-5 py-7 text-left md:px-9 md:py-9">
+        <div className="mb-4 flex items-center gap-2 text-[#29e0ad]">
+          <Megaphone
+            size={15}
+            strokeWidth={2.5}
+          />
+
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] md:text-[10px]">
+            Sponsored
+          </span>
+
+          <span className="h-1 w-1 rounded-full bg-white/35" />
+
+          <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/60 md:text-[10px]">
+            {provider}
+          </span>
+        </div>
+
+        <h2 className="max-w-2xl text-xl font-black leading-tight tracking-tight text-white md:text-3xl">
+          {title}
+        </h2>
+
+        {subtitle ? (
+          <p className="mt-2.5 line-clamp-2 max-w-2xl text-xs font-medium leading-relaxed text-white/72 md:text-sm">
+            {subtitle}
+          </p>
+        ) : null}
+
+        <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-xl bg-[#00BA88] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-white shadow-lg shadow-[#00BA88]/15 transition-colors group-hover:bg-[#00a978] md:text-[11px]">
+          {cta}
+          <ArrowUpRight size={14} />
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <section
+      aria-label="Sponsored marketplace promotion"
+      className="mx-4 mt-8 md:mx-0"
+    >
+      {targetUrl ? (
+        <a
+          href={targetUrl}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className="group relative block h-[180px] overflow-hidden rounded-[22px] border border-[#00BA88]/25 bg-[#06111f] outline-none transition hover:border-[#00BA88]/55 focus-visible:ring-2 focus-visible:ring-[#00BA88]/35 md:h-[220px]"
+        >
+          {content}
+        </a>
+      ) : (
+        <div className="group relative block h-[180px] overflow-hidden rounded-[22px] border border-[#00BA88]/25 bg-[#06111f] md:h-[220px]">
+          {content}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function CardSearch() {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>("pokemon");
@@ -71,6 +274,13 @@ export default function CardSearch() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [bottomAdverts, setBottomAdverts] = useState<SearchPageAdvert[]>([]);
+  const [activeBottomAdvertIndex, setActiveBottomAdvertIndex] = useState(0);
+  const [isBottomAdvertLoading, setIsBottomAdvertLoading] = useState(true);
+  const [bottomAdvertRotationMs, setBottomAdvertRotationMs] = useState(
+    DEFAULT_AD_ROTATION_MS
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
@@ -337,6 +547,143 @@ export default function CardSearch() {
 
     return () => clearTimeout(timer);
   }, [query, selectedCategory, performSearch]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function requestPlacement(
+      placement: string
+    ): Promise<AdvertApiResponse | null> {
+      const apiBase =
+        process.env
+          .NEXT_PUBLIC_API_BASE_URL;
+
+      if (!apiBase) {
+        return null;
+      }
+
+      try {
+        const response = await fetch(
+          `${apiBase}/adverts.php?placement=${encodeURIComponent(
+            placement
+          )}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          return null;
+        }
+
+        return (await response.json()) as AdvertApiResponse;
+      } catch (error) {
+        console.error(
+          `Failed to load ${placement} adverts:`,
+          error
+        );
+
+        return null;
+      }
+    }
+
+    async function loadBottomAdverts() {
+      setIsBottomAdvertLoading(true);
+
+      const primaryPayload =
+        await requestPlacement(
+          ADVERT_PRIMARY_PLACEMENT
+        );
+
+      let payload =
+        primaryPayload;
+
+      let adverts =
+        primaryPayload
+          ? normalizeAdvertList(
+              primaryPayload
+            )
+          : [];
+
+      /*
+       * The fallback makes this deployable immediately with the
+       * existing advert inventory. Once `card_search_bottom` is
+       * configured in the admin/backend, it takes precedence.
+       */
+      if (adverts.length === 0) {
+        payload =
+          await requestPlacement(
+            ADVERT_FALLBACK_PLACEMENT
+          );
+
+        adverts = payload
+          ? normalizeAdvertList(
+              payload
+            )
+          : [];
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      const requestedRotation =
+        Number(
+          payload?.rotationInterval ??
+            payload?.rotation_interval
+        );
+
+      setBottomAdvertRotationMs(
+        Number.isFinite(
+          requestedRotation
+        ) &&
+          requestedRotation >= 4000
+          ? requestedRotation
+          : DEFAULT_AD_ROTATION_MS
+      );
+
+      setBottomAdverts(adverts);
+      setActiveBottomAdvertIndex(0);
+      setIsBottomAdvertLoading(false);
+    }
+
+    loadBottomAdverts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      bottomAdverts.length <= 1
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setInterval(() => {
+        setActiveBottomAdvertIndex(
+          (current) =>
+            (current + 1) %
+            bottomAdverts.length
+        );
+      }, bottomAdvertRotationMs);
+
+    return () =>
+      window.clearInterval(
+        timer
+      );
+  }, [
+    bottomAdverts.length,
+    bottomAdvertRotationMs,
+  ]);
+
+  const activeBottomAdvert =
+    bottomAdverts[
+      activeBottomAdvertIndex
+    ] || null;
 
   const toggleCategory = (cat: any) => {
     if (cat.isComingSoon) return;
@@ -662,6 +1009,11 @@ export default function CardSearch() {
           )}
         </section>
       )}
+
+      <SearchBottomAdvert
+        advert={activeBottomAdvert}
+        isLoading={isBottomAdvertLoading}
+      />
     </div>
   );
 }

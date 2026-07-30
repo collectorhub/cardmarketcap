@@ -506,8 +506,8 @@ export default function Navbar() {
       </div>
 
       {/* DESKTOP HEADER */}
-      <header className="hidden md:flex sticky top-0 z-40 w-full items-center border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl px-8 py-3 transition-all duration-300">
-        <div className="flex w-full items-center justify-between max-w-[1600px] mx-auto">
+      <header className="sticky top-0 z-40 hidden w-full items-center border-b border-slate-200 bg-white/80 px-6 py-3 backdrop-blur-xl transition-all duration-300 dark:border-slate-800 dark:bg-slate-950/80 md:flex">
+        <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative h-10 w-10 flex-shrink-0">

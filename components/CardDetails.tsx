@@ -15,6 +15,7 @@ import Sidebar from "./Sidebar";
 import { useAdvertRotation } from "@/hooks/useAdvertRotation";
 import MarketSuggestions from "@/components/card-details/MarketSuggestions";
 import SponsoredAdvert from "@/components/card-details/SponsoredAdvert";
+import BottomSponsoredAdvert from "@/components/card-details/BottomSponsoredAdvert";
 import CardDetailsTopBar from "@/components/card-details/CardDetailsTopBar";
 import CardMediaPanel from "@/components/card-details/CardMediaPanel";
 import AssetSpecifications from "@/components/card-details/AssetSpecifications";
@@ -943,12 +944,12 @@ export default function CardDetails({
           "Basic"
       ),
     ],
-    [
-      "HP",
-      cleanDisplay(
-        card.hp
-      ),
-    ],
+    // [
+    //   "HP",
+    //   cleanDisplay(
+    //     card.hp
+    //   ),
+    // ],
     [
       "Artist",
       cleanDisplay(
@@ -1252,7 +1253,7 @@ export default function CardDetails({
     );
 
   return (
-    <div className="min-h-screen bg-white text-slate-950 dark:bg-[#020617] dark:text-slate-100 lg:h-screen lg:overflow-hidden">
+    <div className="min-h-screen bg-white text-slate-950 dark:bg-[#020617] dark:text-slate-100">
       <Navbar />
 
       <div className="lg:hidden">
@@ -1266,9 +1267,9 @@ export default function CardDetails({
         onBack={handleBack}
       />
 
-      <main className="mx-auto w-full max-w-[1540px] px-4 py-5 md:px-6 md:py-6 lg:h-[calc(100dvh-126px)] lg:min-h-0 lg:overflow-hidden lg:px-8 lg:pb-4">
-        <div className="grid grid-cols-1 gap-5 lg:h-full lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
-          <aside className="cmc-column-scroll space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+      <main className="mx-auto w-full max-w-[1540px] px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:pb-8">
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
+          <aside className="cmc-column-scroll space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:pr-1">
             <CardMediaPanel
               cardImage={cardImage}
               cardName={cardName}
@@ -1284,7 +1285,7 @@ export default function CardDetails({
             />
           </aside>
 
-          <section className="cmc-column-scroll min-w-0 space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:px-1">
+          <section className="cmc-column-scroll min-w-0 space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:px-1">
             <CardMarketOverviewPanel
               card={card}
               cardName={cardName}
@@ -1357,7 +1358,7 @@ export default function CardDetails({
             />
           </section>
 
-          <aside className="cmc-column-scroll space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pl-1">
+          <aside className="cmc-column-scroll space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:pl-1">
             <SponsoredAdvert
               advert={activeAd}
               loading={sidebarAdLoading}
@@ -1377,6 +1378,12 @@ export default function CardDetails({
             />
           </aside>
         </div>
+
+        <BottomSponsoredAdvert
+          advert={activeAd}
+          loading={sidebarAdLoading}
+          onClick={handleAdClick}
+        />
       </main>
 
       <style jsx global>{`
@@ -1396,6 +1403,7 @@ export default function CardDetails({
         @media (min-width: 1024px) {
           .cmc-column-scroll {
             padding-bottom: 12px;
+            overscroll-behavior-y: auto;
           }
         }
       `}</style>

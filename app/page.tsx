@@ -1,17 +1,21 @@
 // app/page.tsx
-import { Footer } from "@/components/Footer";
 import { MarketStats } from "@/components/MarketStats";
 import { MarketTable } from "@/components/MarketTable";
 import { Newsletter } from "@/components/Newsletter";
 import { MarketTicker } from "@/components/MarketTicker";
+import MarketSuggestionsStrip from "@/components/market/MarketSuggestionsStrip";
 import {
   fetchCMCCards,
   fetchMarketStats,
 } from "@/lib/queries/market";
+import {
+  fetchEbayShopListings,
+} from "@/lib/queries/ebay";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 
 const MARKET_PAGE_SIZE = 100;
+const MARKET_SUGGESTIONS_LIMIT = 12;
 
 function toPositiveInteger(
   value: unknown,
@@ -60,9 +64,15 @@ export default async function Page({
   const grade =
     params.grade || "psa 10";
 
+  const marketSuggestionQuery =
+    search.trim() !== ""
+      ? `${search.trim()} PSA graded Pokemon card`
+      : "Pokemon PSA graded card";
+
   const [
     cardResponse,
     statsResponse,
+    marketSuggestionResponse,
   ] = await Promise.all([
     fetchCMCCards(
       currentPage,
@@ -74,6 +84,15 @@ export default async function Page({
       MARKET_PAGE_SIZE
     ),
     fetchMarketStats(),
+    fetchEbayShopListings({
+      section: "graded",
+      search:
+        marketSuggestionQuery,
+      sort: "best_match",
+      limit:
+        MARKET_SUGGESTIONS_LIMIT,
+      offset: 0,
+    }),
   ]);
 
   const rawCards =
@@ -168,11 +187,6 @@ export default async function Page({
       0
     );
 
-  /*
-   * Prefer the exact page size and offset returned by PHP.
-   * The mathematical fallback also correctly detects a legacy
-   * 50-card API response while the backend is being upgraded.
-   */
   const metadataPageSize =
     toPositiveInteger(
       metadata.per_page ??
@@ -303,6 +317,14 @@ export default async function Page({
     },
   ];
 
+  const marketSuggestions =
+    Array.isArray(
+      marketSuggestionResponse
+        ?.results
+    )
+      ? marketSuggestionResponse.results
+      : [];
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F9FAFB] transition-colors duration-300 dark:bg-[#020617]">
       <Navbar />
@@ -330,8 +352,7 @@ export default async function Page({
 
             <div className="space-y-3">
               <h1 className="text-2xl font-black leading-tight tracking-tight text-slate-950 dark:text-white md:text-3xl lg:text-4xl">
-                Pokémon Graded
-                Card Tracker
+                Pokémon Graded Card Tracker
 
                 <span className="ml-3 hidden items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 md:inline-flex">
                   PSA Verified
@@ -342,8 +363,7 @@ export default async function Page({
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Showing{" "}
                   {globalTotalCount.toLocaleString()}{" "}
-                  total cards across
-                  the global market.
+                  total cards across the global market.
                 </p>
 
                 <div className="flex md:hidden">
@@ -366,7 +386,7 @@ export default async function Page({
 
         <section
           id="market-table"
-          className="animate-in mb-16 fade-in slide-in-from-bottom-4 duration-1000"
+          className="animate-in fade-in slide-in-from-bottom-4 duration-1000"
         >
           <MarketTable
             initialCards={
@@ -386,6 +406,12 @@ export default async function Page({
             }
             recordOffset={
               resolvedOffset
+            }
+          />
+
+          <MarketSuggestionsStrip
+            listings={
+              marketSuggestions
             }
           />
         </section>
