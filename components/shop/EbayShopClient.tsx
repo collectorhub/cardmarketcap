@@ -299,51 +299,32 @@ const EbayLogo = ({
 }: {
   className?: string;
 }) => (
-  <span
+  <img
+    src="https://ir.ebaystatic.com/rs/v/fxxj3ttftm5ltcqnto1o4baovyl.png"
+    alt="eBay"
+    loading="lazy"
+    decoding="async"
     className={cn(
-      "inline-flex shrink-0 items-baseline font-black leading-none tracking-[-0.08em]",
+      "block h-auto w-[42px] shrink-0 object-contain",
       className
     )}
-    aria-label="eBay"
     title="View on eBay"
-  >
-    <span className="text-[#E53238]">
-      e
-    </span>
-
-    <span className="text-[#0064D2]">
-      b
-    </span>
-
-    <span className="text-[#F5AF02]">
-      a
-    </span>
-
-    <span className="text-[#86B817]">
-      y
-    </span>
-  </span>
+  />
 );
 
 const ListingSkeleton = () => (
-  <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-    {[...Array(12)].map((_, index) => (
+  <div className="grid grid-cols-2 items-stretch gap-x-3 gap-y-7 lg:grid-cols-10">
+    {[...Array(20)].map((_, index) => (
       <div
         key={index}
-        className="h-full animate-pulse rounded-[1.25rem] border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:rounded-[2rem] md:p-5"
+        className="h-full animate-pulse"
       >
-        <div className="aspect-[4/3] rounded-[1rem] bg-slate-100 dark:bg-slate-950/40 md:rounded-[1.5rem]" />
+        <div className="aspect-[0.72/1] bg-slate-100 dark:bg-white/5" />
 
-        <div className="mt-4 space-y-2">
-          <div className="h-3 w-4/5 rounded bg-slate-100 dark:bg-slate-800" />
-
-          <div className="h-3 w-3/5 rounded bg-slate-100 dark:bg-slate-800" />
-
-          <div className="h-3 w-2/5 rounded bg-slate-100 dark:bg-slate-800" />
-
-          <div className="pt-3">
-            <div className="h-7 w-full rounded bg-slate-100 dark:bg-slate-800" />
-          </div>
+        <div className="mt-2.5 space-y-2">
+          <div className="h-3.5 w-full rounded bg-slate-100 dark:bg-white/5" />
+          <div className="h-3.5 w-4/5 rounded bg-slate-100 dark:bg-white/5" />
+          <div className="h-4 w-1/2 rounded bg-slate-100 dark:bg-white/5" />
         </div>
       </div>
     ))}
@@ -397,10 +378,10 @@ function ListingCard({
       className="group block h-full min-w-0"
       aria-label={`View ${title} on eBay`}
     >
-      <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-[#00BA88]/40 hover:shadow-2xl hover:shadow-[#00BA88]/10 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 md:rounded-[2rem] md:p-5">
-        <div className="relative mb-3 flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-slate-100 bg-slate-50 p-2 dark:border-slate-800/50 dark:bg-slate-950/40 md:mb-5 md:rounded-[1.5rem] md:p-3">
+      <article className="relative flex h-full min-w-0 flex-col">
+        <div className="relative aspect-[0.72/1] w-full shrink-0 overflow-hidden bg-slate-100 dark:bg-white/5">
           {isAuction && (
-            <div className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full border border-white/70 bg-white/95 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-slate-700 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-200 md:left-3 md:top-3 md:text-[10px]">
+            <div className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-slate-700 shadow-sm backdrop-blur dark:bg-slate-950/90 dark:text-slate-200 md:text-[10px]">
               <Clock
                 size={11}
                 className="text-[#00BA88]"
@@ -416,7 +397,7 @@ function ListingCard({
               alt={title}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain drop-shadow-sm transition-transform duration-500 ease-out group-hover:scale-110"
+              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.025]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-black text-slate-400">
@@ -427,17 +408,14 @@ function ListingCard({
 
         <div className="flex min-h-0 flex-1 flex-col">
           <h3
-            className={cn(
-              "line-clamp-3 text-[12px] font-bold leading-snug text-slate-900 transition-colors group-hover:text-[#00BA88] dark:text-white md:text-sm",
-              "min-h-[3.75rem] md:min-h-[4.125rem]"
-            )}
+            className="mt-2.5 whitespace-normal break-words text-sm font-medium leading-[1.45] text-slate-600 transition-colors group-hover:text-[#00BA88] dark:text-slate-300 md:text-[13px]"
             title={title}
           >
             {title}
           </h3>
 
           {timeRemaining && (
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 md:text-xs">
+            <div className="mt-2 flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 md:text-[13px]">
               <Clock
                 size={12}
                 className="text-[#00BA88]"
@@ -447,15 +425,15 @@ function ListingCard({
             </div>
           )}
 
-          <div className="mt-auto pt-3 md:pt-4">
-            <div className="flex min-h-9 items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-              <p className="min-w-0 truncate text-[13px] font-extrabold text-slate-900 dark:text-white md:text-[15px]">
+          <div className="mt-auto pt-2.5">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <p className="min-w-0 text-sm font-black leading-none tabular-nums text-slate-950 dark:text-white md:text-[15px]">
                 {formatPrice(
                   item?.formattedPrice
                 )}
               </p>
 
-              <EbayLogo className="text-[18px] transition-transform duration-300 group-hover:scale-105 md:text-[21px]" />
+              <EbayLogo className="w-[38px] transition-transform duration-200 group-hover:scale-105 md:w-[42px]" />
             </div>
           </div>
         </div>
@@ -1344,7 +1322,7 @@ export default function EbayShopClient({
                 {isLoading ? (
                   <ListingSkeleton />
                 ) : items.length > 0 ? (
-                  <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                  <div className="grid grid-cols-2 items-stretch gap-x-3 gap-y-7 lg:grid-cols-10">
                     {items.map(
                       (
                         item,

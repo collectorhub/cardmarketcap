@@ -189,7 +189,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-5 border-t border-slate-100 pt-8 dark:border-slate-900 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-5 border-t border-slate-100 pt-8  pb-10 md:pb-0 dark:border-slate-900 md:flex-row md:items-center md:justify-between">
           <p className="max-w-3xl text-center text-[12px] font-medium leading-6 text-slate-400 dark:text-slate-600 md:text-left">
             © {currentYear} CardMarketCap. All rights reserved.
             Market data is provided for informational and research

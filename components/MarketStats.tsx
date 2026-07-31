@@ -124,7 +124,7 @@ function StatCard({
       className={cn(
         CARD_SIZE,
         "group relative flex flex-col overflow-hidden rounded-xl md:rounded-[1.5rem] border transition-all duration-300 md:shadow-sm",
-        isAd ? "p-2 md:p-6" : "p-3 md:p-6",
+        isAd ? "p-3 md:p-6" : "p-3 md:p-6",
         isAd
           ? "cursor-pointer border-emerald-200 dark:border-emerald-900/50 bg-slate-900 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/10"
           : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-[#00BA88]/40"
@@ -134,7 +134,7 @@ function StatCard({
         <img
           src={adImage}
           alt={adTitle}
-          className="absolute inset-0 h-full w-full object-contain md:object-cover p-2 md:p-0 transition-all duration-300 group-hover:scale-105"
+          className="absolute inset-0 h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
         />
       )}
 
@@ -154,7 +154,7 @@ function StatCard({
       <div
         className={cn(
           "relative z-20 flex flex-col h-full justify-between gap-2 md:gap-5 transition-all duration-300",
-          isAd && "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
+          isAd && "opacity-100 md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0"
         )}
       >
         <div className="flex items-start justify-between">
@@ -186,7 +186,7 @@ function StatCard({
             <h3
               className={cn(
                 isAd
-                  ? "text-[8px] sm:text-[10px] md:text-xl xl:text-2xl leading-tight line-clamp-2"
+                  ? "text-base md:text-xl xl:text-2xl leading-tight line-clamp-2"
                   : "text-[14px] sm:text-base md:text-xl xl:text-2xl truncate",
                 "font-black tracking-tight",
                 isAd ? "text-white" : "text-slate-900 dark:text-white"
@@ -198,7 +198,7 @@ function StatCard({
             <div
               className={cn(
                 isAd
-                  ? "flex items-center gap-0.5 md:gap-1 text-[5px] sm:text-[6px] md:text-[11px] font-black mt-1 px-1 md:px-2 py-[2px] md:py-0.5 rounded-full w-fit shrink-0 whitespace-nowrap"
+                  ? "flex items-center gap-1 text-[9px] md:text-[11px] font-black mt-1 px-2 py-0.5 rounded-full w-fit shrink-0 whitespace-nowrap"
                   : "flex items-center gap-0.5 md:gap-1 text-[9px] md:text-[11px] font-black mt-1.5 md:mt-1 px-2 py-0.5 rounded-full w-fit shrink-0",
                 isAd
                   ? "text-white bg-white/20"

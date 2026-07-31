@@ -27,21 +27,10 @@ const EbayLogo = ({
     )}
     aria-label="eBay"
   >
-    <span className="text-[#E53238]">
-      e
-    </span>
-
-    <span className="text-[#0064D2]">
-      b
-    </span>
-
-    <span className="text-[#F5AF02]">
-      a
-    </span>
-
-    <span className="text-[#86B817]">
-      y
-    </span>
+    <span className="text-[#E53238]">e</span>
+    <span className="text-[#0064D2]">b</span>
+    <span className="text-[#F5AF02]">a</span>
+    <span className="text-[#86B817]">y</span>
   </span>
 );
 
@@ -106,42 +95,38 @@ function SuggestionCard({
       target="_blank"
       rel="noopener noreferrer sponsored"
       aria-label={`View ${title} on eBay`}
-      className="group block h-full w-[158px] shrink-0 [scroll-snap-align:start] sm:w-[172px] md:w-[184px] lg:w-[192px]"
+      className="group block h-full w-[calc((100%-0.75rem)/2)] min-w-0 shrink-0 [scroll-snap-align:start] lg:w-[calc((100%-6.75rem)/10)]"
     >
-      <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[1.15rem] border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#00BA88]/40 hover:shadow-lg hover:shadow-[#00BA88]/10 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 md:rounded-[1.4rem] md:p-3.5">
-        <div className="relative mb-3 flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden rounded-[0.85rem] border border-slate-100 bg-slate-50 p-2 dark:border-slate-800/50 dark:bg-slate-950/40 md:mb-3.5 md:rounded-[1rem] md:p-2.5">
+      <article className="flex h-full min-w-0 flex-col">
+        <div className="relative aspect-[0.72/1] w-full shrink-0 overflow-hidden bg-slate-100 dark:bg-white/5">
           {image ? (
             <img
               src={image}
               alt={title}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain drop-shadow-sm transition-transform duration-500 ease-out group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.025]"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-black text-slate-400">
+            <span className="flex h-full items-center justify-center px-2 text-center text-xs font-bold text-slate-400">
               No image
-            </div>
+            </span>
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-          <h3
-            title={title}
-            className="line-clamp-3 min-h-[3.35rem] text-[10px] font-bold leading-[1.4] text-slate-900 transition-colors group-hover:text-[#00BA88] dark:text-white sm:text-[11px] md:min-h-[3.65rem] md:text-[12px]"
-          >
-            {title}
-          </h3>
+        <h3
+          title={title}
+          className="mt-2.5 whitespace-normal break-words text-sm font-medium leading-[1.45] text-slate-600 transition-colors group-hover:text-[#00BA88] dark:text-slate-300 md:text-[13px]"
+        >
+          {title}
+        </h3>
 
-          <div className="mt-auto pt-3">
-            <div className="flex min-h-9 items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-              <p className="min-w-0 truncate text-[11px] font-black tabular-nums text-slate-900 dark:text-white sm:text-[12px] md:text-[13px]">
-                {formatPrice(listing)}
-              </p>
+        <div className="mt-auto flex min-w-0 items-center justify-between gap-2 pt-2">
+          <p className="min-w-0 text-sm font-black leading-none tabular-nums text-slate-950 dark:text-white md:text-[15px]">
+            {formatPrice(listing)}
+          </p>
 
-              <EbayLogo className="text-[15px] transition-transform duration-300 group-hover:scale-105 md:text-[17px]" />
-            </div>
-          </div>
+          <EbayLogo className="text-[17px] md:text-[19px]" />
         </div>
       </article>
     </a>
@@ -174,22 +159,22 @@ export default function MarketSuggestionsStrip({
 
   return (
     <section className="mt-10 md:mt-12">
-      <div className="mb-5 flex items-center justify-between gap-4 px-1">
-        <h2 className="text-[13px] font-black uppercase tracking-[0.14em] text-slate-950 dark:text-white md:text-[15px]">
-          Live Market Suggestions
+      <div className="mb-4 flex items-center justify-between gap-4 px-1">
+        <h2 className="text-sm font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-300 md:text-base">
+          Market Suggestions
         </h2>
 
         <a
           href="/shop"
-          className="inline-flex shrink-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-400 transition-colors hover:text-[#00BA88] md:text-[10px]"
+          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-[#00BA88] dark:text-slate-400 md:text-sm"
         >
           View marketplace
-          <ArrowUpRight size={13} />
+          <ArrowUpRight size={14} />
         </a>
       </div>
 
       <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overscroll-behavior-inline:contain] [scroll-snap-type:x_proximity]">
-        <div className="flex min-w-max items-stretch gap-3 md:gap-3.5">
+        <div className="flex min-w-0 items-stretch gap-5">
           {visibleListings.map(
             (
               listing,
@@ -207,7 +192,6 @@ export default function MarketSuggestionsStrip({
           )}
         </div>
       </div>
-
     </section>
   );
 }

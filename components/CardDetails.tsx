@@ -1269,24 +1269,29 @@ export default function CardDetails({
 
       <main className="mx-auto w-full max-w-[1540px] px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:pb-8">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
-          <aside className="cmc-column-scroll space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:pr-1">
-            <CardMediaPanel
-              cardImage={cardImage}
-              cardName={cardName}
-              watchlisted={watchlisted}
-              addingToWatchlist={addingToWatchlist}
-              onWatchlist={handleAddToWatchlist}
-              copied={copied}
-              onShare={handleShare}
-            />
+          <aside className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pr-1">
+            <div className="order-1">
+              <CardMediaPanel
+                cardImage={cardImage}
+                cardName={cardName}
+                watchlisted={watchlisted}
+                addingToWatchlist={addingToWatchlist}
+                onWatchlist={handleAddToWatchlist}
+                copied={copied}
+                onShare={handleShare}
+              />
+            </div>
 
-            <AssetSpecifications
-              rows={assetRows as Array<[string, string]>}
-            />
+            <div className="order-3">
+              <AssetSpecifications
+                rows={assetRows as Array<[string, string]>}
+              />
+            </div>
           </aside>
 
-          <section className="cmc-column-scroll min-w-0 space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:px-1">
-            <CardMarketOverviewPanel
+          <section className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:min-w-0 lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:px-1">
+            <div className="order-2">
+              <CardMarketOverviewPanel
               card={card}
               cardName={cardName}
               cardSet={cardSet}
@@ -1315,67 +1320,78 @@ export default function CardDetails({
               selectedTimeframe={selectedTimeframe}
               onTimeframeChange={setSelectedTimeframe}
               svgPath={svgPath}
-            />
+              />
+            </div>
 
-            <PopulationPanel
-              popData={popData}
-              totalPop={Number(
-                popData.total ||
-                  card.popTotal ||
-                  0
-              )}
-              selectedGrade={selectedGrade}
-              onGradeChange={(grade) => {
-                setSelectedGrade(
-                  grade
-                );
-
-                if (
-                  SALES_GRADES.includes(
+            <div className="order-4">
+              <PopulationPanel
+                popData={popData}
+                totalPop={Number(
+                  popData.total ||
+                    card.popTotal ||
+                    0
+                )}
+                selectedGrade={selectedGrade}
+                onGradeChange={(grade) => {
+                  setSelectedGrade(
                     grade
-                  )
-                ) {
+                  );
+
+                  if (
+                    SALES_GRADES.includes(
+                      grade
+                    )
+                  ) {
+                    setSalesGrade(
+                      grade
+                    );
+                  }
+                }}
+              />
+            </div>
+
+            <div className="order-8">
+              <SalesHistoryPanel
+                salesGrades={SALES_GRADES}
+                salesGrade={salesGrade}
+                salesByGrade={salesByGrade}
+                sales={salesTabData}
+                onGradeChange={(grade) => {
                   setSalesGrade(
                     grade
                   );
-                }
-              }}
-            />
-
-            <SalesHistoryPanel
-              salesGrades={SALES_GRADES}
-              salesGrade={salesGrade}
-              salesByGrade={salesByGrade}
-              sales={salesTabData}
-              onGradeChange={(grade) => {
-                setSalesGrade(
-                  grade
-                );
-                setSelectedGrade(
-                  grade
-                );
-              }}
-            />
+                  setSelectedGrade(
+                    grade
+                  );
+                }}
+              />
+            </div>
           </section>
 
-          <aside className="cmc-column-scroll space-y-5 lg:sticky lg:top-[132px] lg:max-h-[calc(100dvh-148px)] lg:overflow-y-auto lg:overscroll-auto lg:pl-1">
-            <SponsoredAdvert
-              advert={activeAd}
-              loading={sidebarAdLoading}
-              onClick={handleAdClick}
-            />
+          <aside className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pl-1">
+            <div className="order-5">
+              <SponsoredAdvert
+                advert={activeAd}
+                loading={sidebarAdLoading}
+                onClick={handleAdClick}
+              />
+            </div>
 
-            <MarketSuggestions
-              card={card}
-              selectedGrade={selectedGrade}
-            />
+            <div className="order-6">
+              <MarketSuggestions
+                card={card}
+                selectedGrade={selectedGrade}
+              />
+            </div>
 
-            <PriceComparison
-              card={card}
-              selectedGrade={selectedGrade}
-              fallbackRows={marketplaceRows}
-              onOpen={openMarketplace}
-            />
+            <div className="order-7">
+              <PriceComparison
+                card={card}
+                selectedGrade={selectedGrade}
+                fallbackRows={marketplaceRows}
+                onOpen={openMarketplace}
+              />
+            </div>
           </aside>
         </div>
 
