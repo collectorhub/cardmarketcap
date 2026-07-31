@@ -75,10 +75,10 @@ export default function CardDetailsTopBar({
             {cardName}
           </span>
 
-          <span className="hidden items-center gap-1.5 text-[#00BA88] lg:flex">
+          {/* <span className="hidden items-center gap-1.5 text-[#00BA88] lg:flex">
             <ShieldCheck size={15} />
             Verified
-          </span>
+          </span> */}
         </div>
 
         <div className="flex shrink-0 items-center">

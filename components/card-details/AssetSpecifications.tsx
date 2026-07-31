@@ -11,11 +11,9 @@ export default function AssetSpecifications({
   return (
     <section className="rounded-[20px] border border-slate-200/80 bg-white p-4 dark:border-white/5 dark:bg-slate-900">
       <div className="mb-3.5 flex items-center gap-2">
-        <Activity
-          size={13}
-          className="text-[#00BA88]"
-        />
-        <h2 className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
+        <Activity size={13} className="text-[#00BA88] lg:h-[14px] lg:w-[14px]" />
+
+        <h2 className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500 lg:text-[10px]">
           Asset Specifications
         </h2>
       </div>
@@ -26,12 +24,13 @@ export default function AssetSpecifications({
             key={label}
             className="min-w-0 rounded-[13px] border border-slate-200/80 bg-[#fafbfc] px-3 py-3 dark:border-white/5 dark:bg-white/[0.025]"
           >
-            <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400 lg:text-[8px] xl:text-[9px]">
               {label}
             </p>
+
             <p
               title={value}
-              className="mt-1.5 line-clamp-2 text-[10px] font-black leading-snug text-slate-950 dark:text-white"
+              className="mt-1.5 line-clamp-2 text-[10px] font-black leading-snug text-slate-950 dark:text-white lg:text-[11px] xl:text-[12px]"
             >
               {value}
             </p>

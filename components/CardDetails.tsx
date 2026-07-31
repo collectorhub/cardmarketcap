@@ -6,6 +6,12 @@ import React, {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Check,
+  Loader2,
+  Share2,
+  Star,
+} from "lucide-react";
 
 import { addCardToPortfolio } from "@/lib/queries/portfolio";
 import { addCardToWatchlist } from "@/lib/queries/watchlist";
@@ -355,6 +361,35 @@ export default function CardDetails({
     card.rarity ||
     card.type ||
     "Standard";
+
+  const mobileCardNumber = cleanDisplay(
+    card.number ||
+      card.card_number ||
+      card.cardNumber,
+    ""
+  );
+
+  // Keep the mobile summary intentionally brief. These use the raw card
+  // values so a missing field is omitted instead of showing a placeholder.
+  const mobileCardRarity = cleanDisplay(
+    card.rarity || card.category,
+    ""
+  );
+
+  const mobileCardSet = cleanDisplay(
+    card.expansion_name || card.set,
+    ""
+  );
+
+  const mobileCardSummary = [
+    mobileCardNumber
+      ? mobileCardNumber.startsWith("#")
+        ? mobileCardNumber
+        : `#${mobileCardNumber}`
+      : "",
+    mobileCardRarity,
+    mobileCardSet,
+  ].filter(Boolean);
 
   const popData =
     card.fullPsaPop || {};
@@ -936,14 +971,6 @@ export default function CardDetails({
           "Pokémon"
       ),
     ],
-    [
-      "Subtypes",
-      cleanDisplay(
-        card.subtypes ||
-          card.subtype ||
-          "Basic"
-      ),
-    ],
     // [
     //   "HP",
     //   cleanDisplay(
@@ -954,6 +981,14 @@ export default function CardDetails({
       "Artist",
       cleanDisplay(
         card.artist
+      ),
+    ],
+     [
+      "Subtypes",
+      cleanDisplay(
+        card.subtypes ||
+          card.subtype ||
+          "Basic"
       ),
     ],
     [
@@ -1082,60 +1117,59 @@ export default function CardDetails({
         card.id ||
         card.source_id;
 
-      if (
-        !userId ||
-        !cardId ||
-        addingToWatchlist
-      ) {
+      if (!userId) {
+        router.push("/login");
         return;
       }
 
-      setAddingToWatchlist(
-        true
-      );
+      if (!cardId || addingToWatchlist) {
+        return;
+      }
 
-      const result =
-        await addCardToWatchlist({
-          user_id:
-            Number(userId),
-          card_id:
-            String(cardId),
-          grade:
-            selectedGrade ||
-            "Raw",
-        });
+      setAddingToWatchlist(true);
 
-      setAddingToWatchlist(
-        false
-      );
+      try {
+        const result =
+          await addCardToWatchlist({
+            user_id: Number(userId),
+            card_id: String(cardId),
+            grade: selectedGrade || "Raw",
+          });
 
-      if (result.success) {
-        setWatchlistGrades(
-          (previous) => {
-            const exists =
-              previous.some(
-                (item) =>
-                  String(
-                    item.grade
-                  ).toLowerCase() ===
-                  String(
-                    selectedGrade
-                  ).toLowerCase()
-              );
+        if (result?.success) {
+          setWatchlistGrades((previous) => {
+            const activeGrade =
+              selectedGrade || "Raw";
+            const exists = previous.some(
+              (item) =>
+                String(
+                  typeof item === "string"
+                    ? item
+                    : item?.grade ||
+                        item?.card_grade ||
+                        item?.cardGrade ||
+                        ""
+                ).toLowerCase() ===
+                activeGrade.toLowerCase()
+            );
 
-            if (exists) {
-              return previous;
-            }
-
-            return [
-              {
-                grade:
-                  selectedGrade,
-              },
-              ...previous,
-            ];
-          }
+            return exists
+              ? previous
+              : [{ grade: activeGrade }, ...previous];
+          });
+        } else {
+          console.error(
+            "Could not add card to watchlist:",
+            result?.message || "Unknown error"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to add card to watchlist:",
+          error
         );
+      } finally {
+        setAddingToWatchlist(false);
       }
     };
 
@@ -1152,33 +1186,25 @@ export default function CardDetails({
       };
 
       if (
+        typeof navigator !== "undefined" &&
         navigator.share &&
-        navigator.canShare?.(
-          shareData
-        )
+        (!navigator.canShare || navigator.canShare(shareData))
       ) {
         try {
-          await navigator.share(
-            shareData
-          );
+          await navigator.share(shareData);
         } catch (error) {
-          console.log(
-            "Native share failed:",
-            error
-          );
+          if ((error as DOMException)?.name !== "AbortError") {
+            console.error("Native share failed:", error);
+          }
         }
       } else {
-        await navigator.clipboard.writeText(
-          window.location.href
-        );
-
-        setCopied(true);
-
-        window.setTimeout(
-          () =>
-            setCopied(false),
-          2000
-        );
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+          console.error("Could not copy share link:", error);
+        }
       }
     };
 
@@ -1245,7 +1271,12 @@ export default function CardDetails({
     watchlistGrades.some(
       (item) =>
         String(
-          item.grade
+          typeof item === "string"
+            ? item
+            : item?.grade ||
+                item?.card_grade ||
+                item?.cardGrade ||
+                ""
         ).toLowerCase() ===
         String(
           selectedGrade
@@ -1260,17 +1291,124 @@ export default function CardDetails({
         <Sidebar />
       </div>
 
-      <CardDetailsTopBar
-        card={card}
-        cardName={cardName}
-        cardSet={cardSet}
-        onBack={handleBack}
-      />
+      <div className="hidden lg:block">
+        <CardDetailsTopBar
+          card={card}
+          cardName={cardName}
+          cardSet={cardSet}
+          onBack={handleBack}
+        />
+      </div>
 
-      <main className="mx-auto w-full max-w-[1540px] px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:pb-8">
+      <main className="mx-auto w-full max-w-[1540px] px-4 pb-5 pt-[88px] md:px-6 md:pb-6 md:pt-[96px] lg:px-8 lg:pb-8 lg:pt-6">
+        {/* Mobile opening layout: rendered directly on the page background. */}
+        <section className="mb-7 grid grid-cols-[minmax(126px,42%)_minmax(0,1fr)] items-start gap-4 lg:hidden">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-start justify-center">
+              <img
+                src={cardImage}
+                alt={cardName}
+                className="aspect-[0.715/1] h-auto w-full object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.14)]"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2" aria-label="Card actions">
+              <button
+                type="button"
+                onClick={handleAddToWatchlist}
+                disabled={addingToWatchlist || watchlisted}
+                aria-pressed={watchlisted}
+                className={`inline-flex min-h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-[11px] font-semibold transition-colors disabled:cursor-default ${
+                  watchlisted
+                    ? "border-[#00BA88]/35 bg-[#00BA88]/10 text-[#00BA88]"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-[#00BA88]/45 hover:text-[#00BA88] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                }`}
+              >
+                {/* {addingToWatchlist ? (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Star
+                    className={`h-3.5 w-3.5 shrink-0 ${watchlisted ? "fill-current" : ""}`}
+                    aria-hidden="true"
+                  />
+                )} */}
+                <span className="truncate">
+                  {watchlisted ? "Saved" : "Watch"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex min-h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 transition-colors hover:border-[#00BA88]/45 hover:text-[#00BA88] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+              >
+                {/* {copied ? (
+                  <Check className="h-3.5 w-3.5 shrink-0 text-[#00BA88]" aria-hidden="true" />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                )} */}
+                <span className="truncate">{copied ? "Copied" : "Share"}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="min-w-0 py-0.5">
+            {/* <button
+              type="button"
+              onClick={handleBack}
+              className="mb-2 inline-flex cursor-pointer items-center text-[11px] font-semibold text-slate-500 transition-colors hover:text-[#00BA88] dark:text-slate-400"
+              aria-label="Go back"
+            >
+              ← Back
+            </button> */}
+
+            <h1 className="break-words text-[clamp(1.25rem,5.4vw,1.75rem)] font-black leading-[1.08] tracking-[-0.035em] text-slate-950 dark:text-white">
+              {cardName}
+            </h1>
+
+            {mobileCardSummary.length > 0 && (
+              <p
+                className="mt-2 min-w-0 break-words text-[11px] font-semibold leading-[1.55] text-slate-500 dark:text-slate-400"
+                aria-label="Card summary"
+              >
+                {mobileCardSummary.map((item, index) => (
+                  <React.Fragment key={`${item}-${index}`}>
+                    {index > 0 && (
+                      <span className="mx-1.5 text-slate-300 dark:text-slate-600" aria-hidden="true">
+                        |
+                      </span>
+                    )}
+                    <span>{item}</span>
+                  </React.Fragment>
+                ))}
+              </p>
+            )}
+
+            <div className="mt-3 border-t border-slate-200/80 pt-3 dark:border-white/10">
+              <dl className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-2.5">
+                {assetRows.map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <dt className="text-[10px] font-medium leading-tight text-slate-400 dark:text-slate-500">
+                      {label}
+                    </dt>
+                    <dd
+                      title={value}
+                      className="mt-1 break-words text-[11px] font-semibold leading-[1.3] text-slate-800 dark:text-slate-200"
+                    >
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        </section>
+
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
           <aside className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pr-1">
-            <div className="order-1">
+            <div className="hidden lg:block">
               <CardMediaPanel
                 cardImage={cardImage}
                 cardName={cardName}
@@ -1282,7 +1420,7 @@ export default function CardDetails({
               />
             </div>
 
-            <div className="order-3">
+            <div className="order-3 hidden lg:block">
               <AssetSpecifications
                 rows={assetRows as Array<[string, string]>}
               />
@@ -1394,12 +1532,13 @@ export default function CardDetails({
             </div>
           </aside>
         </div>
-
-        <BottomSponsoredAdvert
-          advert={activeAd}
-          loading={sidebarAdLoading}
-          onClick={handleAdClick}
-        />
+        <div className="mt-0 lg:mt-10">        
+          <BottomSponsoredAdvert
+            advert={activeAd}
+            loading={sidebarAdLoading}
+            onClick={handleAdClick}
+          />
+        </div>
       </main>
 
       <style jsx global>{`

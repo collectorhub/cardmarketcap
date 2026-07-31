@@ -285,7 +285,7 @@ export default function CardMarketOverviewPanel({
       {/* Card identity is intentionally rendered directly on the page,
           not inside another bordered panel. */}
       <header className="px-1 pt-1 md:px-2 md:pt-2">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="mb-3 hidden flex-wrap items-center gap-2 lg:flex">
           <span className="rounded-full border border-[#00BA88]/20 bg-[#00BA88]/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-[#00BA88]">
             Rank #{card.rank || "124"}
           </span>
@@ -295,11 +295,11 @@ export default function CardMarketOverviewPanel({
           </span>
         </div>
 
-        <h1 className="max-w-3xl text-3xl font-black uppercase leading-[0.94] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl lg:text-[42px]">
+        <h1 className="hidden max-w-3xl text-3xl font-black uppercase leading-[0.94] tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl lg:block lg:text-[42px]">
           {cardName}
         </h1>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.09em] text-slate-500">
+        <div className="mt-3 hidden flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.09em] text-slate-500 lg:flex">
           <span>
             {clean(
               card.set_code ||
@@ -325,7 +325,7 @@ export default function CardMarketOverviewPanel({
           </span>
         </div>
 
-        <div className="relative mt-5">
+        <div className="relative mt-0 lg:mt-5">
           <div
             ref={gradeScrollerRef}
             className="cmc-tab-scroll overflow-x-auto rounded-[15px] border border-slate-200/80 bg-[#f8fafc] px-1 py-1 dark:border-white/5 dark:bg-white/[0.03]"
