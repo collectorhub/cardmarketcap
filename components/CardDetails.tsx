@@ -3,11 +3,13 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  ChevronDown,
   Loader2,
   Share2,
   Star,
@@ -20,8 +22,6 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { useAdvertRotation } from "@/hooks/useAdvertRotation";
 import MarketSuggestions from "@/components/card-details/MarketSuggestions";
-import SponsoredAdvert from "@/components/card-details/SponsoredAdvert";
-import BottomSponsoredAdvert from "@/components/card-details/BottomSponsoredAdvert";
 import CardDetailsTopBar from "@/components/card-details/CardDetailsTopBar";
 import CardMediaPanel from "@/components/card-details/CardMediaPanel";
 import AssetSpecifications from "@/components/card-details/AssetSpecifications";
@@ -61,10 +61,7 @@ const SALES_GRADES = [
 ];
 
 const TIMEFRAMES = [
-  "1D",
-  "7D",
   "30D",
-  "1M",
   "3M",
   "1Y",
   "ALL",
@@ -275,6 +272,17 @@ export default function CardDetails({
 }: CardDetailsProps) {
   const router = useRouter();
 
+  const leftColumnRef = useRef<HTMLElement | null>(null);
+  const middleColumnRef = useRef<HTMLElement | null>(null);
+  const rightColumnRef = useRef<HTMLElement | null>(null);
+
+  const [columnHasMore, setColumnHasMore] = useState({
+    left: false,
+    middle: false,
+    right: false,
+  });
+
+
   const initialGrade =
     card.resolvedGrade &&
     String(card.resolvedGrade)
@@ -291,7 +299,7 @@ export default function CardDetails({
   const [
     selectedTimeframe,
     setSelectedTimeframe,
-  ] = useState("1M");
+  ] = useState("30D");
 
   const [salesGrade, setSalesGrade] =
     useState(
@@ -927,6 +935,46 @@ export default function CardDetails({
     limit: 20,
   });
 
+  const advertImage =
+    activeAd?.image_url ||
+    activeAd?.imageUrl ||
+    activeAd?.image ||
+    "";
+
+  const renderImageOnlyAdvert = (
+    className: string
+  ) => {
+    if (sidebarAdLoading) {
+      return (
+        <div
+          className={`${className} animate-pulse rounded-[18px] border border-slate-200/80 bg-slate-100 dark:border-white/10 dark:bg-white/5`}
+          aria-hidden="true"
+        />
+      );
+    }
+
+    if (!advertImage) {
+      return null;
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={handleAdClick}
+        className={`block w-full overflow-hidden rounded-[18px] border border-slate-200/80 bg-transparent text-left transition-opacity hover:opacity-95 dark:border-white/10 ${className}`}
+        aria-label="Open sponsored advert"
+      >
+        <img
+          src={advertImage}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </button>
+    );
+  };
+
   const marketplaceRows =
     useMemo(
       () =>
@@ -1267,6 +1315,104 @@ export default function CardDetails({
     }
   };
 
+  const updateColumnScrollHints = () => {
+    const getHasMore = (
+      element: HTMLElement | null
+    ) => {
+      if (!element) return false;
+
+      return (
+        element.scrollHeight -
+          element.clientHeight -
+          element.scrollTop >
+        8
+      );
+    };
+
+    setColumnHasMore({
+      left: getHasMore(
+        leftColumnRef.current
+      ),
+      middle: getHasMore(
+        middleColumnRef.current
+      ),
+      right: getHasMore(
+        rightColumnRef.current
+      ),
+    });
+  };
+
+  useEffect(() => {
+    const columns = [
+      leftColumnRef.current,
+      middleColumnRef.current,
+      rightColumnRef.current,
+    ].filter(Boolean) as HTMLElement[];
+
+    const handleUpdate = () => {
+      updateColumnScrollHints();
+    };
+
+    handleUpdate();
+
+    columns.forEach((column) => {
+      column.addEventListener(
+        "scroll",
+        handleUpdate,
+        { passive: true }
+      );
+    });
+
+    window.addEventListener(
+      "resize",
+      handleUpdate
+    );
+
+    const frame = window.requestAnimationFrame(
+      handleUpdate
+    );
+
+    return () => {
+      columns.forEach((column) => {
+        column.removeEventListener(
+          "scroll",
+          handleUpdate
+        );
+      });
+
+      window.removeEventListener(
+        "resize",
+        handleUpdate
+      );
+
+      window.cancelAnimationFrame(frame);
+    };
+  }, [card, activeAd, salesTabData.length]);
+
+  const scrollColumnDown = (
+    column:
+      | "left"
+      | "middle"
+      | "right"
+  ) => {
+    const element =
+      column === "left"
+        ? leftColumnRef.current
+        : column === "middle"
+          ? middleColumnRef.current
+          : rightColumnRef.current;
+
+    if (!element) return;
+
+    element.scrollBy({
+      top: Math.max(
+        220,
+        element.clientHeight * 0.72
+      ),
+      behavior: "smooth",
+    });
+  };
+
   const watchlisted =
     watchlistGrades.some(
       (item) =>
@@ -1406,8 +1552,11 @@ export default function CardDetails({
           </div>
         </section>
 
-        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
-          <aside className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pr-1">
+        <div className="relative grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] xl:gap-6">
+          <aside
+            ref={leftColumnRef}
+            className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pr-1"
+          >
             <div className="hidden lg:block">
               <CardMediaPanel
                 cardImage={cardImage}
@@ -1427,7 +1576,10 @@ export default function CardDetails({
             </div>
           </aside>
 
-          <section className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:min-w-0 lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:px-1">
+          <section
+            ref={middleColumnRef}
+            className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:min-w-0 lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:px-1"
+          >
             <div className="order-2">
               <CardMarketOverviewPanel
               card={card}
@@ -1489,6 +1641,13 @@ export default function CardDetails({
             </div>
 
             <div className="order-8">
+              <div className="mb-2 flex items-center justify-end lg:hidden">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                  Swipe for more
+                  <span aria-hidden="true">→</span>
+                </span>
+              </div>
+
               <SalesHistoryPanel
                 salesGrades={SALES_GRADES}
                 salesGrade={salesGrade}
@@ -1506,13 +1665,14 @@ export default function CardDetails({
             </div>
           </section>
 
-          <aside className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pl-1">
+          <aside
+            ref={rightColumnRef}
+            className="cmc-column-scroll contents lg:sticky lg:top-[132px] lg:block lg:max-h-[calc(100dvh-148px)] lg:space-y-5 lg:overflow-y-auto lg:overscroll-auto lg:pl-1"
+          >
             <div className="order-5">
-              <SponsoredAdvert
-                advert={activeAd}
-                loading={sidebarAdLoading}
-                onClick={handleAdClick}
-              />
+              {renderImageOnlyAdvert(
+                "aspect-[16/9]"
+              )}
             </div>
 
             <div className="order-6">
@@ -1531,13 +1691,96 @@ export default function CardDetails({
               />
             </div>
           </aside>
+
+          <div className="pointer-events-none absolute inset-0 hidden lg:grid lg:grid-cols-[minmax(240px,0.88fr)_minmax(0,1.8fr)_minmax(285px,0.94fr)] lg:gap-5 xl:gap-6">
+            <div className="relative">
+              {columnHasMore.left && (
+                <div className="absolute inset-x-0 bottom-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scrollColumnDown("left")
+                    }
+                    className="pointer-events-auto relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#00BA88]/35 bg-white text-[#00BA88] shadow-[0_5px_18px_rgba(0,186,136,0.16)] ring-4 ring-white/85 backdrop-blur transition hover:-translate-y-0.5 hover:border-[#00BA88]/60 hover:shadow-[0_7px_22px_rgba(0,186,136,0.22)] dark:border-[#00BA88]/35 dark:bg-slate-950 dark:text-[#00BA88] dark:ring-[#020617]/85"
+                    aria-label="Scroll left column for more"
+                    title="More below"
+                  >
+                    <span
+                      className="absolute -top-1 h-1.5 w-1.5 animate-pulse rounded-full bg-[#00BA88]"
+                      aria-hidden="true"
+                    />
+                    <ChevronDown
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              {columnHasMore.middle && (
+                <div className="absolute inset-x-0 bottom-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scrollColumnDown("middle")
+                    }
+                    className="pointer-events-auto relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#00BA88]/35 bg-white text-[#00BA88] shadow-[0_5px_18px_rgba(0,186,136,0.16)] ring-4 ring-white/85 backdrop-blur transition hover:-translate-y-0.5 hover:border-[#00BA88]/60 hover:shadow-[0_7px_22px_rgba(0,186,136,0.22)] dark:border-[#00BA88]/35 dark:bg-slate-950 dark:text-[#00BA88] dark:ring-[#020617]/85"
+                    aria-label="Scroll middle column for more"
+                    title="More below"
+                  >
+                    <span
+                      className="absolute -top-1 h-1.5 w-1.5 animate-pulse rounded-full bg-[#00BA88]"
+                      aria-hidden="true"
+                    />
+                    <ChevronDown
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              {columnHasMore.right && (
+                <div className="absolute inset-x-0 bottom-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scrollColumnDown("right")
+                    }
+                    className="pointer-events-auto relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#00BA88]/35 bg-white text-[#00BA88] shadow-[0_5px_18px_rgba(0,186,136,0.16)] ring-4 ring-white/85 backdrop-blur transition hover:-translate-y-0.5 hover:border-[#00BA88]/60 hover:shadow-[0_7px_22px_rgba(0,186,136,0.22)] dark:border-[#00BA88]/35 dark:bg-slate-950 dark:text-[#00BA88] dark:ring-[#020617]/85"
+                    aria-label="Scroll right column for more"
+                    title="More below"
+                  >
+                    <span
+                      className="absolute -top-1 h-1.5 w-1.5 animate-pulse rounded-full bg-[#00BA88]"
+                      aria-hidden="true"
+                    />
+                    <ChevronDown
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="mt-0 lg:mt-10">        
-          <BottomSponsoredAdvert
-            advert={activeAd}
-            loading={sidebarAdLoading}
-            onClick={handleAdClick}
+
+        <div className="hidden lg:flex lg:justify-center lg:pt-5">
+          <div
+            className="h-px w-[72%] max-w-[1120px] bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10"
+            aria-hidden="true"
           />
+        </div>
+
+        <div className="mt-5 lg:mt-7">
+          {renderImageOnlyAdvert(
+            "aspect-[5/1] lg:aspect-[7/1]"
+          )}
         </div>
       </main>
 

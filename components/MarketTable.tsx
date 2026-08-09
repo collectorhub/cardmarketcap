@@ -504,7 +504,7 @@ export function MarketTable({
       const userId = getStoredUserId();
 
       if (!userId) {
-        router.push("/login");
+        router.push("/sign-in");
         return;
       }
 
