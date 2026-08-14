@@ -141,6 +141,93 @@ const getCardClassification = (card: any): string => {
   return "Standard";
 };
 
+const getPriceChange30d = (card: any): number | null => {
+  const candidates = [
+    card?.priceChange30d,
+    card?.price_change_30d,
+    card?.change30d,
+    card?.change_30d,
+    card?.change30dPercent,
+    card?.change_30d_percent,
+    card?.percentageChange30d,
+    card?.percentage_change_30d,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") {
+      continue;
+    }
+
+    const parsed = Number(String(candidate).replace(/[%,+]/g, "").trim());
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const getSparklineValues = (card: any): number[] => {
+  const candidates = [
+    card?.sparkline,
+    card?.priceHistory,
+    card?.price_history,
+    card?.history30d,
+    card?.history_30d,
+    card?.prices30d,
+    card?.prices_30d,
+  ];
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) {
+      continue;
+    }
+
+    const values = candidate
+      .map((item: any) => {
+        if (typeof item === "number") return item;
+
+        if (item && typeof item === "object") {
+          return safeParseNumber(
+            item.price ?? item.value ?? item.close ?? item.market_price,
+          );
+        }
+
+        return safeParseNumber(item);
+      })
+      .filter((value: number) => Number.isFinite(value) && value > 0);
+
+    if (values.length >= 2) {
+      return values.slice(-18);
+    }
+  }
+
+  return [];
+};
+
+const buildSparklinePoints = (
+  values: number[],
+  width = 76,
+  height = 22,
+): string => {
+  if (values.length < 2) {
+    return "";
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+};
+
 const TableSkeleton = () => (
   <>
     {Array.from({
@@ -695,7 +782,277 @@ export function MarketTable({
         </div>
       )} */}
 
-      <div className="overflow-hidden rounded-xl border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900 md:rounded-[1.5rem]">
+      <div className="overflow-hidden rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 md:hidden">
+        <div className="grid grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 border-b border-slate-200 bg-slate-50/70 px-2.5 py-2.5 text-[8px] font-black uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:bg-slate-900/60">
+          <span className="text-center">#</span>
+          <span>Card</span>
+          <span className="-translate-x-2 text-right">Price</span>
+          <span className="text-right">Market</span>
+          <span aria-hidden="true" />
+        </div>
+
+        <div className="divide-y divide-slate-200 dark:divide-slate-800">
+          {isPageLoading || isUniversalSearching ? (
+            Array.from({ length: 10 }).map((_, index) => (
+              <div
+                key={index}
+                className="grid animate-pulse grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 px-2.5 py-2.5"
+              >
+                <div className="flex flex-col items-center justify-center gap-1.5">
+                  <div className="h-4 w-4 rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-3 w-3 rounded bg-slate-100 dark:bg-slate-800" />
+                </div>
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="h-[46px] w-[33px] shrink-0 rounded bg-slate-100 dark:bg-slate-800" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="h-3 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+                    <div className="h-2 w-14 rounded bg-slate-100 dark:bg-slate-800" />
+                    <div className="h-2 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                  </div>
+                </div>
+                <div className="ml-auto h-3 w-14 rounded bg-slate-100 dark:bg-slate-800" />
+                <div className="ml-auto h-3 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                <div className="h-3 w-3 rounded bg-slate-100 dark:bg-slate-800" />
+              </div>
+            ))
+          ) : displayedCards.length > 0 ? (
+            displayedCards.map((card: any, index) => {
+              const totalSales30d = safeParseNumber(
+                card.sales30dNum ?? card.sales30d,
+              );
+
+              const currentGradeCount = safeParseNumber(
+                card.gradeCount ?? card.psa10,
+              );
+
+              const currentPopTotal = safeParseNumber(
+                card.popTotal ?? card.total,
+              );
+
+              const cardClassification = getCardClassification(card);
+              const priceChange30d = getPriceChange30d(card);
+              const sparklineValues = getSparklineValues(card);
+              const sparklinePoints = buildSparklinePoints(sparklineValues);
+              const trendIsPositive = (priceChange30d ?? 0) >= 0;
+
+              const watchlistCardId = String(
+                card.id || card.source_id || "",
+              ).trim();
+
+              const isWatchlisted = watchlistedCardIds.has(watchlistCardId);
+              const isAddingToWatchlist =
+                watchlistLoadingIds.has(watchlistCardId);
+
+              const rank = isUniversalSearchActive
+                ? index + 1
+                : effectiveRecordOffset + index + 1;
+
+              return (
+                <motion.div
+                  key={card.id || `${card.name}-${card.number}-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => handleNavigation(card)}
+                  className="grid cursor-pointer grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 px-2.5 py-2.5 transition-colors active:bg-slate-50 dark:active:bg-slate-900"
+                >
+                  <div className="flex h-full min-h-[50px] flex-col items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      disabled={!watchlistCardId || isAddingToWatchlist}
+                      onClick={(event) => {
+                        event.stopPropagation();
+
+                        if (!isWatchlisted) {
+                          void handleAddToWatchlist(card);
+                        }
+                      }}
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed",
+                        isWatchlisted
+                          ? "text-[#00BA88]"
+                          : "text-slate-400 dark:text-slate-500",
+                        isAddingToWatchlist && "opacity-70",
+                      )}
+                      aria-label={
+                        isWatchlisted
+                          ? `${card.name || "Card"} is in your watchlist`
+                          : `Add ${card.name || "card"} to watchlist`
+                      }
+                      aria-pressed={isWatchlisted}
+                    >
+                      {isAddingToWatchlist ? (
+                        <Loader2 className="h-[15px] w-[15px] animate-spin" />
+                      ) : (
+                        <Star
+                          className={cn(
+                            "h-[15px] w-[15px]",
+                            isWatchlisted && "fill-current",
+                          )}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </button>
+
+                    <div className="text-center text-[12px] font-black leading-none tabular-nums text-slate-700 dark:text-slate-200">
+                      {rank}
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="h-[48px] w-[34px] shrink-0 overflow-hidden rounded-[4px] bg-slate-100 shadow-sm ring-1 ring-black/5 dark:bg-slate-800 dark:ring-white/10">
+                      <img
+                        src={card.imageUrl || card.image || PLACEHOLDER_IMAGE}
+                        alt={card.name || "Trading card"}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = PLACEHOLDER_IMAGE;
+                        }}
+                      />
+                    </div>
+
+                    <div className="min-w-0 leading-tight">
+                      <div className="whitespace-normal break-words text-[11px] font-black leading-[1.12] text-slate-900 dark:text-white">
+                        {card.name}
+                      </div>
+
+                      <div className="mt-0.5 whitespace-normal break-words text-[7px] font-bold leading-[1.15] text-slate-400 dark:text-slate-500">
+                        {card.set || "Unknown Set"}
+                      </div>
+
+                      <div className="mt-1 inline-flex max-w-full items-center rounded bg-[#00BA88]/10 px-1.5 py-[2px] text-[6px] font-black uppercase leading-[1.15] tracking-wide text-[#00BA88]">
+                        <span className="whitespace-normal break-words">
+                          {currentGrade.toUpperCase()} · {cardClassification}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 -translate-x-2 text-right">
+                    <div className="whitespace-nowrap text-[12px] font-black tabular-nums text-slate-900 dark:text-white">
+                      {card.price || "$0.00"}
+                    </div>
+
+                    {priceChange30d !== null ? (
+                      <div
+                        className={cn(
+                          "mt-0.5 text-[7px] font-black tabular-nums",
+                          trendIsPositive ? "text-[#00BA88]" : "text-red-500",
+                        )}
+                      >
+                        {trendIsPositive ? "▲" : "▼"} {Math.abs(priceChange30d).toFixed(2)}% (30D)
+                      </div>
+                    ) : (
+                      <div className="mt-0.5 text-[7px] font-bold text-slate-400">
+                        {totalSales30d.toLocaleString()} sales · 30D
+                      </div>
+                    )}
+
+                    <div className="mt-1 flex h-[13px] items-center justify-end">
+                      {sparklinePoints ? (
+                        <svg
+                          viewBox="0 0 76 22"
+                          className={cn(
+                            "h-[13px] w-[48px] overflow-visible",
+                            trendIsPositive ? "text-[#00BA88]" : "text-red-500",
+                          )}
+                          aria-hidden="true"
+                        >
+                          <polyline
+                            points={sparklinePoints}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <span className="h-px w-10 rounded bg-slate-200 dark:bg-slate-700" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 text-right">
+                    <div className="text-[6px] font-black uppercase tracking-wide text-slate-400">
+                      Mkt Cap
+                    </div>
+                    <div className="mt-0.5 whitespace-nowrap text-[8px] font-black tabular-nums tracking-[-0.02em] text-slate-800 dark:text-slate-100">
+                      {card.marketCap || "$0.00"}
+                    </div>
+                    <div className="mt-1 text-[6px] font-black uppercase tracking-wide text-slate-400">
+                      Pop
+                    </div>
+                    <div className="whitespace-nowrap text-[8px] font-bold tabular-nums text-slate-600 dark:text-slate-300">
+                      {(currentGradeCount || currentPopTotal).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <ChevronRight className="h-4 w-4 text-slate-400" strokeWidth={2} />
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+              <div className="rounded-full bg-slate-50 p-4 text-slate-300 dark:bg-slate-900 dark:text-slate-600">
+                <Inbox size={36} strokeWidth={1.5} />
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                No cards found
+              </p>
+              <p className="mt-1 max-w-[260px] text-[10px] font-bold text-slate-500">
+                We couldn&apos;t find any results for &quot;
+                {activeSearchQuery || searchQuery || "your search"}&quot;.
+              </p>
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="mt-4 rounded-lg bg-[#00BA88] px-5 py-2 text-[9px] font-black uppercase tracking-widest text-white"
+              >
+                Clear Search
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!isUniversalSearchActive &&
+          initialCards.length > 0 &&
+          effectiveTotalPages > 0 && (
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/70 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-wider text-slate-400">
+                  Page {currentPage} / {effectiveTotalPages}
+                </p>
+                <p className="mt-0.5 text-[7px] font-bold uppercase tracking-wider text-slate-300 dark:text-slate-600">
+                  {normalizedPageSize} cards per page
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1 || isPageLoading}
+                  onClick={() => updatePage(currentPage - 1)}
+                  className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-300"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  disabled={currentPage >= effectiveTotalPages || isPageLoading}
+                  onClick={() => updatePage(currentPage + 1)}
+                  className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-300"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900 md:block">
         <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full min-w-[1180px] border-collapse text-left font-sans">
             <thead>
