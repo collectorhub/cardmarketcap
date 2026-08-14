@@ -967,9 +967,7 @@ export function MarketTable({
                             strokeLinejoin="round"
                           />
                         </svg>
-                      ) : (
-                        <span className="h-px w-10 rounded bg-slate-200 dark:bg-slate-700" />
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
