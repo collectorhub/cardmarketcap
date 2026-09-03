@@ -44,6 +44,12 @@ export default function SalesHistoryPanel({
 
   return (
     <section className="overflow-hidden rounded-[20px] border border-slate-200/80 bg-white dark:border-white/5 dark:bg-slate-900">
+      <div className="px-4 pt-4 md:px-5 md:pt-5">
+        <h2 className="text-sm font-black text-slate-900 dark:text-white">
+          Sales
+        </h2>
+      </div>
+
       <div className="cmc-sales-scroll flex gap-2 overflow-x-auto border-b border-slate-100 px-4 py-3 dark:border-white/5 md:px-5">
         {salesGrades.map(
           (grade) => {
@@ -82,7 +88,7 @@ export default function SalesHistoryPanel({
                     : "bg-slate-100 text-slate-500 hover:text-[#00BA88] dark:bg-white/5"
                 )}
               >
-                {grade} Sales ({count})
+                {grade} ({count})
               </button>
             );
           }

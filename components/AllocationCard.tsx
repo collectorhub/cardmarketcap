@@ -34,7 +34,7 @@ const AllocationCard = ({
   onFooterClick = () => {},
 }: AllocationCardProps) => {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+    <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-[24px] md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">

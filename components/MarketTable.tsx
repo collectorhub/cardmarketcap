@@ -50,6 +50,27 @@ const safeParseNumber = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const formatCompactCurrency = (value: unknown): string => {
+  const amount = safeParseNumber(value);
+
+  if (amount >= 1_000_000_000) {
+    return `$${(amount / 1_000_000_000).toFixed(2)}B`;
+  }
+
+  if (amount >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(2)}M`;
+  }
+
+  if (amount >= 1_000) {
+    return `$${(amount / 1_000).toFixed(2)}K`;
+  }
+
+  return `$${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
 const normalizeSearchText = (value: string) =>
   value.trim().replace(/\s+/g, " ");
 
@@ -678,7 +699,7 @@ export function MarketTable({
   }, [normalizedSearchQuery, performUniversalSearch, replaceSearchQueryInUrl]);
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-4 py-4 md:space-y-6 md:py-8">
+    <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-4 py-4 md:space-y-6 md:py-8">
       <div className="px-1">
         <h2 className="mb-1 text-[14px] font-black uppercase tracking-[0.1em] text-slate-900 dark:text-white md:text-base">
           Card Overview
@@ -782,11 +803,11 @@ export function MarketTable({
         </div>
       )} */}
 
-      <div className="overflow-hidden rounded-[14px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 md:hidden">
-        <div className="grid grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 border-b border-slate-200 bg-slate-50/70 px-2.5 py-2.5 text-[8px] font-black uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:bg-slate-900/60">
+      <div className="-mx-4 w-screen max-w-[100vw] overflow-hidden border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 md:hidden">
+        <div className="grid w-full grid-cols-[34px_minmax(0,1fr)_86px_76px_14px] items-center gap-x-1 border-b border-slate-200 bg-slate-50/70 px-3 py-2.5 text-[8px] font-black uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:bg-slate-900/60">
           <span className="text-center">#</span>
           <span>Card</span>
-          <span className="-translate-x-2 text-right">Price</span>
+          <span className="text-right">Price</span>
           <span className="text-right">Market</span>
           <span aria-hidden="true" />
         </div>
@@ -796,7 +817,7 @@ export function MarketTable({
             Array.from({ length: 10 }).map((_, index) => (
               <div
                 key={index}
-                className="grid animate-pulse grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 px-2.5 py-2.5"
+                className="grid w-full animate-pulse grid-cols-[34px_minmax(0,1fr)_86px_76px_14px] items-center gap-x-1 px-3 py-2.5"
               >
                 <div className="flex flex-col items-center justify-center gap-1.5">
                   <div className="h-4 w-4 rounded bg-slate-100 dark:bg-slate-800" />
@@ -853,7 +874,7 @@ export function MarketTable({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   onClick={() => handleNavigation(card)}
-                  className="grid cursor-pointer grid-cols-[38px_minmax(0,1fr)_82px_72px_14px] items-center gap-x-1 px-2.5 py-2.5 transition-colors active:bg-slate-50 dark:active:bg-slate-900"
+                  className="grid w-full cursor-pointer grid-cols-[34px_minmax(0,1fr)_86px_76px_14px] items-center gap-x-1 px-3 py-2.5 transition-colors active:bg-slate-50 dark:active:bg-slate-900"
                 >
                   <div className="flex h-full min-h-[50px] flex-col items-center justify-center gap-1">
                     <button
@@ -928,7 +949,7 @@ export function MarketTable({
                     </div>
                   </div>
 
-                  <div className="min-w-0 -translate-x-2 text-right">
+                  <div className="min-w-0 text-right">
                     <div className="whitespace-nowrap text-[12px] font-black tabular-nums text-slate-900 dark:text-white">
                       {card.price || "$0.00"}
                     </div>
@@ -976,7 +997,9 @@ export function MarketTable({
                       Mkt Cap
                     </div>
                     <div className="mt-0.5 whitespace-nowrap text-[8px] font-black tabular-nums tracking-[-0.02em] text-slate-800 dark:text-slate-100">
-                      {card.marketCap || "$0.00"}
+                      {formatCompactCurrency(
+                        card.marketCapNum ?? card.marketCap,
+                      )}
                     </div>
                     <div className="mt-1 text-[6px] font-black uppercase tracking-wide text-slate-400">
                       Pop
@@ -1063,7 +1086,7 @@ export function MarketTable({
 
                 <th className="px-4 py-5">Card</th>
 
-                <th className="w-[260px] px-4 py-5">Set</th>
+                <th className="w-[190px] px-4 py-5">Set</th>
 
                 <th className="w-[150px] px-4 py-5 text-right">
                   Price ({currentGrade.toUpperCase()})
@@ -1234,7 +1257,7 @@ export function MarketTable({
                         </div>
                       </td>
 
-                      <td className="max-w-[260px] whitespace-normal break-words px-4 py-2 text-[12px] font-bold uppercase leading-snug text-slate-500 dark:text-slate-400 md:py-7 md:text-xs">
+                      <td className="max-w-[190px] whitespace-normal break-words px-4 py-2 text-sm font-medium leading-snug text-slate-500 dark:text-slate-400 md:py-5">
                         {card.set || "—"}
                       </td>
 

@@ -673,9 +673,9 @@ export default function PortfolioDashboard({ data }: { data: any }) {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group/card">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12">
+        <div className="space-y-4 md:space-y-6 lg:col-span-8">
+          <div className="group/card -mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
             <div className="flex flex-col md:flex-row justify-between items-start mb-7 md:mb-8 gap-5 md:gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2 md:mb-1">
@@ -870,8 +870,8 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden">
-            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
+          <div className="-mx-4 overflow-hidden border-y border-slate-100 bg-white shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+            <div className="flex items-center justify-between border-b border-slate-50 px-4 py-5 dark:border-slate-800 md:p-6">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
               </h3>
@@ -1047,7 +1047,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="space-y-4 md:space-y-6 lg:col-span-4">
           <AllocationCard
             title="Portfolio Allocation"
             data={allocation.length > 0 ? allocation : ALLOCATION}
@@ -1056,8 +1056,8 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             onFooterClick={() => {}}
           />
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-            <div className="flex justify-between items-center mb-6">
+          <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+            <div className="mb-5 flex items-center justify-between md:mb-6">
               <div className="flex items-center gap-2">
                 <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Recent Activity</h3>
                 <Info size={14} className="text-slate-300" />
@@ -1101,7 +1101,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="flex justify-between items-center mb-5">
               <div className="flex items-center gap-2">
                 <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">
@@ -1130,7 +1130,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             </div>
 
             <div className="mt-5 pt-5 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-4">
+              <div className="border-r border-slate-100 pr-3 dark:border-slate-800 md:rounded-2xl md:border md:bg-slate-50 md:p-4 md:dark:bg-slate-950/50">
                 <div className="flex items-center gap-2 mb-2 text-emerald-500">
                   <DollarSign size={15} />
                   <span className="text-[10px] font-black uppercase tracking-wider">Value</span>
@@ -1138,7 +1138,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                 <p className="text-sm font-black text-slate-900 dark:text-white">{money(stats.totalValue)}</p>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 p-4">
+              <div className="pl-1 md:rounded-2xl md:border md:border-slate-100 md:bg-slate-50 md:p-4 md:dark:border-slate-800 md:dark:bg-slate-950/50">
                 <div className="flex items-center gap-2 mb-2 text-emerald-500">
                   <BarChart3 size={15} />
                   <span className="text-[10px] font-black uppercase tracking-wider">30D</span>

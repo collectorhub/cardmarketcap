@@ -198,7 +198,7 @@ export default function PortfolioHeader({ data }: { data: any }) {
           </p>
         </div>
 
-        <div className="w-full sm:w-auto bg-white dark:bg-slate-900 px-5 py-4 rounded-[20px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-row items-center justify-between sm:justify-start gap-4 sm:gap-10">
+        <div className="flex w-full flex-row items-center justify-between gap-4 border-y border-slate-100 bg-white px-4 py-4 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:w-auto sm:justify-start sm:gap-10 sm:rounded-[20px] sm:border-x sm:px-5 sm:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <div className="flex flex-col items-start gap-1">
             <div className="flex items-center gap-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">
