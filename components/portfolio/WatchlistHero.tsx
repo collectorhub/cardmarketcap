@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Info, TrendingUp, TrendingDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import CustomDropdown from "../CustomDropdown";
 
 type Range = "30D" | "90D" | "All";
 
@@ -111,18 +112,18 @@ export const WatchlistHero = ({ data }: { data: any }) => {
   }, [data, activeTab]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[20px] border border-slate-100 dark:border-slate-800 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] h-full flex flex-col justify-between group/card">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="group/card flex h-full flex-col justify-between border-0 bg-transparent py-1 shadow-none md:rounded-[20px] md:border md:border-slate-100 md:bg-white md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)] md:dark:border-slate-800 md:dark:bg-slate-900">
+      <div className="mb-5 flex items-start justify-between gap-3 md:mb-8 md:flex-row md:items-center md:gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 md:font-bold">
               Watchlist Overview
             </h3>
             <Info size={14} className="text-slate-300 cursor-help" />
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight md:font-black">
               {money(chartConfig.currentTotal)}
             </p>
 
@@ -155,7 +156,16 @@ export const WatchlistHero = ({ data }: { data: any }) => {
           </p>
         </div>
 
-        <div className="flex w-full md:w-auto gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border border-slate-100 dark:border-slate-800/50">
+        <CustomDropdown
+          value={activeTab}
+          options={[...TABS]}
+          onChange={(value) => setActiveTab(value as Range)}
+          className="w-[72px] min-w-[72px] shrink-0 md:hidden"
+          triggerClassName="h-9 min-w-[72px] rounded-lg border-[#00BA88]/50 bg-transparent px-2.5 text-[#00BA88] dark:bg-transparent"
+          valueClassName="min-w-max overflow-visible text-clip whitespace-nowrap font-semibold text-[#00BA88]"
+        />
+
+        <div className="hidden w-auto gap-1 rounded-xl border border-slate-100 bg-slate-50 p-1 dark:border-slate-800/50 dark:bg-slate-950 md:flex">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -173,18 +183,18 @@ export const WatchlistHero = ({ data }: { data: any }) => {
         </div>
       </div>
 
-      <div className="flex flex-row gap-4 md:gap-6 flex-1 min-h-[180px]">
+      <div className="flex min-h-[180px] w-full min-w-0 flex-1 flex-row gap-2 md:gap-6">
         <div className="flex flex-col justify-between py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-right min-w-[48px] shrink-0 pr-2 border-r border-slate-50 dark:border-slate-800/50">
           {chartConfig.yLabels.map((label, idx) => (
             <span key={idx}>{label}</span>
           ))}
         </div>
 
-        <div className="flex-1 flex flex-col justify-between relative pt-2">
+        <div className="relative flex min-w-0 flex-1 flex-col justify-between pt-2">
           <div className="flex-1 relative">
             <svg
               viewBox="0 0 800 100"
-              className="w-full h-full overflow-visible"
+              className="h-full w-full overflow-visible"
               preserveAspectRatio="none"
             >
               <defs>

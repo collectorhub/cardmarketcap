@@ -129,7 +129,7 @@ export default function WatchlistPage({ data }: { data: any }) {
 
       <WatchlistStats data={watchlist} />
 
-      <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+      <section className="overflow-hidden border-0 bg-transparent shadow-none md:rounded-[32px] md:border md:border-slate-100 md:bg-white md:shadow-sm md:dark:border-slate-800 md:dark:bg-slate-900">
         <WatchlistTable
           userId={activeUserId || 0}
           cards={cards}

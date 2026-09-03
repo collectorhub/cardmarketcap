@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Layers,
@@ -20,6 +20,22 @@ const NAV_ITEMS = [
   { label: "Portfolio", href: "/portfolio", icon: Layers },
   { label: "Watchlist", href: "/portfolio/watchlist", icon: Bell },
 ];
+
+const MOBILE_NAV_ITEMS = [
+  { label: "Overview", href: "/portfolio", section: "overview" },
+  { label: "Holdings", href: "/portfolio?section=holdings", section: "holdings" },
+  { label: "Allocation", href: "/portfolio?section=allocation", section: "allocation" },
+  { label: "Activity", href: "/portfolio?section=activity", section: "activity" },
+  { label: "Watchlist", href: "/portfolio/watchlist", section: "watchlist" },
+] as const;
+
+const MOBILE_PAGE_TITLES = {
+  overview: "Portfolio",
+  holdings: "Holdings",
+  allocation: "Allocation",
+  activity: "Activity",
+  watchlist: "Watchlist",
+} as const;
 
 function safeNumber(value: any) {
   const num = Number(value);
@@ -78,7 +94,16 @@ function downloadCsv(filename: string, rows: any[]) {
 export default function PortfolioHeader({ data }: { data: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isWatchlist = pathname === "/portfolio/watchlist";
+  const requestedSection = searchParams.get("section");
+  const mobileSection = isWatchlist
+    ? "watchlist"
+    : requestedSection === "holdings" ||
+        requestedSection === "allocation" ||
+        requestedSection === "activity"
+      ? requestedSection
+      : "overview";
 
   const userName = data?.user?.name || "Collector";
   const userId = safeNumber(data?.user?.id || data?.userId);
@@ -159,8 +184,12 @@ export default function PortfolioHeader({ data }: { data: any }) {
   };
 
   return (
-    <header className="w-full pt-20 md:pt-8 pb-0 px-4 md:px-0">
-      <div className="flex flex-col lg:flex-row justify-between items-center gap-8 mb-8">
+    <header className="w-full px-0 pb-0 pt-[68px] md:pt-8">
+      <h1 className="pb-3 text-[18px] font-bold leading-tight tracking-tight text-slate-900 dark:text-white md:hidden">
+        {MOBILE_PAGE_TITLES[mobileSection]}
+      </h1>
+
+      <div className="hidden mb-5 flex-col items-center justify-between gap-4 md:mb-8 md:flex md:gap-8 lg:flex-row">
         <div className="space-y-2 py-2 text-center lg:text-left w-full lg:w-auto">
           <motion.h1
             key={isWatchlist ? "watchlist" : "portfolio"}
@@ -198,7 +227,7 @@ export default function PortfolioHeader({ data }: { data: any }) {
           </p>
         </div>
 
-        <div className="flex w-full flex-row items-center justify-between gap-4 border-y border-slate-100 bg-white px-4 py-4 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:w-auto sm:justify-start sm:gap-10 sm:rounded-[20px] sm:border-x sm:px-5 sm:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="hidden w-full flex-row items-center justify-between gap-4 border-y border-slate-100 bg-white px-4 py-4 shadow-none dark:border-slate-800 dark:bg-slate-900 md:flex md:w-auto md:justify-start md:gap-10 md:rounded-[20px] md:border-x md:px-5 md:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <div className="flex flex-col items-start gap-1">
             <div className="flex items-center gap-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-[0.05em]">
@@ -257,8 +286,8 @@ export default function PortfolioHeader({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 dark:border-slate-800">
-        <nav className="flex justify-center md:justify-start gap-2 md:gap-6 w-full md:w-auto overflow-x-auto no-scrollbar -mb-[1px]">
+      <div className="flex flex-col justify-between border-b border-slate-100 dark:border-slate-800 md:flex-row md:items-end md:gap-6">
+        <nav className="hidden justify-center gap-2 md:flex md:w-auto md:justify-start md:gap-6 overflow-x-auto no-scrollbar -mb-[1px]">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -289,10 +318,36 @@ export default function PortfolioHeader({ data }: { data: any }) {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 pb-4 w-full md:w-auto">
+        <nav className="-mb-px flex w-full justify-between overflow-x-auto no-scrollbar md:hidden">
+          {MOBILE_NAV_ITEMS.map((item) => {
+            const isActive = mobileSection === item.section;
+
+            return (
+              <Link
+                key={item.section}
+                href={item.href}
+                className={cn(
+                  "relative shrink-0 px-1.5 pb-3 pt-1 text-[10px] font-semibold transition-colors first:pl-0 last:pr-0",
+                  isActive ? "text-[#00BA88]" : "text-slate-400 dark:text-slate-500"
+                )}
+              >
+                {item.label}
+                {isActive && (
+                  <motion.span
+                    layoutId="mobilePortfolioTab"
+                    className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-[#00BA88]"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="hidden w-full items-center gap-2 pb-4 md:flex md:w-auto">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-[#00BA88] text-white rounded-2xl text-[13px] font-black hover:bg-[#00a377] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] cursor-pointer"
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#00BA88] px-5 py-3 text-[12px] font-black text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-[#00a377] active:scale-[0.98] md:flex-none md:rounded-2xl md:px-6 md:py-3.5 md:text-[13px]"
           >
             <Plus size={16} strokeWidth={3} />
             <span>{isWatchlist ? "Watch Card" : "Add Card"}</span>
@@ -300,7 +355,7 @@ export default function PortfolioHeader({ data }: { data: any }) {
 
           <button
             onClick={handleExportCsv}
-            className="flex items-center justify-center gap-2 cursor-pointer px-3.5 md:px-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-[0.98]"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-slate-600 transition-all hover:bg-slate-50 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 md:rounded-2xl md:px-4 md:py-3.5"
           >
             <Download size={18} />
             <span className="hidden md:inline text-[13px] font-bold">

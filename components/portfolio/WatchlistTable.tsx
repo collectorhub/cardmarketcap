@@ -453,7 +453,7 @@ export default function WatchlistTable({
   ];
 
   return (
-    <div className="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+    <div className="flex flex-col overflow-hidden border-0 bg-transparent shadow-none md:rounded-[32px] md:border md:border-slate-100 md:bg-white md:shadow-sm md:dark:border-slate-800 md:dark:bg-slate-900">
       <AnimatePresence>
         {gradeModalCard && (
           <AddGradeModal

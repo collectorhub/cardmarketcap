@@ -115,7 +115,9 @@ export default function PortfolioLayout({ children }: { children: React.ReactNod
       </div>
 
       <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10">
-        <PortfolioHeader data={dashboardData} />
+        <React.Suspense fallback={null}>
+          <PortfolioHeader data={dashboardData} />
+        </React.Suspense>
 
         <main className="py-4">{children}</main>
       </div>

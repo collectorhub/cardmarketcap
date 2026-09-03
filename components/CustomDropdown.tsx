@@ -11,6 +11,8 @@ interface CustomDropdownProps {
   options: string[];
   onChange: (val: string) => void;
   className?: string;
+  triggerClassName?: string;
+  valueClassName?: string;
 }
 
 export default function CustomDropdown({ 
@@ -18,7 +20,9 @@ export default function CustomDropdown({
   value, 
   options, 
   onChange,
-  className 
+  className,
+  triggerClassName,
+  valueClassName,
 }: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,7 @@ export default function CustomDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-full h-11 flex items-center justify-between gap-2 bg-white dark:bg-transparent border px-3.5 rounded-xl transition-all duration-200 text-left select-none cursor-pointer",
+          triggerClassName,
           isOpen 
             ? "border-[#00BA88] ring-2 ring-[#00BA88]/10" 
             : "border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
@@ -57,7 +62,8 @@ export default function CustomDropdown({
           <span 
             className={cn(
               "text-[12px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 truncate",
-              label ? "leading-none" : "leading-normal mt-0.5"
+              label ? "leading-none" : "leading-normal mt-0.5",
+              valueClassName
             )}
           >
             {safeValue.replace(/psa/i, 'PSA')}

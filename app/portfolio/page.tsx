@@ -138,9 +138,11 @@ export default function PortfolioPage() {
 
   return (
     <div className="w-full">
-      <PortfolioDashboard
-        data={data || { cards: [], stats: {}, allocation: [], activities: [] }}
-      />
+      <React.Suspense fallback={null}>
+        <PortfolioDashboard
+          data={data || { cards: [], stats: {}, allocation: [], activities: [] }}
+        />
+      </React.Suspense>
     </div>
   );
 }

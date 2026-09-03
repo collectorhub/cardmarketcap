@@ -22,8 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AllocationCard from "../AllocationCard";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AddCardModal from "./AddCardModal";
+import CustomDropdown from "../CustomDropdown";
 import { addCardToPortfolio } from "@/lib/queries/portfolio";
 
 type PerformanceRange = "30D" | "90D" | "All";
@@ -425,6 +426,14 @@ export default function PortfolioDashboard({ data }: { data: any }) {
   const [portfolioCards, setPortfolioCards] = useState<any[]>([]);
   const [gradeModalCard, setGradeModalCard] = useState<any>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const mobileSection =
+    requestedSection === "holdings" ||
+    requestedSection === "allocation" ||
+    requestedSection === "activity"
+      ? requestedSection
+      : "overview";
 
   const rawCards = Array.isArray(data?.cards) ? data.cards : [];
 
@@ -661,7 +670,12 @@ export default function PortfolioDashboard({ data }: { data: any }) {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+    <div
+      className={cn(
+        "animate-in fade-in slide-in-from-bottom-4 duration-700 md:pb-10",
+        mobileSection === "allocation" ? "pb-4" : "pb-10"
+      )}
+    >
       <AnimatePresence>
         {gradeModalCard && (
           <AddGradeModal
@@ -673,26 +687,39 @@ export default function PortfolioDashboard({ data }: { data: any }) {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12">
-        <div className="space-y-4 md:space-y-6 lg:col-span-8">
-          <div className="group/card -mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-7 md:mb-8 gap-5 md:gap-4">
-              <div>
+      <section className={cn("mb-5 px-0 md:hidden", mobileSection !== "overview" && "hidden")}>
+        <h2 className="text-[17px] font-semibold tracking-tight text-slate-900 dark:text-white">
+          Welcome back, <span className="text-[#00BA88]">{data?.user?.name || data?.user?.username || "Collector"}!</span>
+        </h2>
+        <p className="mt-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+          Your collection value changed by{" "}
+          <span className={cn("font-bold", Number(performance.change30D || 0) >= 0 ? "text-emerald-500" : "text-red-500")}>
+            {Number(performance.change30D || 0) >= 0 ? "+" : "-"}{money(Math.abs(Number(performance.change30D || 0)))} ({Number(performance.change30DPct || 0).toFixed(2)}%)
+          </span>{" "}
+          today.
+        </p>
+      </section>
+
+      <div className="grid grid-cols-1 gap-3 md:gap-6 lg:grid-cols-12">
+        <div className={cn("space-y-3 md:block md:space-y-6 lg:col-span-8", mobileSection === "allocation" || mobileSection === "activity" ? "hidden" : "block")}>
+          <div className={cn("group/card border-0 bg-transparent py-1 shadow-none md:block md:rounded-3xl md:border md:border-slate-100 md:bg-white md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)] md:dark:border-slate-800 md:dark:bg-slate-900", mobileSection !== "overview" && "hidden")}>
+            <div className="mb-3 flex items-start justify-between gap-3 md:mb-8 md:gap-4">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-2 md:mb-1">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    Portfolio Performance
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 md:text-sm md:font-black md:normal-case md:tracking-normal md:text-slate-800 md:dark:text-slate-200">
+                    Total Portfolio Value
                   </h3>
                   <Info size={14} className="text-slate-300 dark:text-slate-600 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity cursor-help" />
                 </div>
 
-                <div className="flex items-baseline gap-3">
-                  <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                <div className="flex flex-col items-start gap-1 md:flex-row md:items-baseline md:gap-3">
+                  <p className="text-[28px] font-extrabold leading-none tracking-tight text-slate-900 dark:text-white md:text-3xl md:font-black md:leading-normal">
                     {money(stats.totalValue)}
                   </p>
 
                   <p
                     className={cn(
-                      "text-xs font-bold flex items-center gap-1",
+                      "flex items-center gap-1 text-[11px] font-bold md:text-xs",
                       chartConfig.selectedChangePct >= 0 ? "text-emerald-500" : "text-red-500"
                     )}
                   >
@@ -706,13 +733,22 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 md:flex w-full md:w-auto gap-1 bg-slate-50 dark:bg-[#050b18] p-1 md:p-1.5 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner">
+              <CustomDropdown
+                value={activeTab}
+                options={[...PERFORMANCE_TABS]}
+                onChange={(value) => setActiveTab(value as PerformanceRange)}
+                className="w-[72px] min-w-[72px] shrink-0 md:hidden"
+                triggerClassName="h-9 min-w-[72px] rounded-lg border-[#00BA88]/50 bg-transparent px-2.5 text-[#00BA88] dark:bg-transparent"
+                valueClassName="min-w-max overflow-visible text-clip whitespace-nowrap font-semibold text-[#00BA88]"
+              />
+
+              <div className="hidden w-auto shrink-0 gap-0.5 rounded-xl border border-slate-100 bg-slate-50 p-1.5 shadow-inner dark:border-slate-800/50 dark:bg-[#050b18] md:flex md:gap-1">
                 {PERFORMANCE_TABS.map((t) => (
                   <button
                     key={t}
                     onClick={() => setActiveTab(t)}
                     className={cn(
-                      "px-3 md:px-4 py-2.5 md:py-2 text-[10px] md:text-[11px] font-black rounded-lg transition-all duration-200 uppercase tracking-wider",
+                      "rounded-lg px-4 py-2 text-[11px] font-black uppercase tracking-wider transition-all duration-200",
                       activeTab === t
                         ? "bg-[#10b981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]"
                         : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -724,8 +760,8 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10">
-              <div className="md:col-span-7 h-[220px] md:h-64 flex gap-3 md:gap-4">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:gap-10">
+              <div className="flex h-[190px] gap-2 md:col-span-7 md:h-64 md:gap-4">
                 <div className="flex flex-col justify-between py-1 text-[9px] md:text-[10px] font-bold text-slate-400 text-right w-12 md:w-14 shrink-0">
                   {chartConfig.yLabels.map((label, idx) => (
                     <span key={idx}>{label}</span>
@@ -797,7 +833,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                 </div>
               </div>
 
-              <div className="md:col-span-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-6 md:pt-0 pl-0 md:pl-8 space-y-3">
+              <div className="hidden flex-col justify-between space-y-3 border-slate-50 pt-6 dark:border-slate-800 md:col-span-5 md:flex md:border-l md:pl-8 md:pt-0">
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
                   Performance Overview
                 </p>
@@ -868,20 +904,123 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                 ))}
               </div>
             </div>
+
+            <div className="mt-3 grid grid-cols-4 border-y border-slate-100 py-3 dark:border-slate-800 md:hidden">
+              {[
+                { label: "Cards", value: stats.totalCards || portfolioOverview[0]?.val || 0 },
+                { label: "Sets", value: stats.totalSets || portfolioOverview[1]?.val || 0 },
+                { label: "Avg Value", value: portfolioOverview[2]?.val || money(0) },
+                {
+                  label: "30D Change",
+                  value: `${Number(performance?.change30D || 0) >= 0 ? "+" : "-"}${money(
+                    Math.abs(Number(performance?.change30D || 0))
+                  )}`,
+                },
+              ].map((item, index) => (
+                <div
+                  key={item.label}
+                  className={cn(
+                    "min-w-0 px-2 text-center first:pl-0 last:pr-0",
+                    index > 0 && "border-l border-slate-100 dark:border-slate-800"
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "truncate text-[13px] font-bold tabular-nums text-slate-900 dark:text-white",
+                      item.label === "30D Change" &&
+                        (Number(performance?.change30D || 0) >= 0
+                          ? "text-emerald-500"
+                          : "text-red-500")
+                    )}
+                  >
+                    {item.value}
+                  </p>
+                  <p className="mt-1 text-[9px] font-bold uppercase leading-tight tracking-wide text-slate-400">
+                    {item.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="-mx-4 overflow-hidden border-y border-slate-100 bg-white shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            <div className="flex items-center justify-between border-b border-slate-50 px-4 py-5 dark:border-slate-800 md:p-6">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                Your Top Cards <Info size={14} className="text-slate-300 dark:text-slate-600" />
+          <div className={cn("overflow-hidden border-0 bg-transparent shadow-none md:block md:rounded-3xl md:border md:border-slate-100 md:bg-white md:shadow-[0_8px_30px_rgb(0,0,0,0.02)] md:dark:border-slate-800 md:dark:bg-slate-900", mobileSection !== "overview" && mobileSection !== "holdings" && "hidden")}>
+            <div className="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800 md:p-6">
+              <h3 className="flex items-center gap-2 text-[14px] font-semibold text-slate-800 dark:text-slate-200 md:text-[15px] md:font-bold">
+                Your Top Holdings <Info size={14} className="hidden text-slate-300 dark:text-slate-600 md:block" />
               </h3>
 
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
+              <button onClick={() => router.push('/portfolio?section=holdings')} className={cn("text-[10px] font-bold text-[#00BA88] md:hidden", mobileSection !== "overview" && "hidden")}>
+                View All
+              </button>
+              <span className={cn("text-[10px] font-bold text-slate-400", mobileSection === "overview" && "hidden md:inline")}>
                 Page {currentPage} of {totalPages}
               </span>
             </div>
 
-            <div className="w-full overflow-x-auto scrollbar-hide">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 md:hidden">
+              {paginatedCards.map((card: any, i: number) => {
+                const lineValue = Number(
+                  card.lineValue || Number(card.value || 0) * Number(card.quantity || 1)
+                );
+                const change = Number(card.change || 0);
+                const isPositive = change >= 0;
+                const rawPath = card.canonical_path || card.url || "";
+
+                const handleNavigation = () => {
+                  if (rawPath) {
+                    const dynamicRoute = rawPath.startsWith("/card") ? rawPath : `/card${rawPath}`;
+                    router.push(dynamicRoute);
+                  } else if (card.card_id) {
+                    router.push(`/card/${card.card_id}?game=${card.game || "pokemon"}`);
+                  }
+                };
+
+                return (
+                  <button
+                    key={card.entryId || card.id || `${card.card_id}-${card.grade}-${i}`}
+                    type="button"
+                    onClick={handleNavigation}
+                    className="grid w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5 text-left"
+                  >
+                    <span className="h-[52px] w-[38px] overflow-hidden rounded border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                      <img
+                        src={getCardImage(card)}
+                        alt={card.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                        {card.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-400">
+                        {card.setName || card.set || "Unknown Set"}
+                      </span>
+                      <span className="mt-1.5 inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[9px] font-black text-indigo-600 dark:border-indigo-500/25 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {card.grade || "Raw"}
+                      </span>
+                    </span>
+
+                    <span className="text-right">
+                      <span className="block whitespace-nowrap text-[13px] font-black tabular-nums text-slate-900 dark:text-white">
+                        {money(lineValue)}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-1 block text-[11px] font-black tabular-nums",
+                          isPositive ? "text-emerald-500" : "text-red-500"
+                        )}
+                      >
+                        {isPositive ? "+" : "-"}{Math.abs(change).toFixed(2)}%
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="hidden w-full overflow-x-auto scrollbar-hide md:block">
               <table className="w-full text-left border-collapse table-fixed min-w-225 lg:min-w-full">
                 <thead>
                   <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
@@ -1010,7 +1149,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </table>
             </div>
 
-            <div className="p-4 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+            <div className={cn("items-center justify-between border-t border-slate-100 bg-transparent p-3 dark:border-slate-800 md:flex md:bg-slate-50/30 md:dark:bg-slate-950/30 md:p-4", mobileSection === "holdings" ? "flex" : "hidden")}>
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
@@ -1045,18 +1184,32 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </button>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className={cn(
+              "mx-0 flex w-full items-center justify-center gap-2 rounded-xl border border-[#00BA88] px-4 py-3.5 text-[14px] font-black text-[#00BA88] transition-colors hover:bg-emerald-500/5 md:hidden",
+              mobileSection !== "overview" && "hidden"
+            )}
+          >
+            <Plus size={18} strokeWidth={2.5} />
+            Add Card to Portfolio
+          </button>
         </div>
 
-        <div className="space-y-4 md:space-y-6 lg:col-span-4">
-          <AllocationCard
-            title="Portfolio Allocation"
-            data={allocation.length > 0 ? allocation : ALLOCATION}
-            centerValue={stats.totalCards}
-            centerLabel="Total Cards"
-            onFooterClick={() => {}}
-          />
+        <div className={cn("space-y-3 md:block md:space-y-6 lg:col-span-4", mobileSection === "allocation" || mobileSection === "activity" ? "block" : "hidden")}>
+          <div className={cn("md:block", mobileSection !== "allocation" && "hidden")}>
+            <AllocationCard
+              title="Portfolio Allocation"
+              data={allocation.length > 0 ? allocation : ALLOCATION}
+              centerValue={stats.totalCards}
+              centerLabel="Total Cards"
+              onFooterClick={() => {}}
+            />
+          </div>
 
-          <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className={cn("border-0 bg-transparent py-1 shadow-none md:block md:rounded-3xl md:border md:border-slate-100 md:bg-white md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)] md:dark:border-slate-800 md:dark:bg-slate-900", mobileSection !== "activity" && "hidden")}>
             <div className="mb-5 flex items-center justify-between md:mb-6">
               <div className="flex items-center gap-2">
                 <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">Recent Activity</h3>
@@ -1073,17 +1226,17 @@ export default function PortfolioDashboard({ data }: { data: any }) {
                   const badge = meta.display_badge || meta.grade || actionType || "Activity";
 
                   return (
-                    <div key={act.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0 gap-4">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", activityColor(actionType))}>
+                    <div key={act.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 md:gap-4 md:py-4">
+                      <div className="flex min-w-0 items-center gap-3 md:gap-4">
+                        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full md:h-10 md:w-10", activityColor(actionType))}>
                           <Icon size={16} />
                         </div>
 
                         <div className="min-w-0">
-                          <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
+                          <p className="line-clamp-2 text-[12px] font-bold text-slate-800 dark:text-slate-200 md:text-[13px]">
                             {act.description || "Portfolio activity"}
                           </p>
-                          <p className="text-[12px] text-slate-400 font-medium truncate">{badge}</p>
+                          <p className="truncate text-[10px] font-medium text-slate-400 md:text-[12px]">{badge}</p>
                         </div>
                       </div>
 
@@ -1101,7 +1254,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             </div>
           </div>
 
-          <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-3xl md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className="hidden -mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:block md:rounded-3xl md:p-8 md:shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="flex justify-between items-center mb-5">
               <div className="flex items-center gap-2">
                 <h3 className="text-[15px] font-bold text-slate-800 dark:text-slate-100">

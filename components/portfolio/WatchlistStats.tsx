@@ -66,7 +66,7 @@ export const WatchlistStats = ({ data }: { data: any }) => {
       {stats.map((stat, idx) => (
         <div
           key={idx}
-          className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-100 dark:border-slate-800 flex items-center gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300"
+          className="flex items-center gap-3 border-b border-slate-100 bg-transparent py-3 transition-all duration-300 last:border-b-0 dark:border-slate-800 md:gap-4 md:rounded-[22px] md:border md:border-slate-100 md:bg-white md:p-6 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:dark:border-slate-800 md:dark:bg-slate-900"
         >
           <div
             className={cn(

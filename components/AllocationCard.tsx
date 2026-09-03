@@ -34,21 +34,21 @@ const AllocationCard = ({
   onFooterClick = () => {},
 }: AllocationCardProps) => {
   return (
-    <div className="-mx-4 border-y border-slate-100 bg-white px-4 py-5 shadow-none dark:border-slate-800 dark:bg-slate-900 sm:mx-0 sm:rounded-2xl sm:border-x md:rounded-[24px] md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+    <div className="border-0 bg-transparent py-1 shadow-none md:rounded-[24px] md:border md:border-slate-100 md:bg-white md:p-8 md:shadow-[0_8px_30px_rgb(0,0,0,0.02)] md:dark:border-slate-800 md:dark:bg-slate-900">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-4 flex items-center justify-between md:mb-6">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{title}</h3>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 md:font-bold">{title}</h3>
           <Info size={14} className="text-slate-300 dark:text-slate-600 cursor-help" />
         </div>
-        <MoreHorizontal size={18} className="text-slate-300 cursor-pointer hover:text-slate-600 transition-colors" />
+        <MoreHorizontal size={18} className="hidden cursor-pointer text-slate-300 transition-colors hover:text-slate-600 md:block" />
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex flex-col md:flex-row items-center gap-4">
+      <div className="flex min-w-0 flex-col items-center gap-2 md:flex-row md:gap-4">
         
         {/* LEFT SIDE: The Chart */}
-        <div className="h-52 w-full md:w-1/2 relative">
+        <div className="relative h-44 w-full min-w-0 md:h-52 md:w-1/2 md:shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <RePie>
               <Pie
@@ -76,32 +76,32 @@ const AllocationCard = ({
           
           {/* Center Overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <span className="text-2xl font-extrabold tracking-tighter text-slate-900 dark:text-white md:text-3xl md:font-black">
               {centerValue}
             </span>
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-[-2px]">
+            <span className="mt-[-2px] text-[9px] font-medium uppercase tracking-widest text-slate-400 md:font-bold">
               {centerLabel}
             </span>
           </div>
         </div>
 
         {/* RIGHT SIDE: Allocation List */}
-<div className="w-full md:w-1/2 space-y-1">
+<div className="w-full min-w-0 flex-1 space-y-0 border-t border-slate-100 pt-2.5 dark:border-slate-800 md:w-1/2 md:space-y-1 md:border-t-0 md:pt-0">
   {data.map((item) => (
     <div 
       key={item.name} 
-      className="flex justify-between items-center p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors group"
+      className="group flex items-center justify-between px-1 py-1.5 transition-colors md:rounded-xl md:p-2 md:hover:bg-slate-50 md:dark:hover:bg-slate-950"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 md:gap-3">
         <div 
           className="w-2.5 h-2.5 rounded-full shadow-sm" 
           style={{ backgroundColor: item.color }} 
         />
-        <span className="text-[12px] font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
+        <span className="truncate text-[11px] font-medium text-slate-600 transition-colors group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-slate-200 md:text-[12px] md:font-bold">
           {item.name}
         </span>
       </div>
-      <span className="text-[12px] font-black text-slate-900 dark:text-white">
+      <span className="whitespace-nowrap text-[11px] font-medium tabular-nums text-slate-900 dark:text-white md:text-[12px] md:font-black">
         {/* Use parseFloat and toFixed to handle the long decimals from your API */}
         {Number(item.value).toFixed(1)}%
       </span>
@@ -111,7 +111,7 @@ const AllocationCard = ({
       </div>
 
       {/* FOOTER BUTTON - hidden for now, spacer keeps card height consistent */}
-      <div className="w-full mt-6 py-3.5 invisible flex items-center justify-center gap-2 rounded-xl border border-transparent text-[11px] font-black uppercase tracking-widest">
+      <div className="invisible hidden w-full items-center justify-center gap-2 rounded-xl border border-transparent py-3.5 text-[11px] font-black uppercase tracking-widest md:mt-6 md:flex">
         {footerLabel}
         <ChevronRight size={14} />
       </div>
