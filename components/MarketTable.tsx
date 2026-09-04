@@ -949,7 +949,7 @@ export function MarketTable({
                     </div>
                   </div>
 
-                  <div className="min-w-0 text-right">
+                  <div className="min-w-0 pt-1.5 text-right lg:pt-0">
                     <div className="whitespace-nowrap text-[12px] font-black tabular-nums text-slate-900 dark:text-white">
                       {card.price || "$0.00"}
                     </div>

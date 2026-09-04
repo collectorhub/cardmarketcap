@@ -112,7 +112,7 @@ export default function WatchlistPage({ data }: { data: any }) {
           <WatchlistHero data={watchlist} />
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="hidden md:block lg:col-span-5">
           <AllocationCard
             title="Cards by Grade"
             data={safeAllocation}
@@ -122,12 +122,14 @@ export default function WatchlistPage({ data }: { data: any }) {
           />
         </div>
 
-        <div className="lg:col-span-3">
+        <div className="hidden md:block lg:col-span-3">
           <GrowthSummaryCard meta={meta} />
         </div>
       </section>
 
-      <WatchlistStats data={watchlist} />
+      <div className="hidden md:block">
+        <WatchlistStats data={watchlist} />
+      </div>
 
       <section className="overflow-hidden border-0 bg-transparent shadow-none md:rounded-[32px] md:border md:border-slate-100 md:bg-white md:shadow-sm md:dark:border-slate-800 md:dark:bg-slate-900">
         <WatchlistTable

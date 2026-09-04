@@ -204,8 +204,19 @@ export default function AddCardModal({ userId, onClose, onRefresh, mode = 'portf
                        <button
                           onClick={(e) => handleQuickAdd(e, card)}
                           disabled={isAdding || isSuccess}
+                          aria-label={
+                            isWatchlistMode
+                              ? "Add card to watchlist"
+                              : isSuccess
+                                ? "Card added"
+                                : isAdding
+                                  ? "Adding card"
+                                  : "Add card"
+                          }
                           className={cn(
                             "flex items-center gap-2 px-3 py-2 rounded-xl transition-all font-bold text-[10px] border tracking-tighter",
+                            !isWatchlistMode &&
+                              "h-9 w-9 min-w-9 shrink-0 justify-center gap-0 p-0 md:h-auto md:w-auto md:min-w-0 md:gap-2 md:px-3 md:py-2",
                             isSuccess 
                               ? "bg-slate-100 dark:bg-white/10 text-[#00BA88] border-[#00BA88]/20 cursor-default" 
                               : "bg-[#00BA88] text-white border-[#00BA88] hover:bg-[#00a377] active:scale-95 disabled:opacity-80"
@@ -213,18 +224,18 @@ export default function AddCardModal({ userId, onClose, onRefresh, mode = 'portf
                         >
                           {isSuccess ? (
                             <>
-                              <Check size={12} strokeWidth={4} className="animate-in zoom-in duration-300" />
-                              <span>{isWatchlistMode ? "Watching" : "Added"}</span>
+                               <Check size={12} strokeWidth={4} className="animate-in zoom-in duration-300" />
+                               <span className={cn(!isWatchlistMode && "hidden md:inline")}>{isWatchlistMode ? "Watching" : "Added"}</span>
                             </>
                           ) : isAdding ? (
                             <>
-                              <Loader2 size={12} className="animate-spin" />
-                              <span>{isWatchlistMode ? "Tracking..." : "Adding..."}</span>
+                               <Loader2 size={12} className="animate-spin" />
+                               <span className={cn(!isWatchlistMode && "hidden md:inline")}>{isWatchlistMode ? "Tracking..." : "Adding..."}</span>
                             </>
                           ) : (
                             <>
-                              <Plus size={12} strokeWidth={4} />
-                              <span>{isWatchlistMode ? "Watch" : "Add"}</span>
+                               <Plus size={12} strokeWidth={4} />
+                               <span className={cn(!isWatchlistMode && "hidden md:inline")}>{isWatchlistMode ? "Watch" : "Add"}</span>
                             </>
                           )}
                         </button>

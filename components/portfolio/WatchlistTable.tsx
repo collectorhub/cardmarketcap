@@ -503,7 +503,67 @@ export default function WatchlistTable({
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto scrollbar-hide relative">
+      <div className="divide-y divide-slate-100 dark:divide-slate-800 md:hidden">
+        {cards.map((card, i) => {
+          const change30 = Number(card.change30D || 0);
+          const isUp30 = change30 >= 0;
+          const rawPath = card.canonical_path || card.url || "";
+
+          const handleNavigation = () => {
+            if (rawPath) {
+              const dynamicRoute = rawPath.startsWith("/card") ? rawPath : `/card${rawPath}`;
+              router.push(dynamicRoute);
+            } else if (card.card_id) {
+              router.push(`/card/${card.card_id}?game=${card.game || "pokemon"}`);
+            }
+          };
+
+          return (
+            <button
+              key={card.watchlist_id || card.id || `${card.card_id}-${card.grade}-${i}`}
+              type="button"
+              onClick={handleNavigation}
+              className="grid w-full grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5 text-left"
+            >
+              <span className="h-[52px] w-[38px] overflow-hidden rounded border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                <img
+                  src={getCardImage(card)}
+                  alt={card.name || "Card"}
+                  className="h-full w-full object-cover"
+                />
+              </span>
+
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                  {card.name || "Unknown Card"}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] font-medium text-slate-400">
+                  {card.setName || card.set || "Unknown Set"}
+                </span>
+                <span className="mt-1.5 inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[9px] font-semibold text-indigo-600 dark:border-indigo-500/25 dark:bg-indigo-500/10 dark:text-indigo-400">
+                  {card.grade || "Raw"}
+                </span>
+              </span>
+
+              <span className="text-right">
+                <span className="block whitespace-nowrap text-[13px] font-bold tabular-nums text-slate-900 dark:text-white">
+                  {money(card.value)}
+                </span>
+                <span
+                  className={cn(
+                    "mt-1 block whitespace-nowrap text-[11px] font-bold tabular-nums",
+                    isUp30 ? "text-emerald-500" : "text-red-500"
+                  )}
+                >
+                  {isUp30 ? "+" : ""}{change30.toFixed(2)}%
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="relative hidden w-full overflow-x-auto scrollbar-hide md:block">
         <table className="w-full text-left border-collapse min-w-[1000px] lg:min-w-full table-fixed md:table-auto transition-opacity duration-200">
           <thead>
             <tr className="text-[9px] md:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
@@ -632,7 +692,7 @@ export default function WatchlistTable({
       </div>
 
       {cards.length > pageSize && (
-        <div className="p-4 md:p-6 bg-slate-50/30 dark:bg-slate-950/30 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+        <div className="hidden items-center justify-between border-t border-slate-50 bg-slate-50/30 p-4 dark:border-slate-800 dark:bg-slate-950/30 md:flex md:p-6">
           <p className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-400">
             Page {page} / {effectiveTotalPages}
           </p>

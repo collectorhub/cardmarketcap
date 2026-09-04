@@ -685,6 +685,13 @@ export default function PortfolioDashboard({ data }: { data: any }) {
             onAdded={handleAddGradeToLocalState}
           />
         )}
+        {isModalOpen && (
+          <AddCardModal
+            userId={Number(userId || 0)}
+            onClose={() => setIsModalOpen(false)}
+            onRefresh={() => window.location.reload()}
+          />
+        )}
       </AnimatePresence>
 
       <section className={cn("mb-5 px-0 md:hidden", mobileSection !== "overview" && "hidden")}>
@@ -952,13 +959,13 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               <button onClick={() => router.push('/portfolio?section=holdings')} className={cn("text-[10px] font-bold text-[#00BA88] md:hidden", mobileSection !== "overview" && "hidden")}>
                 View All
               </button>
-              <span className={cn("text-[10px] font-bold text-slate-400", mobileSection === "overview" && "hidden md:inline")}>
+              <span className="hidden text-[10px] font-bold text-slate-400 md:inline">
                 Page {currentPage} of {totalPages}
               </span>
             </div>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800 md:hidden">
-              {paginatedCards.map((card: any, i: number) => {
+              {(mobileSection === "holdings" ? cards : paginatedCards).map((card: any, i: number) => {
                 const lineValue = Number(
                   card.lineValue || Number(card.value || 0) * Number(card.quantity || 1)
                 );
@@ -1149,7 +1156,7 @@ export default function PortfolioDashboard({ data }: { data: any }) {
               </table>
             </div>
 
-            <div className={cn("items-center justify-between border-t border-slate-100 bg-transparent p-3 dark:border-slate-800 md:flex md:bg-slate-50/30 md:dark:bg-slate-950/30 md:p-4", mobileSection === "holdings" ? "flex" : "hidden")}>
+            <div className="hidden items-center justify-between border-t border-slate-100 bg-transparent p-3 dark:border-slate-800 md:flex md:bg-slate-50/30 md:dark:bg-slate-950/30 md:p-4">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
